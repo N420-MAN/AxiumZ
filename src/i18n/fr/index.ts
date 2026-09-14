@@ -39,7 +39,6 @@ const fr: Dictionary = {
       title: "Un accompagnement pensé autour de chaque parcours",
       body: "Notre centre propose un accompagnement scolaire et linguistique structuré, adapté au niveau, aux objectifs et au parcours de chaque apprenant. Notre démarche repose sur des groupes à effectif limité, un suivi régulier et une attention particulière portée à la progression pédagogique.",
       link: "Découvrir notre approche",
-      approachNumber: "01",
       approachTitle: "Une approche structurée",
       approachBody: "Identifier les besoins, constituer des groupes cohérents, suivre la progression et ajuster l'accompagnement.",
     },
@@ -147,7 +146,6 @@ const fr: Dictionary = {
     approach: {
       title: "Notre démarche",
       body: "Notre démarche repose sur des groupes à effectif limité, un suivi régulier et une attention particulière portée à la progression pédagogique de chaque élève.",
-      number: "01",
       subtitle: "Une approche structurée",
       text: "Identifier les besoins, constituer des groupes cohérents, suivre la progression et ajuster l'accompagnement tout au long de l'année.",
     },

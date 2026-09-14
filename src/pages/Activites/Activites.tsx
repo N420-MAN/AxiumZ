@@ -24,7 +24,13 @@ export default function Activites() {
                 }`}
               >
                 <div className={`md:col-span-2 ${i % 2 === 1 ? "md:order-3" : ""}`}>
-                  <span className="font-display text-[0.95rem] text-graphite">{item.index}</span>
+                  <span
+                    className={`font-display inline-flex h-9 w-9 items-center justify-center rounded-full text-[0.85rem] font-extrabold ${
+                      ["bg-ink text-paper", "bg-red text-paper", "bg-accent text-ink"][i % 3]
+                    }`}
+                  >
+                    {item.index}
+                  </span>
                 </div>
                 <div className={`md:col-span-4 ${i % 2 === 1 ? "md:order-2" : ""}`}>
                   <h2 className="font-display text-[2rem] leading-[1.05] font-extrabold sm:text-[2.6rem]">

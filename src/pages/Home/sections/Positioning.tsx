@@ -31,8 +31,7 @@ export default function Positioning() {
           <div className="md:col-span-5 md:pt-4">
             <Reveal delay={0.15}>
               <div className="border-t border-ink/15 pt-8">
-                <span className="font-display text-[0.95rem] text-graphite">{p.approachNumber}</span>
-                <h3 className="font-display mt-4 text-[1.6rem] leading-tight font-extrabold">{p.approachTitle}</h3>
+                <h3 className="font-display text-[1.6rem] leading-tight font-extrabold">{p.approachTitle}</h3>
                 <p className="mt-4 max-w-sm text-[0.98rem] leading-relaxed text-graphite">{p.approachBody}</p>
               </div>
             </Reveal>

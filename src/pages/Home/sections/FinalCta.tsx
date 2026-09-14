@@ -5,23 +5,12 @@ import { trackEvent } from "../../../lib/analytics";
 import SectionLabel from "../../../components/SectionLabel/SectionLabel";
 import Button from "../../../components/CTA/Button";
 import Reveal from "../../../components/RevealText/Reveal";
-import Marquee from "../../../components/Marquee/Marquee";
 
 export default function FinalCta() {
   const { locale, t } = useLocale();
   const c = t.home.finalCta;
 
-  const marqueeItems = [
-    t.nav.centre,
-    t.nav.activites,
-    t.nav.programmes,
-    t.nav.methodologie,
-    t.nav.inscription,
-  ];
-
   return (
-    <>
-      <Marquee items={marqueeItems} tone="accent" />
       <section id="localisation" className="grain-texture relative overflow-hidden bg-ink px-4 py-28 text-paper sm:px-6 sm:py-40">
         <div className="pattern-grid-dark pointer-events-none absolute inset-0 opacity-50" aria-hidden="true" />
         <div
@@ -71,6 +60,5 @@ export default function FinalCta() {
           </Reveal>
         </div>
       </section>
-    </>
   );
 }

@@ -35,15 +35,19 @@ export default function Methodologie() {
 
         {/* Process flow */}
         <Reveal delay={0.15} className="mt-10">
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
             {m.flow.map((step, i) => (
               <div key={step} className="flex items-center gap-3 sm:gap-4">
-                <span className="rounded-full bg-ink px-5 py-2 text-[0.95rem] font-extrabold text-paper sm:text-[1.1rem]">
+                <motion.span
+                  whileHover={{ y: -3 }}
+                  transition={{ duration: 0.25, ease: EASE }}
+                  className="inline-block rounded-full bg-ink px-5 py-2 text-[0.95rem] font-extrabold text-paper shadow-[0_8px_20px_-6px_rgba(15,42,92,0.5)] sm:text-[1.1rem]"
+                >
                   {step}
-                </span>
+                </motion.span>
                 {i < m.flow.length - 1 && (
-                  <svg viewBox="0 0 16 16" className="h-4 w-4 text-accent" fill="none" aria-hidden="true">
-                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0 rotate-90 text-accent sm:rotate-0" fill="none" aria-hidden="true">
+                    <path d="M3 10h13M11 5l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 )}
               </div>

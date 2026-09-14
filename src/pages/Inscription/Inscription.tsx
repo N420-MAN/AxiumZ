@@ -21,7 +21,13 @@ export default function Inscription() {
           <div className="grid grid-cols-1 gap-x-8 gap-y-10 border-t border-line-dark pt-12 sm:grid-cols-2 lg:grid-cols-4">
             {p.steps.map((step, i) => (
               <Reveal key={step.index} delay={i * 0.08}>
-                <span className="font-display text-[0.95rem] text-mist">{step.index}</span>
+                <span
+                  className={`font-display inline-flex h-9 w-9 items-center justify-center rounded-full text-[0.85rem] font-extrabold ${
+                    ["bg-accent text-ink", "bg-red-bright text-paper", "bg-paper text-ink", "bg-accent-bright text-ink"][i % 4]
+                  }`}
+                >
+                  {step.index}
+                </span>
                 <h3 className="font-display mt-4 text-[1.3rem] font-extrabold">{step.title}</h3>
                 <p className="mt-3 text-[0.92rem] leading-relaxed text-mist">{step.body}</p>
               </Reveal>

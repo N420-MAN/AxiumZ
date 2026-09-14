@@ -32,7 +32,6 @@ export interface Dictionary {
       title: string;
       body: string;
       link: string;
-      approachNumber: string;
       approachTitle: string;
       approachBody: string;
     };
@@ -92,7 +91,7 @@ export interface Dictionary {
   };
   centrePage: {
     hero: { eyebrow: string; title: string; body: string };
-    approach: { title: string; body: string; number: string; subtitle: string; text: string };
+    approach: { title: string; body: string; subtitle: string; text: string };
     values: { title: string; items: { title: string; body: string }[] };
   };
   activitesPage: {

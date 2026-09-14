@@ -13,13 +13,13 @@ export default function StickyMobileBar() {
       initial={{ y: 80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, delay: 0.5, ease: EASE }}
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line-light bg-paper shadow-[0_-8px_24px_-12px_rgba(15,42,92,0.25)] sm:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="fixed inset-x-0 bottom-0 z-40 flex gap-3 border-t border-line-light bg-paper px-4 pt-3 shadow-[0_-8px_24px_-12px_rgba(15,42,92,0.3)] sm:hidden"
+      style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
       <a
         href={`tel:${BRAND.phoneIntl.replace(/\s/g, "")}`}
         onClick={() => trackEvent("call_click", { source: "sticky_mobile_bar" })}
-        className="flex flex-1 items-center justify-center gap-2 border-r border-line-light bg-red py-3.5 text-[0.92rem] font-semibold text-paper"
+        className="flex flex-1 items-center justify-center gap-2 rounded-full bg-red py-3 text-[0.92rem] font-semibold text-paper shadow-[0_8px_20px_-6px_rgba(184,62,61,0.55)] transition-transform active:scale-[0.97]"
       >
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
           <path
@@ -37,7 +37,7 @@ export default function StickyMobileBar() {
         target="_blank"
         rel="noreferrer"
         onClick={() => trackEvent("whatsapp_click", { source: "sticky_mobile_bar" })}
-        className="flex flex-1 items-center justify-center gap-2 py-3.5 text-[0.92rem] font-semibold text-paper"
+        className="flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-[0.92rem] font-semibold text-paper shadow-[0_8px_20px_-6px_rgba(37,211,102,0.55)] transition-transform active:scale-[0.97]"
         style={{ backgroundColor: "#25D366" }}
       >
         <svg viewBox="0 0 32 32" className="h-4 w-4" fill="none" aria-hidden="true">

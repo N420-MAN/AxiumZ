@@ -39,7 +39,6 @@ const en: Dictionary = {
       title: "Support built around every student's path",
       body: "Our centre offers structured academic and language support, adapted to each learner's level, goals, and trajectory. Our approach rests on small groups, regular follow-up, and close attention to pedagogical progress.",
       link: "See our approach",
-      approachNumber: "01",
       approachTitle: "A structured approach",
       approachBody: "Identify each student's needs, form coherent groups, track progress, and adjust support accordingly.",
     },
@@ -147,7 +146,6 @@ const en: Dictionary = {
     approach: {
       title: "Our approach",
       body: "Our approach rests on small groups, regular follow-up, and close attention to each student's pedagogical progress.",
-      number: "01",
       subtitle: "A structured approach",
       text: "Identify each student's needs, form coherent groups, track progress, and adjust support throughout the year.",
     },
