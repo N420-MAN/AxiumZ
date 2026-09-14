@@ -14,6 +14,7 @@ export interface Dictionary {
     menu: string;
     close: string;
     callNow: string;
+    callShort: string;
   };
   home: {
     hero: {

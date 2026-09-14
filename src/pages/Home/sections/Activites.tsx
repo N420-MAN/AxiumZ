@@ -54,13 +54,10 @@ export default function Activites() {
                   transition={{ duration: 0.35, ease: EASE }}
                   className={`h-full rounded-2xl border-t-4 bg-paper p-6 shadow-[0_8px_24px_-12px_rgba(15,42,92,0.25)] ${card.top}`}
                 >
-                  <div className={`relative flex h-12 w-12 items-center justify-center rounded-full ${card.badge}`}>
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-full ${card.badge}`}>
                     <svg viewBox="0 0 22 22" className={`h-6 w-6 ${card.icon}`} fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
                       {card.icon_path}
                     </svg>
-                    <span className="font-display absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-paper bg-ink text-[0.68rem] font-extrabold text-paper">
-                      {item.index}
-                    </span>
                   </div>
                   <h3 className="font-display mt-5 text-[1.35rem] font-extrabold leading-tight">
                     {item.title[0]} {item.title[1]}

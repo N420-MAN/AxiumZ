@@ -17,6 +17,7 @@ const fr: Dictionary = {
     menu: "Menu",
     close: "Fermer",
     callNow: "Appelez-nous maintenant",
+    callShort: "Appelez-nous",
   },
   home: {
     hero: {

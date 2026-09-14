@@ -33,23 +33,22 @@ export default function Methodologie() {
           </Reveal>
         </div>
 
-        {/* Process flow */}
-        <Reveal delay={0.15} className="mt-10">
-          <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+        {/* Process flow — horizontal timeline */}
+        <Reveal delay={0.15} className="mt-12">
+          <div className="relative flex items-start justify-between sm:max-w-md">
+            <div className="absolute left-4 right-4 top-4 h-px bg-ink/15" aria-hidden="true" />
             {m.flow.map((step, i) => (
-              <div key={step} className="flex items-center gap-3 sm:gap-4">
+              <div key={step} className="relative z-10 flex flex-col items-center gap-3">
                 <motion.span
-                  whileHover={{ y: -3 }}
-                  transition={{ duration: 0.25, ease: EASE }}
-                  className="inline-block rounded-full bg-ink px-5 py-2 text-[0.95rem] font-extrabold text-paper shadow-[0_8px_20px_-6px_rgba(15,42,92,0.5)] sm:text-[1.1rem]"
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.1 + i * 0.1, ease: EASE }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-[0.8rem] font-extrabold text-paper"
                 >
-                  {step}
+                  {i + 1}
                 </motion.span>
-                {i < m.flow.length - 1 && (
-                  <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0 rotate-90 text-accent sm:rotate-0" fill="none" aria-hidden="true">
-                    <path d="M3 10h13M11 5l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
+                <span className="text-[0.85rem] font-extrabold text-ink sm:text-[0.95rem]">{step}</span>
               </div>
             ))}
           </div>
@@ -66,10 +65,7 @@ export default function Methodologie() {
                   transition={{ duration: 0.35, ease: EASE }}
                   className={`h-full rounded-2xl border-t-4 bg-paper p-5 shadow-[0_8px_24px_-12px_rgba(15,42,92,0.2)] ${style.top}`}
                 >
-                  <span className={`font-display flex h-9 w-9 items-center justify-center rounded-full text-[0.85rem] font-extrabold ${style.badge}`}>
-                    {item.index}
-                  </span>
-                  <h3 className="font-display mt-3 text-[1.2rem] font-extrabold">{item.title}</h3>
+                  <h3 className="font-display text-[1.2rem] font-extrabold">{item.title}</h3>
                   <p className="mt-2 text-[0.9rem] leading-relaxed text-graphite">{item.body}</p>
                 </motion.div>
               </Reveal>
