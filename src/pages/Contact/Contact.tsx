@@ -32,6 +32,9 @@ export default function Contact() {
                 >
                   {c.phoneLabel}
                 </a>
+                <a href={`mailto:${BRAND.publicEmail}`} className="mt-2 block text-[1rem] text-graphite hover:text-accent">
+                  {BRAND.publicEmail}
+                </a>
               </div>
               <Button
                 href={BRAND.whatsappUrl}
@@ -58,6 +61,7 @@ export default function Contact() {
                   {c.locationTitle}
                 </h2>
                 <p className="mt-6 max-w-sm text-[0.98rem] leading-relaxed text-mist">{c.locationBody}</p>
+                <p className="mt-4 max-w-sm text-[0.95rem] font-semibold text-paper">{BRAND.address}</p>
                 <a
                   href={BRAND.mapsUrl}
                   target="_blank"

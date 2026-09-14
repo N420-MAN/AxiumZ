@@ -319,6 +319,13 @@ const en: Dictionary = {
     ],
     lastUpdated: "This privacy policy is general information and may be refined further. For any question, please contact us.",
   },
+  notFoundPage: {
+    eyebrow: "404 Error",
+    title: "This page doesn't exist.",
+    body: "The page you're looking for may have moved or no longer exists. Head back home, or contact us if you think this is a mistake.",
+    backHome: "Back to home",
+    contact: "Contact us",
+  },
   callBanner: {
     title: "Contact our pedagogical lead",
     body: "A question about our programs or availability? Our team responds quickly.",

@@ -45,8 +45,9 @@ function setJsonLd(id: string, data: Record<string, unknown> | null) {
 }
 
 /** Sets title, description, canonical + hreflang alternates, the html lang attribute, and (on the homepage) local-business JSON-LD. */
-export function usePageMeta(title: string, description: string, page: PageKey = "home") {
+export function usePageMeta(title: string, description: string, page: PageKey = "home", options?: { noindex?: boolean }) {
   const { locale } = useLocale();
+  const noindex = options?.noindex ?? false;
 
   useEffect(() => {
     document.title = title;
@@ -59,6 +60,16 @@ export function usePageMeta(title: string, description: string, page: PageKey = 
     setMetaTag("name", "twitter:card", "summary_large_image");
     setMetaTag("name", "twitter:title", title);
     setMetaTag("name", "twitter:description", description);
+
+    if (noindex) {
+      // Error/utility pages shouldn't be indexed or claim a canonical URL —
+      // the browser URL that triggered this render is arbitrary (a typo, a
+      // dead link), not a real page worth pointing search engines at.
+      setMetaTag("name", "robots", "noindex, nofollow");
+      setJsonLd("organization", null);
+      return;
+    }
+    setMetaTag("name", "robots", "index, follow");
 
     const frPath = pathFor("fr", page);
     const enPath = pathFor("en", page);
@@ -76,10 +87,12 @@ export function usePageMeta(title: string, description: string, page: PageKey = 
         name: BRAND.name,
         url: SITE_ORIGIN,
         telephone: BRAND.phoneIntl,
+        email: BRAND.publicEmail,
         description,
         address: {
           "@type": "PostalAddress",
-          addressLocality: "Casablanca",
+          streetAddress: "N136 Lot Faraj Line",
+          addressLocality: "Sidi Maarouf, Casablanca",
           addressCountry: "MA",
         },
         geo: {
@@ -88,11 +101,11 @@ export function usePageMeta(title: string, description: string, page: PageKey = 
           longitude: BRAND.coordinates.lng,
         },
         areaServed: "Casablanca",
-        sameAs: [],
+        sameAs: [BRAND.facebookUrl, BRAND.instagramUrl],
       });
     } else {
       setJsonLd("organization", null);
     }
-  }, [title, description, locale, page]);
+  }, [title, description, locale, page, noindex]);
 }
 

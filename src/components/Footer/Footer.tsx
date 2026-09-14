@@ -16,6 +16,32 @@ export default function Footer() {
             <p className="mt-6 max-w-xs text-[0.95rem] leading-relaxed text-mist">
               {t.footer.tagline}
             </p>
+            <div className="mt-6 flex items-center gap-3">
+              <a
+                href={BRAND.facebookUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Facebook"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-paper/15 text-paper/80 transition-colors hover:border-paper/40 hover:text-paper"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+                  <path d="M13.5 21v-7.8h2.6l.4-3h-3v-1.9c0-.87.24-1.46 1.5-1.46h1.6V4.14C15.9 4.06 15 4 13.94 4c-2.2 0-3.7 1.34-3.7 3.8v2.4H7.6v3h2.64V21h3.26Z" />
+                </svg>
+              </a>
+              <a
+                href={BRAND.instagramUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Instagram"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-paper/15 text-paper/80 transition-colors hover:border-paper/40 hover:text-paper"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                  <rect x="3.5" y="3.5" width="17" height="17" rx="4.5" />
+                  <circle cx="12" cy="12" r="3.8" />
+                  <circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none" />
+                </svg>
+              </a>
+            </div>
           </div>
 
           <div>
@@ -78,6 +104,11 @@ export default function Footer() {
                   {BRAND.phoneDisplay}
                 </a>
               </li>
+              <li>
+                <a href={`mailto:${BRAND.publicEmail}`} className="text-paper/85 hover:text-paper">
+                  {BRAND.publicEmail}
+                </a>
+              </li>
             </ul>
           </div>
         </div>
@@ -90,7 +121,7 @@ export default function Footer() {
             <Link to={pathFor(locale, "privacy")} className="text-mist hover:text-paper">
               {t.footer.privacyLink}
             </Link>
-            <span className="text-mist/70">Casablanca, Maroc</span>
+            <span className="text-mist/70">{BRAND.address}</span>
           </div>
         </div>
       </div>

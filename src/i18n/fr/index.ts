@@ -319,6 +319,13 @@ const fr: Dictionary = {
     ],
     lastUpdated: "Cette politique de confidentialité est une information générale et pourra être précisée. Pour toute question, contactez-nous.",
   },
+  notFoundPage: {
+    eyebrow: "Erreur 404",
+    title: "Cette page n'existe pas.",
+    body: "La page que vous cherchez a peut-être été déplacée ou n'existe plus. Retournez à l'accueil ou contactez-nous si vous pensez qu'il s'agit d'une erreur.",
+    backHome: "Retour à l'accueil",
+    contact: "Nous contacter",
+  },
   callBanner: {
     title: "Contactez notre responsable pédagogique",
     body: "Une question sur nos programmes ou nos disponibilités ? Notre équipe vous répond rapidement.",

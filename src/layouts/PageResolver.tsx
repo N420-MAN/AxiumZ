@@ -1,7 +1,7 @@
 import { Suspense, lazy } from "react";
-import { useParams, Navigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useLocale } from "../i18n/LocaleContext";
-import { pageForSlug, pathFor } from "../i18n/config";
+import { pageForSlug } from "../i18n/config";
 
 const Centre = lazy(() => import("../pages/Centre/Centre"));
 const Activites = lazy(() => import("../pages/Activites/Activites"));
@@ -11,6 +11,7 @@ const Contact = lazy(() => import("../pages/Contact/Contact"));
 const Inscription = lazy(() => import("../pages/Inscription/Inscription"));
 const MonEspace = lazy(() => import("../pages/MonEspace/MonEspace"));
 const Privacy = lazy(() => import("../pages/Privacy/Privacy"));
+const NotFound = lazy(() => import("../pages/NotFound/NotFound"));
 
 export default function PageResolver() {
   const { locale } = useLocale();
@@ -36,7 +37,7 @@ export default function PageResolver() {
       case "privacy":
         return <Privacy />;
       default:
-        return <Navigate to={pathFor(locale, "home")} replace />;
+        return <NotFound />;
     }
   })();
 

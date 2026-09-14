@@ -177,6 +177,13 @@ export interface Dictionary {
     sections: { heading: string; body: string }[];
     lastUpdated: string;
   };
+  notFoundPage: {
+    eyebrow: string;
+    title: string;
+    body: string;
+    backHome: string;
+    contact: string;
+  };
   callBanner: {
     title: string;
     body: string;
