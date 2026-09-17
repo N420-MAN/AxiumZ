@@ -6,6 +6,7 @@ import Home from "./pages/Home/Home";
 import Cursor from "./components/Cursor/Cursor";
 import WhatsAppButton from "./components/WhatsAppButton/WhatsAppButton";
 import { initAnalytics, trackPageView } from "./lib/analytics";
+import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -29,19 +30,21 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <Cursor />
-      <WhatsAppButton />
-      <ScrollToTop />
-      <AnalyticsTracker />
-      <Routes>
-        <Route path="/" element={<Navigate to="/fr" replace />} />
-        <Route path="/:lang" element={<RootLayout />}>
-          <Route index element={<Home />} />
-          <Route path=":slug" element={<PageResolver />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/fr" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Cursor />
+        <WhatsAppButton />
+        <ScrollToTop />
+        <AnalyticsTracker />
+        <Routes>
+          <Route path="/" element={<Navigate to="/fr" replace />} />
+          <Route path="/:lang" element={<RootLayout />}>
+            <Route index element={<Home />} />
+            <Route path=":slug" element={<PageResolver />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/fr" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

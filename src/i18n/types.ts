@@ -1,3 +1,5 @@
+export type RoleNameKey = "super_admin" | "center_admin" | "teacher" | "student" | "parent";
+
 export interface Dictionary {
   meta: {
     titleSuffix: string;
@@ -163,13 +165,6 @@ export interface Dictionary {
     ctaBody: string;
     ctaButton: string;
   };
-  monEspacePage: {
-    eyebrow: string;
-    title: string;
-    body: string;
-    backHome: string;
-    contact: string;
-  };
   privacyPage: {
     eyebrow: string;
     title: string;
@@ -183,6 +178,26 @@ export interface Dictionary {
     body: string;
     backHome: string;
     contact: string;
+  };
+  auth: {
+    emailLabel: string;
+    passwordLabel: string;
+    fullNameLabel: string;
+    signInTitle: string;
+    signInButton: string;
+    signUpTitle: string;
+    signUpButton: string;
+    switchToSignUp: string;
+    switchToSignIn: string;
+    signOutButton: string;
+    loading: string;
+    checkYourEmail: string;
+    dashboardTitle: string;
+    welcomeBack: string;
+    yourRole: string;
+    yourOrganization: string;
+    noMemberships: string;
+    roleNames: Record<RoleNameKey, string>;
   };
   callBanner: {
     title: string;

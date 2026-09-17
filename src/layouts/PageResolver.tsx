@@ -9,7 +9,7 @@ const Programmes = lazy(() => import("../pages/Programmes/Programmes"));
 const Methodologie = lazy(() => import("../pages/Methodologie/Methodologie"));
 const Contact = lazy(() => import("../pages/Contact/Contact"));
 const Inscription = lazy(() => import("../pages/Inscription/Inscription"));
-const MonEspace = lazy(() => import("../pages/MonEspace/MonEspace"));
+const MonEspace = lazy(() => import("../pages/MonEspace/MonEspaceApp"));
 const Privacy = lazy(() => import("../pages/Privacy/Privacy"));
 const NotFound = lazy(() => import("../pages/NotFound/NotFound"));
 
