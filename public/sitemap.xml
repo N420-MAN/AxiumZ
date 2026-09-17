@@ -2,43 +2,43 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://axiumz.com/fr</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://axiumz.com/fr" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://axiumz.com/en" />
+    <loc>https://www.axiumz.com/fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.axiumz.com/fr" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.axiumz.com/en" />
   </url>
   <url>
-    <loc>https://axiumz.com/fr/centre</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://axiumz.com/fr/centre" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://axiumz.com/en/centre" />
+    <loc>https://www.axiumz.com/fr/centre</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.axiumz.com/fr/centre" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.axiumz.com/en/centre" />
   </url>
   <url>
-    <loc>https://axiumz.com/fr/activites</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://axiumz.com/fr/activites" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://axiumz.com/en/activites" />
+    <loc>https://www.axiumz.com/fr/activites</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.axiumz.com/fr/activites" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.axiumz.com/en/activites" />
   </url>
   <url>
-    <loc>https://axiumz.com/fr/programmes</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://axiumz.com/fr/programmes" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://axiumz.com/en/programmes" />
+    <loc>https://www.axiumz.com/fr/programmes</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.axiumz.com/fr/programmes" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.axiumz.com/en/programmes" />
   </url>
   <url>
-    <loc>https://axiumz.com/fr/methodologie</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://axiumz.com/fr/methodologie" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://axiumz.com/en/methodology" />
+    <loc>https://www.axiumz.com/fr/methodologie</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.axiumz.com/fr/methodologie" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.axiumz.com/en/methodology" />
   </url>
   <url>
-    <loc>https://axiumz.com/fr/contact</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://axiumz.com/fr/contact" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://axiumz.com/en/contact" />
+    <loc>https://www.axiumz.com/fr/contact</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.axiumz.com/fr/contact" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.axiumz.com/en/contact" />
   </url>
   <url>
-    <loc>https://axiumz.com/fr/inscription</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://axiumz.com/fr/inscription" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://axiumz.com/en/registration" />
+    <loc>https://www.axiumz.com/fr/inscription</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.axiumz.com/fr/inscription" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.axiumz.com/en/registration" />
   </url>
   <url>
-    <loc>https://axiumz.com/fr/confidentialite</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://axiumz.com/fr/confidentialite" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://axiumz.com/en/privacy-policy" />
+    <loc>https://www.axiumz.com/fr/confidentialite</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.axiumz.com/fr/confidentialite" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.axiumz.com/en/privacy-policy" />
   </url>
 </urlset>

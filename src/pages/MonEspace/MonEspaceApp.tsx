@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { AuthProvider, useAuth } from "../../features/auth/AuthContext";
 import { usePageMeta } from "../../hooks/usePageMeta";
 import { useLocale } from "../../i18n/LocaleContext";
 import { isSupabaseConfigured } from "../../lib/supabaseClient";
 import Login from "./Login";
 import Dashboard from "./Dashboard";
+import SetPassword from "./SetPassword";
 
 function NotConfigured() {
   // Shown instead of silently crashing when VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
@@ -28,8 +30,24 @@ function MonEspaceGate() {
   const { session, loading } = useAuth();
   usePageMeta(`${t.auth.dashboardTitle} — AxiumZ`, t.auth.dashboardTitle, "monEspace", { noindex: true });
 
+  // Supabase's client (detectSessionInUrl: true) automatically reads the
+  // access_token out of the URL hash and establishes a session — but it
+  // doesn't tell us "this session came from an invite link" on its own.
+  // We capture that ourselves, once, before anything strips the hash.
+  const [authFlowType] = useState<"invite" | "recovery" | null>(() => {
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery")) return "recovery";
+    if (hash.includes("type=invite")) return "invite";
+    return null;
+  });
+  const [passwordJustSet, setPasswordJustSet] = useState(false);
+
   if (!isSupabaseConfigured) {
     return <NotConfigured />;
+  }
+
+  if (authFlowType && !passwordJustSet) {
+    return <SetPassword onDone={() => setPasswordJustSet(true)} />;
   }
 
   if (loading) {

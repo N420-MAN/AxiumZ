@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
 
 interface ExtraField {
   key: string;
@@ -105,7 +106,8 @@ export default function EntityManager({ table, organizationId, title, extraField
     setInviting(null);
 
     if (inviteError || data?.error) {
-      setInviteResult((prev) => ({ ...prev, [row.id]: `Erreur : ${data?.error ?? inviteError?.message}` }));
+      const message = await extractFunctionErrorMessage(inviteError, data);
+      setInviteResult((prev) => ({ ...prev, [row.id]: `Erreur : ${message}` }));
       return;
     }
 

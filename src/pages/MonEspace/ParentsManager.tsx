@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
 
 interface Student {
   id: string;
@@ -140,7 +141,8 @@ export default function ParentsManager({ organizationId }: { organizationId: str
     setInviting(null);
 
     if (inviteError || data?.error) {
-      setInviteResult((prev) => ({ ...prev, [parent.id]: `Erreur : ${data?.error ?? inviteError?.message}` }));
+      const message = await extractFunctionErrorMessage(inviteError, data);
+      setInviteResult((prev) => ({ ...prev, [parent.id]: `Erreur : ${message}` }));
       return;
     }
 

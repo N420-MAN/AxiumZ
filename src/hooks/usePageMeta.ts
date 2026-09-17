@@ -3,7 +3,7 @@ import { useLocale } from "../i18n/LocaleContext";
 import { pathFor, type PageKey } from "../i18n/config";
 import { BRAND } from "../data/brand";
 
-const SITE_ORIGIN = "https://axiumz.com";
+const SITE_ORIGIN = "https://www.axiumz.com";
 
 function setMetaTag(attr: "name" | "property", key: string, content: string) {
   let el = document.querySelector(`meta[${attr}="${key}"]`);
