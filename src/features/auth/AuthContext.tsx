@@ -34,7 +34,6 @@ interface AuthContextValue {
   /** True while the initial session/profile/memberships are being resolved. */
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -139,15 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } },
-    });
-    return { error: error?.message ?? null };
-  }, []);
-
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
@@ -164,7 +154,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isSuperAdmin,
         loading,
         signIn,
-        signUp,
         signOut,
         refresh,
       }}

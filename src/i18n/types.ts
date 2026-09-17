@@ -182,16 +182,10 @@ export interface Dictionary {
   auth: {
     emailLabel: string;
     passwordLabel: string;
-    fullNameLabel: string;
     signInTitle: string;
     signInButton: string;
-    signUpTitle: string;
-    signUpButton: string;
-    switchToSignUp: string;
-    switchToSignIn: string;
     signOutButton: string;
     loading: string;
-    checkYourEmail: string;
     dashboardTitle: string;
     welcomeBack: string;
     yourRole: string;

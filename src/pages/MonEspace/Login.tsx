@@ -7,16 +7,19 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 const inputClass =
   "w-full rounded-lg border border-paper/15 bg-paper/[0.04] px-4 py-3 text-[0.98rem] text-paper outline-none transition-colors placeholder:text-mist/50 focus:border-accent-bright";
 
+// Accounts on Mon Espace are always created by an admin invite (see
+// AdminPanel → "Inviter"), never by open self-registration — a student or
+// parent doesn't have an organization role or a linked record until an
+// admin sets that up. Open signup would just create dead-end accounts with
+// no access, so this page only ever offers sign-in.
 export default function Login() {
   const { t } = useLocale();
   const a = t.auth;
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
 
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "error" | "signedUp">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   async function handleSubmit(e: FormEvent) {
@@ -24,18 +27,14 @@ export default function Login() {
     setStatus("loading");
     setErrorMessage("");
 
-    const result = mode === "signin" ? await signIn(email, password) : await signUp(email, password, fullName);
+    const result = await signIn(email, password);
 
     if (result.error) {
       setStatus("error");
       setErrorMessage(result.error);
       return;
     }
-
-    if (mode === "signup") {
-      setStatus("signedUp");
-    }
-    // On sign-in success, AuthContext's onAuthStateChange listener updates the
+    // On success, AuthContext's onAuthStateChange listener updates the
     // session automatically — MonEspaceApp re-renders into the dashboard.
   }
 
@@ -54,73 +53,43 @@ export default function Login() {
         transition={{ duration: 0.6, ease: EASE }}
         className="relative w-full max-w-sm rounded-2xl border border-paper/10 bg-ink-soft p-8 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)]"
       >
-        <h1 className="font-display text-[1.5rem] font-extrabold">
-          {mode === "signin" ? a.signInTitle : a.signUpTitle}
-        </h1>
+        <h1 className="font-display text-[1.5rem] font-extrabold">{a.signInTitle}</h1>
 
-        {status === "signedUp" ? (
-          <p className="mt-6 text-[0.95rem] leading-relaxed text-mist">{a.checkYourEmail}</p>
-        ) : (
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            {mode === "signup" && (
-              <label className="block">
-                <span className="text-[0.82rem] text-mist">{a.fullNameLabel}</span>
-                <input
-                  required
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className={`mt-2 ${inputClass}`}
-                />
-              </label>
-            )}
-            <label className="block">
-              <span className="text-[0.82rem] text-mist">{a.emailLabel}</span>
-              <input
-                required
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`mt-2 ${inputClass}`}
-              />
-            </label>
-            <label className="block">
-              <span className="text-[0.82rem] text-mist">{a.passwordLabel}</span>
-              <input
-                required
-                type="password"
-                minLength={6}
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`mt-2 ${inputClass}`}
-              />
-            </label>
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <label className="block">
+            <span className="text-[0.82rem] text-mist">{a.emailLabel}</span>
+            <input
+              required
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={`mt-2 ${inputClass}`}
+            />
+          </label>
+          <label className="block">
+            <span className="text-[0.82rem] text-mist">{a.passwordLabel}</span>
+            <input
+              required
+              type="password"
+              minLength={6}
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`mt-2 ${inputClass}`}
+            />
+          </label>
 
-            {status === "error" && <p className="text-[0.85rem] text-red-bright">{errorMessage}</p>}
+          {status === "error" && <p className="text-[0.85rem] text-red-bright">{errorMessage}</p>}
 
-            <button
-              type="submit"
-              disabled={status === "loading"}
-              className="w-full rounded-full bg-accent px-6 py-3 text-[0.95rem] font-semibold text-ink transition-opacity disabled:opacity-60"
-            >
-              {status === "loading" ? a.loading : mode === "signin" ? a.signInButton : a.signUpButton}
-            </button>
-          </form>
-        )}
-
-        <button
-          type="button"
-          onClick={() => {
-            setMode(mode === "signin" ? "signup" : "signin");
-            setStatus("idle");
-            setErrorMessage("");
-          }}
-          className="mt-6 text-[0.85rem] text-mist underline decoration-mist/30 underline-offset-4 hover:text-paper"
-        >
-          {mode === "signin" ? a.switchToSignUp : a.switchToSignIn}
-        </button>
+          <button
+            type="submit"
+            disabled={status === "loading"}
+            className="w-full rounded-full bg-accent px-6 py-3 text-[0.95rem] font-semibold text-ink transition-opacity disabled:opacity-60"
+          >
+            {status === "loading" ? a.loading : a.signInButton}
+          </button>
+        </form>
       </motion.div>
     </section>
   );
