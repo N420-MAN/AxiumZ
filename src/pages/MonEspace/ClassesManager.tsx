@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
+import ScheduleSessionsForm from "./ScheduleSessionsForm";
 
 interface Course {
   id: string;
@@ -267,6 +268,8 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                       ))
                     )}
                   </div>
+
+                  <ScheduleSessionsForm classId={cls.id} defaultRoom={cls.room} organizationId={organizationId} />
                 </div>
               )}
             </div>

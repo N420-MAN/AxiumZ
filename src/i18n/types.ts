@@ -273,7 +273,6 @@ export interface Dictionary {
     };
     gestion: {
       noOrganization: string;
-      platformAdminNote: string;
     };
   };
   callBanner: {

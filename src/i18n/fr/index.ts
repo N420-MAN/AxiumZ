@@ -415,7 +415,6 @@ const fr: Dictionary = {
     },
     gestion: {
       noOrganization: "Aucune organisation associée à ce compte.",
-      platformAdminNote: "Connecté en tant qu'administrateur plateforme.",
     },
   },
   callBanner: {

@@ -12,7 +12,7 @@ import TodayView from "./TodayView";
 import OverviewView from "./OverviewView";
 import CalendarView from "./CalendarView";
 import AnnouncementsView from "./AnnouncementsView";
-import AdminPanel from "./AdminPanel";
+import GestionLayout from "./GestionLayout";
 
 function NotConfigured() {
   // Shown instead of silently crashing when VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
@@ -32,31 +32,6 @@ function NotConfigured() {
   );
 }
 
-function GestionView() {
-  // Admin management screens still need an organization to scope to — reuse
-  // the same "first admin-eligible membership" logic the old flat dashboard
-  // used, since there's currently only ever one organization in practice.
-  const { memberships, isSuperAdmin } = useAuth();
-  const { t } = useLocale();
-  const m = t.monEspace.gestion;
-  const orgId = memberships.find((m) => m.role_name === "center_admin")?.organization_id ?? memberships[0]?.organization_id;
-
-  if (!orgId) {
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8 sm:py-10">
-        <p className="text-[0.9rem] text-gray-500">{m.noOrganization}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8 sm:py-10">
-      <AdminPanel organizationId={orgId} />
-      {isSuperAdmin && <p className="mt-2 text-[0.75rem] text-gray-400">{m.platformAdminNote}</p>}
-    </div>
-  );
-}
-
 function AuthenticatedApp() {
   const { memberships, isSuperAdmin } = useAuth();
   const { lang } = useParams();
@@ -71,7 +46,7 @@ function AuthenticatedApp() {
         <Route index element={<Navigate to={`${base}/aujourdhui`} replace />} />
         <Route path="aujourdhui" element={isAdmin || isTeacher ? <TodayView /> : <OverviewView />} />
         <Route path="planning" element={<CalendarView />} />
-        {isAdmin && <Route path="gestion" element={<GestionView />} />}
+        {isAdmin && <Route path="gestion/*" element={<GestionLayout />} />}
         <Route path="annonces" element={<AnnouncementsView />} />
         <Route path="*" element={<Navigate to={`${base}/aujourdhui`} replace />} />
       </Route>

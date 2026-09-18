@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useLocale } from "../../i18n/LocaleContext";
@@ -9,7 +9,17 @@ interface SessionRow {
   starts_at: string;
   ends_at: string;
   room: string | null;
-  classes: { id: string; name: string; teacher_id: string | null; teachers: { user_id: string | null } | null } | null;
+  classes: {
+    id: string;
+    name: string;
+    teacher_id: string | null;
+    teachers: { user_id: string | null; first_name: string; last_name: string } | null;
+  } | null;
+}
+interface TeacherOption {
+  id: string;
+  first_name: string;
+  last_name: string;
 }
 
 const START_HOUR = 8;
@@ -25,6 +35,12 @@ const PALETTE = [
   "bg-purple-50 text-purple-800",
   "bg-rose-50 text-rose-800",
 ];
+// A darker-toned parallel to PALETTE for the agenda list's small dot
+// indicator. Kept as fully-written-out literal class names (not built via
+// string manipulation on PALETTE at runtime) because Tailwind's build-time
+// scanner only picks up classes it can find as literal text in the source
+// — a dynamically-assembled class name can silently fail to compile in.
+const DOT_PALETTE = ["bg-amber-400", "bg-blue-400", "bg-green-400", "bg-purple-400", "bg-rose-400"];
 
 function startOfWeek(offsetWeeks: number) {
   const d = new Date();
@@ -41,12 +57,18 @@ export default function CalendarView() {
   const m = t.monEspace.calendar;
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
+  const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
+  const orgId = memberships[0]?.organization_id;
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [teachers, setTeachers] = useState<TeacherOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [openSession, setOpenSession] = useState<SessionRow | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [teacherFilter, setTeacherFilter] = useState("");
+  const [roomFilter, setRoomFilter] = useState("");
 
   const weekStart = startOfWeek(weekOffset);
   const weekEnd = new Date(weekStart);
@@ -56,6 +78,19 @@ export default function CalendarView() {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, []);
 
+  // The teacher filter only makes sense for admins overseeing the whole
+  // center — a teacher or student never needs to filter by teacher, since
+  // RLS already scopes what they see to their own classes.
+  useEffect(() => {
+    if (!isAdmin || !orgId) return;
+    supabase
+      .from("teachers")
+      .select("id, first_name, last_name")
+      .eq("organization_id", orgId)
+      .order("last_name")
+      .then(({ data }) => setTeachers(data ?? []));
+  }, [isAdmin, orgId]);
+
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -63,7 +98,7 @@ export default function CalendarView() {
       rangeEnd.setDate(rangeEnd.getDate() + 7);
       const { data } = await supabase
         .from("class_sessions")
-        .select("id, starts_at, ends_at, room, classes(id, name, teacher_id, teachers(user_id))")
+        .select("id, starts_at, ends_at, room, classes(id, name, teacher_id, teachers(user_id, first_name, last_name))")
         .gte("starts_at", weekStart.toISOString())
         .lt("starts_at", rangeEnd.toISOString())
         .order("starts_at");
@@ -74,18 +109,34 @@ export default function CalendarView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekOffset]);
 
-  // Stable color per class id, not per array position, so a class doesn't
-  // change color when other sessions load in a different order.
-  const classColor = (classId: string | undefined) => {
-    if (!classId) return PALETTE[0];
+  const filteredSessions = useMemo(() => {
+    return sessions.filter((s) => {
+      if (teacherFilter && s.classes?.teacher_id !== teacherFilter) return false;
+      if (roomFilter && s.room !== roomFilter) return false;
+      return true;
+    });
+  }, [sessions, teacherFilter, roomFilter]);
+
+  const availableRooms = useMemo(() => {
+    const rooms = new Set<string>();
+    for (const s of sessions) if (s.room) rooms.add(s.room);
+    return Array.from(rooms).sort();
+  }, [sessions]);
+
+  // Shared index computation so the grid block and the agenda dot for the
+  // same class always agree on which color they're using.
+  const classColorIndex = (classId: string | undefined) => {
+    if (!classId) return 0;
     let hash = 0;
     for (const c of classId) hash = (hash * 31 + c.charCodeAt(0)) % PALETTE.length;
-    return PALETTE[hash];
+    return hash;
   };
+  const classColor = (classId: string | undefined) => PALETTE[classColorIndex(classId)];
+  const classDotColor = (classId: string | undefined) => DOT_PALETTE[classColorIndex(classId)];
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-[1.5rem] font-bold text-gray-900">{m.title}</h1>
         <div className="flex items-center gap-2">
           <button
@@ -109,10 +160,60 @@ export default function CalendarView() {
         </div>
       </div>
 
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <select
+              value={teacherFilter}
+              onChange={(e) => setTeacherFilter(e.target.value)}
+              className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[0.8rem] text-gray-700"
+            >
+              <option value="">Tous les enseignants</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.first_name} {t.last_name}
+                </option>
+              ))}
+            </select>
+          )}
+          {availableRooms.length > 1 && (
+            <select
+              value={roomFilter}
+              onChange={(e) => setRoomFilter(e.target.value)}
+              className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[0.8rem] text-gray-700"
+            >
+              <option value="">Toutes les salles</option>
+              {availableRooms.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div className="flex items-center rounded-md border border-gray-200 bg-white p-0.5">
+          <button
+            type="button"
+            onClick={() => setViewMode("grid")}
+            className={`rounded px-2.5 py-1 text-[0.78rem] font-medium ${viewMode === "grid" ? "bg-gray-900 text-white" : "text-gray-600"}`}
+          >
+            Grille
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            className={`rounded px-2.5 py-1 text-[0.78rem] font-medium ${viewMode === "list" ? "bg-gray-900 text-white" : "text-gray-600"}`}
+          >
+            Liste
+          </button>
+        </div>
+      </div>
+
       {loading ? (
-        <div className="mt-6 h-96" />
-      ) : (
-        <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <div className="mt-4 h-96" />
+      ) : viewMode === "grid" ? (
+        <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white">
           <div className="grid min-w-[720px] grid-cols-[52px_repeat(6,1fr)]">
             <div className="border-b border-gray-100" />
             {m.dayLabels.map((label, i) => {
@@ -143,7 +244,7 @@ export default function CalendarView() {
               />
             ))}
 
-            {sessions.map((s) => {
+            {filteredSessions.map((s) => {
               const start = new Date(s.starts_at);
               const end = new Date(s.ends_at);
               const dayIdx = (start.getDay() + 6) % 7; // Monday = 0
@@ -169,6 +270,51 @@ export default function CalendarView() {
               );
             })}
           </div>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          {m.dayLabels.map((label, dayIdx) => {
+            const dayDate = new Date(weekStart.getTime() + dayIdx * 86400000);
+            const daySessions = filteredSessions
+              .filter((s) => (new Date(s.starts_at).getDay() + 6) % 7 === dayIdx)
+              .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+            if (daySessions.length === 0) return null;
+            return (
+              <div key={label}>
+                <h3 className="text-[0.82rem] font-semibold text-gray-900">
+                  {label} <span className="font-normal text-gray-400">{dayDate.toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}</span>
+                </h3>
+                <div className="mt-1.5 space-y-1.5">
+                  {daySessions.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setOpenSession(s)}
+                      className="flex w-full items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 text-left hover:bg-gray-50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${classDotColor(s.classes?.id)}`} />
+                        <span className="text-[0.85rem] font-medium text-gray-900">{s.classes?.name}</span>
+                        {s.classes?.teachers && (
+                          <span className="text-[0.78rem] text-gray-500">
+                            {s.classes.teachers.first_name} {s.classes.teachers.last_name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-[0.78rem] text-gray-500">
+                        <span>
+                          {new Date(s.starts_at).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}–
+                          {new Date(s.ends_at).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        {s.room && <span>{s.room}</span>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          {filteredSessions.length === 0 && <p className="text-[0.85rem] text-gray-400">Aucune séance cette semaine.</p>}
         </div>
       )}
 
