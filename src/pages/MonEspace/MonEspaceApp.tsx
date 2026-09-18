@@ -1,12 +1,19 @@
 import { useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "../../features/auth/AuthContext";
 import { usePageMeta } from "../../hooks/usePageMeta";
 import { useLocale } from "../../i18n/LocaleContext";
 import { isSupabaseConfigured } from "../../lib/supabaseClient";
 import { capturedAuthFlowType } from "../../lib/authFlowCapture";
 import Login from "./Login";
-import Dashboard from "./Dashboard";
 import SetPassword from "./SetPassword";
+import MonEspaceLayout from "./MonEspaceLayout";
+import TodayView from "./TodayView";
+import OverviewView from "./OverviewView";
+import CalendarView from "./CalendarView";
+import MyClasses from "./MyClasses";
+import AnnouncementsView from "./AnnouncementsView";
+import AdminPanel from "./AdminPanel";
 
 function NotConfigured() {
   // Shown instead of silently crashing when VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
@@ -23,6 +30,50 @@ function NotConfigured() {
         </p>
       </div>
     </section>
+  );
+}
+
+function GestionView() {
+  // Admin management screens still need an organization to scope to — reuse
+  // the same "first admin-eligible membership" logic the old flat dashboard
+  // used, since there's currently only ever one organization in practice.
+  const { memberships, isSuperAdmin } = useAuth();
+  const orgId = memberships.find((m) => m.role_name === "center_admin")?.organization_id ?? memberships[0]?.organization_id;
+
+  if (!orgId) {
+    return (
+      <div className="mx-auto max-w-4xl px-8 py-10">
+        <p className="text-[0.9rem] text-gray-500">Aucune organisation associée à ce compte.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl px-8 py-10">
+      <AdminPanel organizationId={orgId} />
+      {isSuperAdmin && <p className="mt-2 text-[0.75rem] text-gray-400">Connecté en tant qu'administrateur plateforme.</p>}
+    </div>
+  );
+}
+
+function AuthenticatedApp() {
+  const { memberships, isSuperAdmin } = useAuth();
+  const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
+  const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
+  const isTeacher = primaryRole === "teacher";
+
+  return (
+    <Routes>
+      <Route element={<MonEspaceLayout />}>
+        <Route index element={<Navigate to="aujourdhui" replace />} />
+        <Route path="aujourdhui" element={isAdmin || isTeacher ? <TodayView /> : <OverviewView />} />
+        {(isAdmin || isTeacher) && <Route path="planning" element={<CalendarView />} />}
+        {isTeacher && <Route path="classes" element={<MyClasses />} />}
+        {isAdmin && <Route path="gestion" element={<GestionView />} />}
+        <Route path="annonces" element={<AnnouncementsView />} />
+        <Route path="*" element={<Navigate to="aujourdhui" replace />} />
+      </Route>
+    </Routes>
   );
 }
 
@@ -49,7 +100,7 @@ function MonEspaceGate() {
     return <div className="min-h-screen bg-ink" />;
   }
 
-  return session ? <Dashboard /> : <Login />;
+  return session ? <AuthenticatedApp /> : <Login />;
 }
 
 export default function MonEspaceApp() {

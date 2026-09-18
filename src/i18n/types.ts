@@ -1,5 +1,3 @@
-export type RoleNameKey = "super_admin" | "center_admin" | "teacher" | "student" | "parent";
-
 export interface Dictionary {
   meta: {
     titleSuffix: string;
@@ -184,14 +182,8 @@ export interface Dictionary {
     passwordLabel: string;
     signInTitle: string;
     signInButton: string;
-    signOutButton: string;
     loading: string;
     dashboardTitle: string;
-    welcomeBack: string;
-    yourRole: string;
-    yourOrganization: string;
-    noMemberships: string;
-    roleNames: Record<RoleNameKey, string>;
   };
   callBanner: {
     title: string;
