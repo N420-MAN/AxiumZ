@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "../../features/auth/AuthContext";
 import { usePageMeta } from "../../hooks/usePageMeta";
 import { useLocale, LocaleProvider } from "../../i18n/LocaleContext";
@@ -59,6 +59,8 @@ function GestionView() {
 
 function AuthenticatedApp() {
   const { memberships, isSuperAdmin } = useAuth();
+  const { lang } = useParams();
+  const base = `/${lang ?? "fr"}/mon-espace`;
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
   const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
   const isTeacher = primaryRole === "teacher";
@@ -66,12 +68,12 @@ function AuthenticatedApp() {
   return (
     <Routes>
       <Route element={<MonEspaceLayout />}>
-        <Route index element={<Navigate to="aujourdhui" replace />} />
+        <Route index element={<Navigate to={`${base}/aujourdhui`} replace />} />
         <Route path="aujourdhui" element={isAdmin || isTeacher ? <TodayView /> : <OverviewView />} />
         <Route path="planning" element={<CalendarView />} />
         {isAdmin && <Route path="gestion" element={<GestionView />} />}
         <Route path="annonces" element={<AnnouncementsView />} />
-        <Route path="*" element={<Navigate to="aujourdhui" replace />} />
+        <Route path="*" element={<Navigate to={`${base}/aujourdhui`} replace />} />
       </Route>
     </Routes>
   );

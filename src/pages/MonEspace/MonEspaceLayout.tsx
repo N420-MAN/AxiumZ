@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useLocale } from "../../i18n/LocaleContext";
 import NotificationBell from "./NotificationBell";
@@ -29,6 +29,8 @@ export default function MonEspaceLayout() {
   const { profile, memberships, isSuperAdmin, signOut } = useAuth();
   const { t } = useLocale();
   const location = useLocation();
+  const { lang } = useParams();
+  const base = `/${lang ?? "fr"}/mon-espace`;
   const m = t.monEspace.layout;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -42,11 +44,16 @@ export default function MonEspaceLayout() {
   const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
   const isTeacher = primaryRole === "teacher";
 
+  // Absolute paths (starting with /) everywhere on purpose — relative paths
+  // here caused a severe bug where every navigation appended to the current
+  // URL instead of replacing it, and once the URL was malformed the
+  // catch-all route kept re-appending forever. Absolute paths make this
+  // fully deterministic, independent of route-nesting depth.
   const navItems: NavItem[] = [
-    { to: "aujourdhui", label: isAdmin || isTeacher ? m.todayNav : m.overviewNav, icon: ICONS.today },
-    { to: "planning", label: m.planningNav, icon: ICONS.calendar },
-    ...(isAdmin ? [{ to: "gestion", label: m.manageNav, icon: ICONS.manage }] : []),
-    { to: "annonces", label: m.announcementsNav, icon: ICONS.announcements },
+    { to: `${base}/aujourdhui`, label: isAdmin || isTeacher ? m.todayNav : m.overviewNav, icon: ICONS.today },
+    { to: `${base}/planning`, label: m.planningNav, icon: ICONS.calendar },
+    ...(isAdmin ? [{ to: `${base}/gestion`, label: m.manageNav, icon: ICONS.manage }] : []),
+    { to: `${base}/annonces`, label: m.announcementsNav, icon: ICONS.announcements },
   ];
 
   const sidebarContent = (
