@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../features/auth/AuthContext";
+import { useLocale } from "../../i18n/LocaleContext";
 import SessionDetailPanel from "./SessionDetailPanel";
 
 interface SessionRow {
@@ -11,7 +12,6 @@ interface SessionRow {
   classes: { id: string; name: string; teacher_id: string | null; teachers: { user_id: string | null } | null } | null;
 }
 
-const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 const START_HOUR = 8;
 const END_HOUR = 21;
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
@@ -37,6 +37,9 @@ function startOfWeek(offsetWeeks: number) {
 
 export default function CalendarView() {
   const { isSuperAdmin, memberships } = useAuth();
+  const { locale, t } = useLocale();
+  const m = t.monEspace.calendar;
+  const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
 
   const [weekOffset, setWeekOffset] = useState(0);
@@ -81,27 +84,27 @@ export default function CalendarView() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-[1.5rem] font-bold text-gray-900">Planning</h1>
+        <h1 className="font-display text-[1.5rem] font-bold text-gray-900">{m.title}</h1>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setWeekOffset((w) => w - 1)}
             className="rounded-md border border-gray-200 px-2.5 py-1 text-[0.8rem] text-gray-600 hover:bg-gray-50"
           >
-            ← Précédente
+            {m.previous}
           </button>
           <span className="px-1 text-[0.82rem] text-gray-500">
-            {weekStart.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} –{" "}
-            {weekEnd.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+            {weekStart.toLocaleDateString(dateLocale, { day: "numeric", month: "short" })} –{" "}
+            {weekEnd.toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}
           </span>
           <button
             type="button"
             onClick={() => setWeekOffset((w) => w + 1)}
             className="rounded-md border border-gray-200 px-2.5 py-1 text-[0.8rem] text-gray-600 hover:bg-gray-50"
           >
-            Suivante →
+            {m.next}
           </button>
         </div>
       </div>
@@ -112,7 +115,7 @@ export default function CalendarView() {
         <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white">
           <div className="grid min-w-[720px] grid-cols-[52px_repeat(6,1fr)]">
             <div className="border-b border-gray-100" />
-            {DAY_LABELS.map((label, i) => {
+            {m.dayLabels.map((label, i) => {
               const isToday = new Date().toDateString() === new Date(weekStart.getTime() + i * 86400000).toDateString();
               return (
                 <div
@@ -159,7 +162,7 @@ export default function CalendarView() {
                 >
                   <p className="font-medium">{s.classes?.name}</p>
                   <p className="opacity-80">
-                    {start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                    {start.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
                     {s.room ? ` · ${s.room}` : ""}
                   </p>
                 </button>

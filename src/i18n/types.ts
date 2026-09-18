@@ -185,6 +185,97 @@ export interface Dictionary {
     loading: string;
     dashboardTitle: string;
   };
+  monEspace: {
+    layout: {
+      todayNav: string;
+      overviewNav: string;
+      planningNav: string;
+      manageNav: string;
+      announcementsNav: string;
+      myAccount: string;
+      signOut: string;
+    };
+    setPassword: {
+      title: string;
+      subtitle: string;
+      passwordLabel: string;
+      confirmLabel: string;
+      tooShort: string;
+      mismatch: string;
+      continueButton: string;
+      savingButton: string;
+    };
+    attendanceStatus: {
+      present: string;
+      absent: string;
+      late: string;
+      excused: string;
+    };
+    sessionStatus: {
+      completed: string;
+      in_progress: string;
+      scheduled: string;
+      cancelled: string;
+    };
+    today: {
+      greeting: string;
+      sessionsToday: string;
+      students: string;
+      sessionsThisWeek: string;
+      todayHeading: string;
+      noSessionsToday: string;
+    };
+    calendar: {
+      title: string;
+      previous: string;
+      next: string;
+      dayLabels: string[];
+    };
+    sessionDetail: {
+      close: string;
+      loading: string;
+      attendance: string;
+      noStudents: string;
+      sessionLogHeading: string;
+      sessionLogVisibility: string;
+      sessionLogPlaceholder: string;
+      saving: string;
+      save: string;
+      nothingLogged: string;
+      pickStatus: string;
+    };
+    overview: {
+      title: string;
+      upcomingSessions: string;
+      noUpcomingSessions: string;
+      recentGrades: string;
+      noGrades: string;
+      recentAttendance: string;
+      noAttendance: string;
+      sessionLogHeading: string;
+    };
+    announcements: {
+      title: string;
+      newButton: string;
+      cancelButton: string;
+      titlePlaceholder: string;
+      messagePlaceholder: string;
+      wholeOrg: string;
+      pickClass: string;
+      publishing: string;
+      publishButton: string;
+      loading: string;
+      none: string;
+    };
+    notifications: {
+      title: string;
+      none: string;
+    };
+    gestion: {
+      noOrganization: string;
+      platformAdminNote: string;
+    };
+  };
   callBanner: {
     title: string;
     body: string;

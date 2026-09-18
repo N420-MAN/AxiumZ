@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { humanizeError } from "../../lib/humanizeError";
+import { useConfirmDialog } from "./useConfirmDialog";
 
 interface Course {
   id: string;
@@ -28,7 +30,7 @@ interface Enrollment {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-paper/15 bg-paper/[0.04] px-3 py-2 text-[0.9rem] text-paper outline-none focus:border-accent-bright";
+  "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
 const selectClass = inputClass;
 
 export default function ClassesManager({ organizationId }: { organizationId: string }) {
@@ -42,6 +44,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirmDialog();
   const [form, setForm] = useState({ name: "", course_id: "", teacher_id: "", room: "" });
   const [enrollStudentId, setEnrollStudentId] = useState("");
 
@@ -59,7 +62,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
         supabase.from("students").select("id, first_name, last_name").eq("organization_id", organizationId).order("last_name"),
       ]);
 
-    if (classError) setError(classError.message);
+    if (classError) setError(humanizeError(classError));
     else setError(null);
     setClasses((classData as unknown as ClassRow[]) ?? []);
     setCourses(courseData ?? []);
@@ -99,7 +102,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
     });
     setSaving(false);
     if (insertError) {
-      setError(insertError.message);
+      setError(humanizeError(insertError));
       return;
     }
     setForm({ name: "", course_id: "", teacher_id: "", room: "" });
@@ -110,7 +113,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
 
   async function handleDeleteClass(id: string) {
     const { error: deleteError } = await supabase.from("classes").delete().eq("id", id);
-    if (deleteError) setError(deleteError.message);
+    if (deleteError) setError(humanizeError(deleteError));
     else loadAll();
   }
 
@@ -118,7 +121,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
     if (!enrollStudentId) return;
     const { error: enrollError } = await supabase.from("class_students").insert({ class_id: classId, student_id: enrollStudentId });
     if (enrollError) {
-      setError(enrollError.message);
+      setError(humanizeError(enrollError));
       return;
     }
     setEnrollStudentId("");
@@ -127,27 +130,27 @@ export default function ClassesManager({ organizationId }: { organizationId: str
 
   async function handleUnenroll(classId: string, studentId: string) {
     const { error: unenrollError } = await supabase.from("class_students").delete().eq("class_id", classId).eq("student_id", studentId);
-    if (unenrollError) setError(unenrollError.message);
+    if (unenrollError) setError(humanizeError(unenrollError));
     else loadEnrollments(classId);
   }
 
   return (
-    <div className="rounded-2xl border border-paper/10 bg-paper/[0.03] p-6">
+    <div className="rounded-lg border border-gray-200 bg-white p-5">
       <div className="flex items-center justify-between">
-        <h3 className="font-display text-[1.15rem] font-extrabold">Classes</h3>
+        <h3 className="text-[1rem] font-semibold text-gray-900">Classes</h3>
         <button
           type="button"
           onClick={() => setShowForm((v) => !v)}
-          className="rounded-full bg-accent px-4 py-1.5 text-[0.82rem] font-semibold text-ink"
+          className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
         >
           {showForm ? "Annuler" : "+ Ajouter"}
         </button>
       </div>
 
-      {error && <p className="mt-3 text-[0.82rem] text-red-bright">{error}</p>}
+      {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
 
       {showForm && (
-        <form onSubmit={handleAddClass} className="mt-4 grid grid-cols-1 gap-3 border-t border-paper/10 pt-4 sm:grid-cols-2">
+        <form onSubmit={handleAddClass} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
           <input
             required
             placeholder="Nom de la classe"
@@ -180,7 +183,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
           <button
             type="submit"
             disabled={saving}
-            className="sm:col-span-2 rounded-lg bg-ink-soft px-4 py-2 text-[0.88rem] font-semibold text-paper disabled:opacity-60"
+            className="sm:col-span-2 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
           >
             {saving ? "Enregistrement…" : "Enregistrer"}
           </button>
@@ -189,31 +192,40 @@ export default function ClassesManager({ organizationId }: { organizationId: str
 
       <div className="mt-4 space-y-2">
         {loading ? (
-          <p className="text-[0.85rem] text-mist">Chargement…</p>
+          <p className="text-[0.85rem] text-gray-400">Chargement…</p>
         ) : classes.length === 0 ? (
-          <p className="text-[0.85rem] text-mist">Aucune classe pour le moment.</p>
+          <p className="text-[0.85rem] text-gray-400">Aucune classe pour le moment.</p>
         ) : (
           classes.map((cls) => (
-            <div key={cls.id} className="rounded-lg border border-paper/10 bg-ink-soft">
+            <div key={cls.id} className="rounded-md border border-gray-200 bg-gray-50">
               <div className="flex items-center justify-between px-4 py-2.5">
                 <button type="button" onClick={() => toggleExpand(cls.id)} className="text-left">
-                  <span className="text-[0.9rem] font-medium text-paper">{cls.name}</span>
-                  <span className="ml-2 text-[0.8rem] text-mist">
+                  <span className="text-[0.9rem] font-medium text-gray-900">{cls.name}</span>
+                  <span className="ml-2 text-[0.8rem] text-gray-500">
                     {cls.courses?.name} {cls.teachers ? `— ${cls.teachers.first_name} ${cls.teachers.last_name}` : "(sans enseignant)"}
                   </span>
                 </button>
                 <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => toggleExpand(cls.id)} className="text-[0.8rem] text-accent-bright hover:underline">
+                  <button type="button" onClick={() => toggleExpand(cls.id)} className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline">
                     {expanded === cls.id ? "Fermer" : "Élèves"}
                   </button>
-                  <button type="button" onClick={() => handleDeleteClass(cls.id)} className="text-[0.8rem] text-red-bright hover:underline">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      confirm(
+                        `Supprimer la classe "${cls.name}" ? Les inscriptions, séances, présences, évaluations, notes, devoirs et documents liés à cette classe seront également supprimés. Cette action est irréversible.`,
+                        () => handleDeleteClass(cls.id),
+                      )
+                    }
+                    className="text-[0.8rem] text-red-600 hover:underline"
+                  >
                     Supprimer
                   </button>
                 </div>
               </div>
 
               {expanded === cls.id && (
-                <div className="border-t border-paper/10 px-4 py-3">
+                <div className="border-t border-gray-200 px-4 py-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <select value={enrollStudentId} onChange={(e) => setEnrollStudentId(e.target.value)} className={`${selectClass} w-auto`}>
                       <option value="">Inscrire un élève…</option>
@@ -226,24 +238,28 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                     <button
                       type="button"
                       onClick={() => handleEnroll(cls.id)}
-                      className="rounded-lg bg-accent px-3 py-2 text-[0.82rem] font-semibold text-ink"
+                      className="rounded-md bg-gray-900 px-3 py-2 text-[0.82rem] font-medium text-white"
                     >
                       Inscrire
                     </button>
                   </div>
                   <div className="mt-3 space-y-1.5">
                     {(enrollments[cls.id] ?? []).length === 0 ? (
-                      <p className="text-[0.8rem] text-mist">Aucun élève inscrit.</p>
+                      <p className="text-[0.8rem] text-gray-400">Aucun élève inscrit.</p>
                     ) : (
                       enrollments[cls.id].map((e) => (
                         <div key={e.student_id} className="flex items-center justify-between text-[0.85rem]">
-                          <span className="text-paper">
+                          <span className="text-gray-800">
                             {e.students?.first_name} {e.students?.last_name}
                           </span>
                           <button
                             type="button"
-                            onClick={() => handleUnenroll(cls.id, e.student_id)}
-                            className="text-[0.78rem] text-red-bright hover:underline"
+                            onClick={() =>
+                              confirm(`Retirer ${e.students?.first_name} de cette classe ? Son historique de notes et présences sera conservé.`, () =>
+                                handleUnenroll(cls.id, e.student_id),
+                              )
+                            }
+                            className="text-[0.78rem] text-red-600 hover:underline"
                           >
                             Retirer
                           </button>
@@ -257,6 +273,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
           ))
         )}
       </div>
+      {dialog}
     </div>
   );
 }

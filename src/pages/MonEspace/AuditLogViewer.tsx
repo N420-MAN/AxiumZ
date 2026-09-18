@@ -32,24 +32,24 @@ export default function AuditLogViewer({ organizationId }: { organizationId: str
   }, [organizationId]);
 
   return (
-    <div className="rounded-2xl border border-paper/10 bg-paper/[0.03] p-6">
-      <h3 className="font-display text-[1.15rem] font-extrabold">Journal d'activité</h3>
-      <p className="mt-1 text-[0.8rem] text-mist">
+    <div className="rounded-lg border border-gray-200 bg-white p-5">
+      <h3 className="text-[1rem] font-semibold text-gray-900">Journal d'activité</h3>
+      <p className="mt-1 text-[0.8rem] text-gray-500">
         Historique des modifications sensibles (rôles, notes) — lecture seule, non modifiable.
       </p>
 
       <div className="mt-4 space-y-1.5">
         {loading ? (
-          <p className="text-[0.85rem] text-mist">Chargement…</p>
+          <p className="text-[0.85rem] text-gray-400">Chargement…</p>
         ) : logs.length === 0 ? (
-          <p className="text-[0.85rem] text-mist">Aucune activité enregistrée.</p>
+          <p className="text-[0.85rem] text-gray-400">Aucune activité enregistrée.</p>
         ) : (
           logs.map((log) => (
-            <div key={log.id} className="flex items-center justify-between rounded-lg bg-ink-soft px-4 py-2 text-[0.82rem]">
-              <span className="text-paper">
-                {ACTION_LABELS[log.action] ?? log.action} — <span className="text-mist">{log.table_name}</span>
+            <div key={log.id} className="flex items-center justify-between rounded-md bg-gray-50 border border-gray-200 px-4 py-2 text-[0.82rem]">
+              <span className="text-gray-800">
+                {ACTION_LABELS[log.action] ?? log.action} — <span className="text-gray-500">{log.table_name}</span>
               </span>
-              <span className="text-mist">{new Date(log.created_at).toLocaleString("fr-FR")}</span>
+              <span className="text-gray-400">{new Date(log.created_at).toLocaleString("fr-FR")}</span>
             </div>
           ))
         )}

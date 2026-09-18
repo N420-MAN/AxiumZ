@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../features/auth/AuthContext";
+import { useLocale } from "../../i18n/LocaleContext";
 
 interface ChildOption {
   id: string;
@@ -30,12 +31,6 @@ interface NoteRow {
   classes: { name: string } | null;
 }
 
-const ATTENDANCE_LABEL: Record<string, string> = {
-  present: "Présent",
-  absent: "Absent",
-  late: "Retard",
-  excused: "Excusé",
-};
 const ATTENDANCE_STYLE: Record<string, string> = {
   present: "bg-green-50 text-green-700",
   absent: "bg-red-50 text-red-600",
@@ -45,6 +40,10 @@ const ATTENDANCE_STYLE: Record<string, string> = {
 
 export default function OverviewView() {
   const { memberships } = useAuth();
+  const { locale, t } = useLocale();
+  const m = t.monEspace.overview;
+  const attendanceLabels = t.monEspace.attendanceStatus;
+  const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const isParent = memberships[0]?.role_name === "parent";
 
   const [children, setChildren] = useState<ChildOption[]>([]);
@@ -146,8 +145,8 @@ export default function OverviewView() {
   const selectedChildName = children.find((c) => c.id === selectedChild);
 
   return (
-    <div className="mx-auto max-w-3xl px-8 py-10">
-      <h1 className="font-display text-[1.5rem] font-bold text-gray-900">Aperçu</h1>
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
+      <h1 className="font-display text-[1.5rem] font-bold text-gray-900">{m.title}</h1>
 
       {isParent && children.length > 1 && (
         <div className="mt-4 flex gap-2">
@@ -176,16 +175,16 @@ export default function OverviewView() {
       ) : (
         <div className="mt-7 grid grid-cols-1 gap-8 sm:grid-cols-2">
           <div>
-            <h2 className="text-[0.9rem] font-semibold text-gray-900">Prochaines séances</h2>
+            <h2 className="text-[0.9rem] font-semibold text-gray-900">{m.upcomingSessions}</h2>
             {upcoming.length === 0 ? (
-              <p className="mt-2 text-[0.85rem] text-gray-400">Aucune séance à venir.</p>
+              <p className="mt-2 text-[0.85rem] text-gray-400">{m.noUpcomingSessions}</p>
             ) : (
               <div className="mt-2.5 space-y-2">
                 {upcoming.map((s) => (
                   <div key={s.id} className="rounded-lg border border-gray-200 bg-white p-3">
                     <p className="text-[0.85rem] font-medium text-gray-900">{s.classes?.name}</p>
                     <p className="mt-0.5 text-[0.78rem] text-gray-500">
-                      {new Date(s.starts_at).toLocaleString("fr-FR", {
+                      {new Date(s.starts_at).toLocaleString(dateLocale, {
                         weekday: "short",
                         day: "numeric",
                         month: "short",
@@ -201,9 +200,9 @@ export default function OverviewView() {
           </div>
 
           <div>
-            <h2 className="text-[0.9rem] font-semibold text-gray-900">Notes récentes</h2>
+            <h2 className="text-[0.9rem] font-semibold text-gray-900">{m.recentGrades}</h2>
             {grades.length === 0 ? (
-              <p className="mt-2 text-[0.85rem] text-gray-400">Aucune note pour le moment.</p>
+              <p className="mt-2 text-[0.85rem] text-gray-400">{m.noGrades}</p>
             ) : (
               <div className="mt-2.5 space-y-2">
                 {grades.map((g) => (
@@ -219,9 +218,9 @@ export default function OverviewView() {
           </div>
 
           <div className="sm:col-span-2">
-            <h2 className="text-[0.9rem] font-semibold text-gray-900">Présences récentes</h2>
+            <h2 className="text-[0.9rem] font-semibold text-gray-900">{m.recentAttendance}</h2>
             {attendance.length === 0 ? (
-              <p className="mt-2 text-[0.85rem] text-gray-400">Aucune présence enregistrée.</p>
+              <p className="mt-2 text-[0.85rem] text-gray-400">{m.noAttendance}</p>
             ) : (
               <div className="mt-2.5 space-y-1.5">
                 {attendance.map((a) => (
@@ -229,10 +228,10 @@ export default function OverviewView() {
                     <span className="text-gray-700">
                       {a.class_sessions?.classes?.name} —{" "}
                       {a.class_sessions?.starts_at &&
-                        new Date(a.class_sessions.starts_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                        new Date(a.class_sessions.starts_at).toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}
                     </span>
                     <span className={`rounded-full px-2.5 py-0.5 text-[0.75rem] font-medium ${ATTENDANCE_STYLE[a.status] ?? "bg-gray-100 text-gray-500"}`}>
-                      {ATTENDANCE_LABEL[a.status] ?? a.status}
+                      {attendanceLabels[a.status as keyof typeof attendanceLabels] ?? a.status}
                     </span>
                   </div>
                 ))}
@@ -242,12 +241,12 @@ export default function OverviewView() {
 
           {notes.length > 0 && (
             <div className="sm:col-span-2">
-              <h2 className="text-[0.9rem] font-semibold text-gray-900">Ce qui a été fait en classe</h2>
+              <h2 className="text-[0.9rem] font-semibold text-gray-900">{m.sessionLogHeading}</h2>
               <div className="mt-2.5 space-y-2">
                 {notes.map((n) => (
                   <div key={n.id} className="rounded-lg border border-gray-200 bg-white p-3">
                     <p className="text-[0.78rem] text-gray-500">
-                      {n.classes?.name} — {new Date(n.starts_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                      {n.classes?.name} — {new Date(n.starts_at).toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}
                     </p>
                     <p className="mt-1 text-[0.85rem] text-gray-800">{n.notes}</p>
                   </div>

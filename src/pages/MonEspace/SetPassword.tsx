@@ -1,12 +1,15 @@
 import { useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../../lib/supabaseClient";
+import { useLocale } from "../../i18n/LocaleContext";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const inputClass =
   "w-full rounded-lg border border-paper/15 bg-paper/[0.04] px-4 py-3 text-[0.98rem] text-paper outline-none transition-colors placeholder:text-mist/50 focus:border-accent-bright";
 
 export default function SetPassword({ onDone }: { onDone: () => void }) {
+  const { t } = useLocale();
+  const m = t.monEspace.setPassword;
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -16,12 +19,12 @@ export default function SetPassword({ onDone }: { onDone: () => void }) {
     e.preventDefault();
     if (password.length < 6) {
       setStatus("error");
-      setErrorMessage("Le mot de passe doit contenir au moins 6 caractères.");
+      setErrorMessage(m.tooShort);
       return;
     }
     if (password !== confirm) {
       setStatus("error");
-      setErrorMessage("Les mots de passe ne correspondent pas.");
+      setErrorMessage(m.mismatch);
       return;
     }
 
@@ -46,12 +49,12 @@ export default function SetPassword({ onDone }: { onDone: () => void }) {
         transition={{ duration: 0.6, ease: EASE }}
         className="relative w-full max-w-sm rounded-2xl border border-paper/10 bg-ink-soft p-8 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)]"
       >
-        <h1 className="font-display text-[1.4rem] font-extrabold">Bienvenue sur Mon espace</h1>
-        <p className="mt-2 text-[0.9rem] text-mist">Choisissez votre mot de passe pour accéder à votre compte.</p>
+        <h1 className="font-display text-[1.4rem] font-extrabold">{m.title}</h1>
+        <p className="mt-2 text-[0.9rem] text-mist">{m.subtitle}</p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <label className="block">
-            <span className="text-[0.82rem] text-mist">Mot de passe</span>
+            <span className="text-[0.82rem] text-mist">{m.passwordLabel}</span>
             <input
               required
               type="password"
@@ -63,7 +66,7 @@ export default function SetPassword({ onDone }: { onDone: () => void }) {
             />
           </label>
           <label className="block">
-            <span className="text-[0.82rem] text-mist">Confirmer le mot de passe</span>
+            <span className="text-[0.82rem] text-mist">{m.confirmLabel}</span>
             <input
               required
               type="password"
@@ -82,7 +85,7 @@ export default function SetPassword({ onDone }: { onDone: () => void }) {
             disabled={status === "loading"}
             className="w-full rounded-full bg-accent px-6 py-3 text-[0.95rem] font-semibold text-ink transition-opacity disabled:opacity-60"
           >
-            {status === "loading" ? "Enregistrement…" : "Continuer"}
+            {status === "loading" ? m.savingButton : m.continueButton}
           </button>
         </form>
       </motion.div>

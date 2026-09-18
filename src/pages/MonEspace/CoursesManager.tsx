@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { humanizeError } from "../../lib/humanizeError";
+import { useConfirmDialog } from "./useConfirmDialog";
 
 interface Course {
   id: string;
@@ -10,7 +12,7 @@ interface Course {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-paper/15 bg-paper/[0.04] px-3 py-2 text-[0.9rem] text-paper outline-none focus:border-accent-bright";
+  "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
 
 export default function CoursesManager({ organizationId }: { organizationId: string }) {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -18,6 +20,7 @@ export default function CoursesManager({ organizationId }: { organizationId: str
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirmDialog();
   const [form, setForm] = useState({ name: "", description: "", level: "" });
 
   async function load() {
@@ -27,7 +30,7 @@ export default function CoursesManager({ organizationId }: { organizationId: str
       .select("id, name, description, level, status")
       .eq("organization_id", organizationId)
       .order("name");
-    if (fetchError) setError(fetchError.message);
+    if (fetchError) setError(humanizeError(fetchError));
     else setCourses(data ?? []);
     setLoading(false);
   }
@@ -48,7 +51,7 @@ export default function CoursesManager({ organizationId }: { organizationId: str
     });
     setSaving(false);
     if (insertError) {
-      setError(insertError.message);
+      setError(humanizeError(insertError));
       return;
     }
     setForm({ name: "", description: "", level: "" });
@@ -59,27 +62,27 @@ export default function CoursesManager({ organizationId }: { organizationId: str
 
   async function handleDelete(id: string) {
     const { error: deleteError } = await supabase.from("courses").delete().eq("id", id);
-    if (deleteError) setError(deleteError.message);
+    if (deleteError) setError(humanizeError(deleteError));
     else load();
   }
 
   return (
-    <div className="rounded-2xl border border-paper/10 bg-paper/[0.03] p-6">
+    <div className="rounded-lg border border-gray-200 bg-white p-5">
       <div className="flex items-center justify-between">
-        <h3 className="font-display text-[1.15rem] font-extrabold">Programmes (catalogue)</h3>
+        <h3 className="text-[1rem] font-semibold text-gray-900">Programmes (catalogue)</h3>
         <button
           type="button"
           onClick={() => setShowForm((v) => !v)}
-          className="rounded-full bg-accent px-4 py-1.5 text-[0.82rem] font-semibold text-ink"
+          className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
         >
           {showForm ? "Annuler" : "+ Ajouter"}
         </button>
       </div>
 
-      {error && <p className="mt-3 text-[0.82rem] text-red-bright">{error}</p>}
+      {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
 
       {showForm && (
-        <form onSubmit={handleAdd} className="mt-4 grid grid-cols-1 gap-3 border-t border-paper/10 pt-4 sm:grid-cols-3">
+        <form onSubmit={handleAdd} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-3">
           <input
             required
             placeholder="Nom du programme"
@@ -102,7 +105,7 @@ export default function CoursesManager({ organizationId }: { organizationId: str
           <button
             type="submit"
             disabled={saving}
-            className="sm:col-span-3 rounded-lg bg-ink-soft px-4 py-2 text-[0.88rem] font-semibold text-paper disabled:opacity-60"
+            className="sm:col-span-3 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
           >
             {saving ? "Enregistrement…" : "Enregistrer"}
           </button>
@@ -111,23 +114,33 @@ export default function CoursesManager({ organizationId }: { organizationId: str
 
       <div className="mt-4 space-y-2">
         {loading ? (
-          <p className="text-[0.85rem] text-mist">Chargement…</p>
+          <p className="text-[0.85rem] text-gray-400">Chargement…</p>
         ) : courses.length === 0 ? (
-          <p className="text-[0.85rem] text-mist">Aucun programme pour le moment.</p>
+          <p className="text-[0.85rem] text-gray-400">Aucun programme pour le moment.</p>
         ) : (
           courses.map((c) => (
-            <div key={c.id} className="flex items-center justify-between rounded-lg border border-paper/10 bg-ink-soft px-4 py-2.5">
+            <div key={c.id} className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-4 py-2.5">
               <div>
-                <span className="text-[0.9rem] font-medium text-paper">{c.name}</span>
-                {c.level && <span className="ml-2 text-[0.8rem] text-mist">({c.level})</span>}
+                <span className="text-[0.9rem] font-medium text-gray-900">{c.name}</span>
+                {c.level && <span className="ml-2 text-[0.8rem] text-gray-500">({c.level})</span>}
               </div>
-              <button type="button" onClick={() => handleDelete(c.id)} className="text-[0.8rem] text-red-bright hover:underline">
+              <button
+                type="button"
+                onClick={() =>
+                  confirm(
+                    `Supprimer le programme "${c.name}" ? Toutes les classes de ce programme seront également supprimées, ainsi que les inscriptions, séances, présences et notes associées. Cette action est irréversible.`,
+                    () => handleDelete(c.id),
+                  )
+                }
+                className="text-[0.8rem] text-red-600 hover:underline"
+              >
                 Supprimer
               </button>
             </div>
           ))
         )}
       </div>
+      {dialog}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { useLocale } from "../../i18n/LocaleContext";
 
 interface SessionDetailPanelProps {
   sessionId: string;
@@ -17,14 +18,17 @@ interface AttendanceRow {
   status: string;
 }
 
-const ATTENDANCE_OPTIONS = [
-  { value: "present", label: "Présent" },
-  { value: "absent", label: "Absent" },
-  { value: "late", label: "Retard" },
-  { value: "excused", label: "Excusé" },
-];
-
 export default function SessionDetailPanel({ sessionId, className, canEdit, onClose }: SessionDetailPanelProps) {
+  const { t } = useLocale();
+  const m = t.monEspace.sessionDetail;
+  const attendanceLabels = t.monEspace.attendanceStatus;
+  const ATTENDANCE_OPTIONS = [
+    { value: "present", label: attendanceLabels.present },
+    { value: "absent", label: attendanceLabels.absent },
+    { value: "late", label: attendanceLabels.late },
+    { value: "excused", label: attendanceLabels.excused },
+  ];
+
   const [notes, setNotes] = useState("");
   const [savedNotes, setSavedNotes] = useState("");
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -64,6 +68,13 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
     }
     const { data: attData } = await supabase.from("attendance").select("student_id, status").eq("session_id", sessionId);
     setAttendance(attData ?? []);
+
+    if (status === "absent") {
+      supabase.functions.invoke("notify-absence", { body: { studentId, sessionId } }).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error("Absence notification failed:", err);
+      });
+    }
   }
 
   async function saveNotes() {
@@ -79,16 +90,16 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
           <h2 className="text-[1.05rem] font-semibold text-gray-900">{className}</h2>
           <button type="button" onClick={onClose} className="text-[0.85rem] text-gray-400 hover:text-gray-700">
-            Fermer
+            {m.close}
           </button>
         </div>
 
         {loading ? (
-          <p className="px-6 py-8 text-[0.88rem] text-gray-400">Chargement…</p>
+          <p className="px-6 py-8 text-[0.88rem] text-gray-400">{m.loading}</p>
         ) : (
           <div className="px-6 py-5">
             <div>
-              <h3 className="text-[0.85rem] font-semibold text-gray-900">Présences</h3>
+              <h3 className="text-[0.85rem] font-semibold text-gray-900">{m.attendance}</h3>
               <div className="mt-2.5 space-y-1.5">
                 {enrollments.map((e) => {
                   const record = attendance.find((a) => a.student_id === e.student_id);
@@ -104,7 +115,7 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
                           className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[0.82rem] text-gray-700"
                         >
                           <option value="" disabled>
-                            —
+                            {m.pickStatus}
                           </option>
                           {ATTENDANCE_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
@@ -120,20 +131,20 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
                     </div>
                   );
                 })}
-                {enrollments.length === 0 && <p className="text-[0.85rem] text-gray-400">Aucun élève inscrit.</p>}
+                {enrollments.length === 0 && <p className="text-[0.85rem] text-gray-400">{m.noStudents}</p>}
               </div>
             </div>
 
             <div className="mt-6">
-              <h3 className="text-[0.85rem] font-semibold text-gray-900">Ce qui a été fait aujourd'hui</h3>
-              <p className="mt-0.5 text-[0.76rem] text-gray-400">Visible par les parents des élèves de cette classe.</p>
+              <h3 className="text-[0.85rem] font-semibold text-gray-900">{m.sessionLogHeading}</h3>
+              <p className="mt-0.5 text-[0.76rem] text-gray-400">{m.sessionLogVisibility}</p>
               {canEdit ? (
                 <>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={4}
-                    placeholder="Ex : Révision du chapitre 3, exercices 12 à 15…"
+                    placeholder={m.sessionLogPlaceholder}
                     className="mt-2 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-[0.85rem] text-gray-800 outline-none focus:border-gray-400"
                   />
                   <button
@@ -142,11 +153,11 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
                     disabled={savingNotes || notes === savedNotes}
                     className="mt-2 rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white disabled:opacity-40"
                   >
-                    {savingNotes ? "Enregistrement…" : "Enregistrer"}
+                    {savingNotes ? m.saving : m.save}
                   </button>
                 </>
               ) : (
-                <p className="mt-2 text-[0.87rem] text-gray-600">{savedNotes || "Rien n'a encore été renseigné."}</p>
+                <p className="mt-2 text-[0.87rem] text-gray-600">{savedNotes || m.nothingLogged}</p>
               )}
             </div>
           </div>

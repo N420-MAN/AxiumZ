@@ -10,9 +10,9 @@ interface AdminPanelProps {
 
 export default function AdminPanel({ organizationId }: AdminPanelProps) {
   return (
-    <div className="mt-10">
-      <h2 className="font-display text-[1.3rem] font-extrabold text-paper">Gestion du centre</h2>
-      <p className="mt-1 text-[0.85rem] text-mist">
+    <div>
+      <h2 className="text-[1.3rem] font-bold text-gray-900">Gestion du centre</h2>
+      <p className="mt-1 text-[0.85rem] text-gray-500">
         Ajoutez ou retirez des élèves, enseignants et parents pour ce centre.
       </p>
 

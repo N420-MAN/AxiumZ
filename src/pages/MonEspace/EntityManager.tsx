@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
+import { humanizeError } from "../../lib/humanizeError";
+import { useConfirmDialog } from "./useConfirmDialog";
 
 interface ExtraField {
   key: string;
@@ -27,7 +29,7 @@ interface Row {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-paper/15 bg-paper/[0.04] px-3 py-2 text-[0.9rem] text-paper outline-none focus:border-accent-bright";
+  "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
 
 export default function EntityManager({ table, organizationId, title, extraFields = [] }: EntityManagerProps) {
   const [rows, setRows] = useState<Row[]>([]);
@@ -38,6 +40,7 @@ export default function EntityManager({ table, organizationId, title, extraField
   const [form, setForm] = useState<Record<string, string>>({});
   const [inviting, setInviting] = useState<string | null>(null);
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({});
+  const { confirm, dialog } = useConfirmDialog();
 
   async function load() {
     setLoading(true);
@@ -47,7 +50,7 @@ export default function EntityManager({ table, organizationId, title, extraField
       .eq("organization_id", organizationId)
       .order("last_name");
     if (fetchError) {
-      setError(fetchError.message);
+      setError(humanizeError(fetchError));
     } else {
       setRows((data as Row[]) ?? []);
       setError(null);
@@ -71,7 +74,7 @@ export default function EntityManager({ table, organizationId, title, extraField
     setSaving(false);
 
     if (insertError) {
-      setError(insertError.message);
+      setError(humanizeError(insertError));
       return;
     }
     setForm({});
@@ -82,7 +85,7 @@ export default function EntityManager({ table, organizationId, title, extraField
   async function handleDelete(id: string) {
     const { error: deleteError } = await supabase.from(table).delete().eq("id", id);
     if (deleteError) {
-      setError(deleteError.message);
+      setError(humanizeError(deleteError));
       return;
     }
     load();
@@ -116,22 +119,22 @@ export default function EntityManager({ table, organizationId, title, extraField
   }
 
   return (
-    <div className="rounded-2xl border border-paper/10 bg-paper/[0.03] p-6">
+    <div className="rounded-lg border border-gray-200 bg-white p-5">
       <div className="flex items-center justify-between">
-        <h3 className="font-display text-[1.15rem] font-extrabold">{title}</h3>
+        <h3 className="text-[1rem] font-semibold text-gray-900">{title}</h3>
         <button
           type="button"
           onClick={() => setShowForm((v) => !v)}
-          className="rounded-full bg-accent px-4 py-1.5 text-[0.82rem] font-semibold text-ink"
+          className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
         >
           {showForm ? "Annuler" : "+ Ajouter"}
         </button>
       </div>
 
-      {error && <p className="mt-3 text-[0.82rem] text-red-bright">{error}</p>}
+      {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
 
       {showForm && (
-        <form onSubmit={handleAdd} className="mt-4 grid grid-cols-1 gap-3 border-t border-paper/10 pt-4 sm:grid-cols-2">
+        <form onSubmit={handleAdd} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
           <input
             required
             placeholder="Prénom"
@@ -172,7 +175,7 @@ export default function EntityManager({ table, organizationId, title, extraField
           <button
             type="submit"
             disabled={saving}
-            className="sm:col-span-2 rounded-lg bg-ink-soft px-4 py-2 text-[0.88rem] font-semibold text-paper disabled:opacity-60"
+            className="sm:col-span-2 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
           >
             {saving ? "Enregistrement…" : "Enregistrer"}
           </button>
@@ -181,48 +184,51 @@ export default function EntityManager({ table, organizationId, title, extraField
 
       <div className="mt-4 space-y-2">
         {loading ? (
-          <p className="text-[0.85rem] text-mist">Chargement…</p>
+          <p className="text-[0.85rem] text-gray-400">Chargement…</p>
         ) : rows.length === 0 ? (
-          <p className="text-[0.85rem] text-mist">Aucun enregistrement pour le moment.</p>
+          <p className="text-[0.85rem] text-gray-400">Aucun enregistrement pour le moment.</p>
         ) : (
           rows.map((row) => (
-            <div key={row.id} className="rounded-lg border border-paper/10 bg-ink-soft px-4 py-2.5">
+            <div key={row.id} className="rounded-md border border-gray-200 bg-gray-50 px-4 py-2.5">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[0.9rem] font-medium text-paper">
+                  <span className="text-[0.9rem] font-medium text-gray-900">
                     {row.first_name} {row.last_name}
                   </span>
-                  <span className="ml-2 text-[0.8rem] text-mist">{row.email ?? row.phone ?? ""}</span>
+                  <span className="ml-2 text-[0.8rem] text-gray-500">{row.email ?? row.phone ?? ""}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   {row.user_id ? (
-                    <span className="text-[0.76rem] text-accent-bright">Compte actif</span>
+                    <span className="text-[0.76rem] font-medium text-green-700">Compte actif</span>
                   ) : row.email ? (
                     <button
                       type="button"
                       onClick={() => handleInvite(row)}
                       disabled={inviting === row.id}
-                      className="text-[0.8rem] text-accent-bright hover:underline disabled:opacity-60"
+                      className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline disabled:opacity-60"
                     >
                       {inviting === row.id ? "Envoi…" : "Inviter"}
                     </button>
                   ) : (
-                    <span className="text-[0.76rem] text-mist">Pas d'email</span>
+                    <span className="text-[0.76rem] text-gray-400">Pas d'email</span>
                   )}
                   <button
                     type="button"
-                    onClick={() => handleDelete(row.id)}
-                    className="text-[0.8rem] text-red-bright hover:underline"
+                    onClick={() =>
+                      confirm(`Supprimer ${row.first_name} ${row.last_name} ? Cette action est irréversible.`, () => handleDelete(row.id))
+                    }
+                    className="text-[0.8rem] text-red-600 hover:underline"
                   >
                     Supprimer
                   </button>
                 </div>
               </div>
-              {inviteResult[row.id] && <p className="mt-1.5 text-[0.76rem] text-mist">{inviteResult[row.id]}</p>}
+              {inviteResult[row.id] && <p className="mt-1.5 text-[0.76rem] text-gray-500">{inviteResult[row.id]}</p>}
             </div>
           ))
         )}
       </div>
+      {dialog}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../features/auth/AuthContext";
+import { useLocale } from "../../i18n/LocaleContext";
 
 interface Announcement {
   id: string;
@@ -17,6 +18,9 @@ interface ClassOption {
 
 export default function AnnouncementsView() {
   const { isSuperAdmin, memberships } = useAuth();
+  const { locale, t } = useLocale();
+  const m = t.monEspace.announcements;
+  const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
   const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
   const isTeacher = primaryRole === "teacher";
@@ -32,11 +36,17 @@ export default function AnnouncementsView() {
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error: fetchError } = await supabase
       .from("announcements")
       .select("id, title, content, class_id, created_at, classes(name)")
       .order("created_at", { ascending: false });
-    setAnnouncements((data as unknown as Announcement[]) ?? []);
+
+    if (fetchError) {
+      setError(fetchError.message);
+      setAnnouncements([]);
+    } else {
+      setAnnouncements((data as unknown as Announcement[]) ?? []);
+    }
 
     if (isTeacher) {
       const { data: userData } = await supabase.auth.getUser();
@@ -83,9 +93,6 @@ export default function AnnouncementsView() {
       return;
     }
 
-    // Best-effort: the announcement itself is already posted and visible
-    // in-app regardless of whether the email side succeeds, so a failure
-    // here is logged, not surfaced as if the whole post failed.
     if (inserted) {
       supabase.functions.invoke("send-announcement-email", { body: { announcementId: inserted.id } }).catch((err) => {
         // eslint-disable-next-line no-console
@@ -101,16 +108,16 @@ export default function AnnouncementsView() {
   const canPost = isAdmin || isTeacher;
 
   return (
-    <div className="mx-auto max-w-3xl px-8 py-10">
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-[1.5rem] font-bold text-gray-900">Annonces</h1>
+        <h1 className="font-display text-[1.5rem] font-bold text-gray-900">{m.title}</h1>
         {canPost && (
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
             className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
           >
-            {showForm ? "Annuler" : "+ Nouvelle annonce"}
+            {showForm ? m.cancelButton : m.newButton}
           </button>
         )}
       </div>
@@ -119,14 +126,14 @@ export default function AnnouncementsView() {
         <form onSubmit={handlePost} className="mt-5 rounded-lg border border-gray-200 bg-white p-5">
           <input
             required
-            placeholder="Titre"
+            placeholder={m.titlePlaceholder}
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             className="w-full rounded-md border border-gray-200 px-3 py-2 text-[0.9rem] outline-none focus:border-gray-400"
           />
           <textarea
             required
-            placeholder="Message"
+            placeholder={m.messagePlaceholder}
             rows={3}
             value={form.content}
             onChange={(e) => setForm({ ...form, content: e.target.value })}
@@ -138,7 +145,7 @@ export default function AnnouncementsView() {
               onChange={(e) => setForm({ ...form, classId: e.target.value })}
               className="mt-2.5 w-full rounded-md border border-gray-200 px-3 py-2 text-[0.88rem] text-gray-700"
             >
-              <option value="">Toute l'organisation</option>
+              <option value="">{m.wholeOrg}</option>
               {myClasses.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -152,7 +159,7 @@ export default function AnnouncementsView() {
               onChange={(e) => setForm({ ...form, classId: e.target.value })}
               className="mt-2.5 w-full rounded-md border border-gray-200 px-3 py-2 text-[0.88rem] text-gray-700"
             >
-              <option value="">Choisir une classe…</option>
+              <option value="">{m.pickClass}</option>
               {myClasses.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -166,28 +173,27 @@ export default function AnnouncementsView() {
             disabled={saving}
             className="mt-3 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
           >
-            {saving ? "Publication…" : "Publier"}
+            {saving ? m.publishing : m.publishButton}
           </button>
         </form>
       )}
 
       <div className="mt-6 space-y-3">
+        {error && !showForm && <p className="text-[0.85rem] text-red-600">{error}</p>}
         {loading ? (
-          <p className="text-[0.88rem] text-gray-400">Chargement…</p>
+          <p className="text-[0.88rem] text-gray-400">{m.loading}</p>
         ) : announcements.length === 0 ? (
-          <p className="text-[0.88rem] text-gray-400">Aucune annonce pour le moment.</p>
+          <p className="text-[0.88rem] text-gray-400">{m.none}</p>
         ) : (
           announcements.map((a) => (
             <div key={a.id} className="rounded-lg border border-gray-200 bg-white p-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-[0.92rem] font-semibold text-gray-900">{a.title}</h3>
-                <span className="text-[0.75rem] text-gray-400">
-                  {a.classes ? a.classes.name : "Toute l'organisation"}
-                </span>
+                <span className="text-[0.75rem] text-gray-400">{a.classes ? a.classes.name : m.wholeOrg}</span>
               </div>
               <p className="mt-1.5 text-[0.87rem] text-gray-600">{a.content}</p>
               <p className="mt-2 text-[0.72rem] text-gray-400">
-                {new Date(a.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                {new Date(a.created_at).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>
           ))

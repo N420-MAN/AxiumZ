@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "../../features/auth/AuthContext";
 import { usePageMeta } from "../../hooks/usePageMeta";
-import { useLocale } from "../../i18n/LocaleContext";
+import { useLocale, LocaleProvider } from "../../i18n/LocaleContext";
 import { isSupabaseConfigured } from "../../lib/supabaseClient";
 import { capturedAuthFlowType } from "../../lib/authFlowCapture";
 import Login from "./Login";
@@ -11,7 +11,6 @@ import MonEspaceLayout from "./MonEspaceLayout";
 import TodayView from "./TodayView";
 import OverviewView from "./OverviewView";
 import CalendarView from "./CalendarView";
-import MyClasses from "./MyClasses";
 import AnnouncementsView from "./AnnouncementsView";
 import AdminPanel from "./AdminPanel";
 
@@ -38,20 +37,22 @@ function GestionView() {
   // the same "first admin-eligible membership" logic the old flat dashboard
   // used, since there's currently only ever one organization in practice.
   const { memberships, isSuperAdmin } = useAuth();
+  const { t } = useLocale();
+  const m = t.monEspace.gestion;
   const orgId = memberships.find((m) => m.role_name === "center_admin")?.organization_id ?? memberships[0]?.organization_id;
 
   if (!orgId) {
     return (
-      <div className="mx-auto max-w-4xl px-8 py-10">
-        <p className="text-[0.9rem] text-gray-500">Aucune organisation associée à ce compte.</p>
+      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8 sm:py-10">
+        <p className="text-[0.9rem] text-gray-500">{m.noOrganization}</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-10">
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8 sm:py-10">
       <AdminPanel organizationId={orgId} />
-      {isSuperAdmin && <p className="mt-2 text-[0.75rem] text-gray-400">Connecté en tant qu'administrateur plateforme.</p>}
+      {isSuperAdmin && <p className="mt-2 text-[0.75rem] text-gray-400">{m.platformAdminNote}</p>}
     </div>
   );
 }
@@ -67,8 +68,7 @@ function AuthenticatedApp() {
       <Route element={<MonEspaceLayout />}>
         <Route index element={<Navigate to="aujourdhui" replace />} />
         <Route path="aujourdhui" element={isAdmin || isTeacher ? <TodayView /> : <OverviewView />} />
-        {(isAdmin || isTeacher) && <Route path="planning" element={<CalendarView />} />}
-        {isTeacher && <Route path="classes" element={<MyClasses />} />}
+        <Route path="planning" element={<CalendarView />} />
         {isAdmin && <Route path="gestion" element={<GestionView />} />}
         <Route path="annonces" element={<AnnouncementsView />} />
         <Route path="*" element={<Navigate to="aujourdhui" replace />} />
@@ -105,8 +105,10 @@ function MonEspaceGate() {
 
 export default function MonEspaceApp() {
   return (
-    <AuthProvider>
-      <MonEspaceGate />
-    </AuthProvider>
+    <LocaleProvider>
+      <AuthProvider>
+        <MonEspaceGate />
+      </AuthProvider>
+    </LocaleProvider>
   );
 }

@@ -26,6 +26,20 @@ function AnalyticsTracker() {
   return null;
 }
 
+// The marketing site's cursor and floating WhatsApp button are part of that
+// site's own identity — Mon Espace is a different application living at the
+// same domain, and shouldn't inherit either.
+function MarketingChrome() {
+  const { pathname } = useLocation();
+  if (pathname.includes("/mon-espace")) return null;
+  return (
+    <>
+      <Cursor />
+      <WhatsAppButton />
+    </>
+  );
+}
+
 export default function App() {
   useEffect(() => {
     initAnalytics();
@@ -34,22 +48,24 @@ export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <Cursor />
-        <WhatsAppButton />
+        <MarketingChrome />
         <ScrollToTop />
         <AnalyticsTracker />
         <Routes>
           <Route path="/" element={<Navigate to="/fr" replace />} />
+          {/* Mon Espace is a sibling of the RootLayout-wrapped marketing
+              routes, not nested inside it — it needs to never inherit the
+              marketing site's Navigation/Footer chrome. */}
+          <Route
+            path="/:lang/mon-espace/*"
+            element={
+              <Suspense fallback={<div className="min-h-screen bg-ink" />}>
+                <MonEspaceApp />
+              </Suspense>
+            }
+          />
           <Route path="/:lang" element={<RootLayout />}>
             <Route index element={<Home />} />
-            <Route
-              path="mon-espace/*"
-              element={
-                <Suspense fallback={<div className="min-h-screen bg-ink" />}>
-                  <MonEspaceApp />
-                </Suspense>
-              }
-            />
             <Route path=":slug" element={<PageResolver />} />
           </Route>
           <Route path="*" element={<Navigate to="/fr" replace />} />

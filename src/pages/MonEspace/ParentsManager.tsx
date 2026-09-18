@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
+import { humanizeError } from "../../lib/humanizeError";
+import { useConfirmDialog } from "./useConfirmDialog";
 
 interface Student {
   id: string;
@@ -22,7 +24,7 @@ interface Parent {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-paper/15 bg-paper/[0.04] px-3 py-2 text-[0.9rem] text-paper outline-none focus:border-accent-bright";
+  "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
 
 export default function ParentsManager({ organizationId }: { organizationId: string }) {
   const [parents, setParents] = useState<Parent[]>([]);
@@ -36,6 +38,7 @@ export default function ParentsManager({ organizationId }: { organizationId: str
   const [extraChildId, setExtraChildId] = useState("");
   const [inviting, setInviting] = useState<string | null>(null);
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({});
+  const { confirm, dialog } = useConfirmDialog();
 
   async function load() {
     setLoading(true);
@@ -47,7 +50,7 @@ export default function ParentsManager({ organizationId }: { organizationId: str
         .order("last_name"),
       supabase.from("students").select("id, first_name, last_name").eq("organization_id", organizationId).order("last_name"),
     ]);
-    if (parentError) setError(parentError.message);
+    if (parentError) setError(humanizeError(parentError));
     else setError(null);
     setParents((parentData as unknown as Parent[]) ?? []);
     setStudents(studentData ?? []);
@@ -78,7 +81,7 @@ export default function ParentsManager({ organizationId }: { organizationId: str
 
     if (insertError || !newParent) {
       setSaving(false);
-      setError(insertError?.message ?? "Erreur lors de la création du parent.");
+      setError(insertError ? humanizeError(insertError) : "Erreur lors de la création du parent.");
       return;
     }
 
@@ -88,7 +91,7 @@ export default function ParentsManager({ organizationId }: { organizationId: str
         .insert({ parent_id: newParent.id, student_id: form.student_id });
       if (linkError) {
         setSaving(false);
-        setError(`Parent créé, mais l'association a échoué : ${linkError.message}`);
+        setError(`Parent créé, mais l'association a échoué : ${humanizeError(linkError)}`);
         load();
         return;
       }
@@ -102,7 +105,7 @@ export default function ParentsManager({ organizationId }: { organizationId: str
 
   async function handleDeleteParent(id: string) {
     const { error: deleteError } = await supabase.from("parents").delete().eq("id", id);
-    if (deleteError) setError(deleteError.message);
+    if (deleteError) setError(humanizeError(deleteError));
     else load();
   }
 
@@ -110,7 +113,7 @@ export default function ParentsManager({ organizationId }: { organizationId: str
     if (!extraChildId) return;
     const { error: linkError } = await supabase.from("parent_students").insert({ parent_id: parentId, student_id: extraChildId });
     if (linkError) {
-      setError(linkError.message);
+      setError(humanizeError(linkError));
       return;
     }
     setExtraChildId("");
@@ -151,22 +154,22 @@ export default function ParentsManager({ organizationId }: { organizationId: str
   }
 
   return (
-    <div className="rounded-2xl border border-paper/10 bg-paper/[0.03] p-6">
+    <div className="rounded-lg border border-gray-200 bg-white p-5">
       <div className="flex items-center justify-between">
-        <h3 className="font-display text-[1.15rem] font-extrabold">Parents</h3>
+        <h3 className="text-[1rem] font-semibold text-gray-900">Parents</h3>
         <button
           type="button"
           onClick={() => setShowForm((v) => !v)}
-          className="rounded-full bg-accent px-4 py-1.5 text-[0.82rem] font-semibold text-ink"
+          className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
         >
           {showForm ? "Annuler" : "+ Ajouter"}
         </button>
       </div>
 
-      {error && <p className="mt-3 text-[0.82rem] text-red-bright">{error}</p>}
+      {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
 
       {showForm && (
-        <form onSubmit={handleAdd} className="mt-4 grid grid-cols-1 gap-3 border-t border-paper/10 pt-4 sm:grid-cols-2">
+        <form onSubmit={handleAdd} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
           <input
             required
             placeholder="Prénom"
@@ -209,7 +212,7 @@ export default function ParentsManager({ organizationId }: { organizationId: str
           <button
             type="submit"
             disabled={saving}
-            className="sm:col-span-2 rounded-lg bg-ink-soft px-4 py-2 text-[0.88rem] font-semibold text-paper disabled:opacity-60"
+            className="sm:col-span-2 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
           >
             {saving ? "Enregistrement…" : "Enregistrer"}
           </button>
@@ -218,55 +221,69 @@ export default function ParentsManager({ organizationId }: { organizationId: str
 
       <div className="mt-4 space-y-2">
         {loading ? (
-          <p className="text-[0.85rem] text-mist">Chargement…</p>
+          <p className="text-[0.85rem] text-gray-400">Chargement…</p>
         ) : parents.length === 0 ? (
-          <p className="text-[0.85rem] text-mist">Aucun parent pour le moment.</p>
+          <p className="text-[0.85rem] text-gray-400">Aucun parent pour le moment.</p>
         ) : (
           parents.map((p) => (
-            <div key={p.id} className="rounded-lg border border-paper/10 bg-ink-soft px-4 py-2.5">
+            <div key={p.id} className="rounded-md border border-gray-200 bg-gray-50 px-4 py-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-[0.9rem] font-medium text-paper">
+                <span className="text-[0.9rem] font-medium text-gray-900">
                   {p.first_name} {p.last_name}
-                  <span className="ml-2 text-[0.8rem] text-mist">{p.email ?? p.phone ?? ""}</span>
+                  <span className="ml-2 text-[0.8rem] text-gray-500">{p.email ?? p.phone ?? ""}</span>
                 </span>
                 <div className="flex items-center gap-3">
                   {p.user_id ? (
-                    <span className="text-[0.76rem] text-accent-bright">Compte actif</span>
+                    <span className="text-[0.76rem] font-medium text-green-700">Compte actif</span>
                   ) : p.email ? (
                     <button
                       type="button"
                       onClick={() => handleInvite(p)}
                       disabled={inviting === p.id}
-                      className="text-[0.78rem] text-accent-bright hover:underline disabled:opacity-60"
+                      className="text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline disabled:opacity-60"
                     >
                       {inviting === p.id ? "Envoi…" : "Inviter"}
                     </button>
                   ) : (
-                    <span className="text-[0.76rem] text-mist">Pas d'email</span>
+                    <span className="text-[0.76rem] text-gray-400">Pas d'email</span>
                   )}
                   <button
                     type="button"
                     onClick={() => setAddingChildFor(addingChildFor === p.id ? null : p.id)}
-                    className="text-[0.78rem] text-accent-bright hover:underline"
+                    className="text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline"
                   >
                     + Enfant
                   </button>
-                  <button type="button" onClick={() => handleDeleteParent(p.id)} className="text-[0.8rem] text-red-bright hover:underline">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      confirm(`Supprimer ${p.first_name} ${p.last_name} ? Cette action est irréversible.`, () => handleDeleteParent(p.id))
+                    }
+                    className="text-[0.8rem] text-red-600 hover:underline"
+                  >
                     Supprimer
                   </button>
                 </div>
               </div>
-              {inviteResult[p.id] && <p className="mt-1.5 text-[0.76rem] text-mist">{inviteResult[p.id]}</p>}
+              {inviteResult[p.id] && <p className="mt-1.5 text-[0.76rem] text-gray-500">{inviteResult[p.id]}</p>}
 
               {p.children.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {p.children.map((c) => (
                     <span
                       key={c.student_id}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-paper/[0.06] px-3 py-1 text-[0.78rem] text-paper"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-white border border-gray-200 px-3 py-1 text-[0.78rem] text-gray-700"
                     >
                       {c.students?.first_name} {c.students?.last_name}
-                      <button type="button" onClick={() => handleRemoveChild(p.id, c.student_id)} className="text-mist hover:text-red-bright">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          confirm(`Retirer ${c.students?.first_name} de la liste des enfants de ${p.first_name} ?`, () =>
+                            handleRemoveChild(p.id, c.student_id),
+                          )
+                        }
+                        className="text-gray-400 hover:text-red-600"
+                      >
                         ×
                       </button>
                     </span>
@@ -289,7 +306,7 @@ export default function ParentsManager({ organizationId }: { organizationId: str
                   <button
                     type="button"
                     onClick={() => handleAddChild(p.id)}
-                    className="rounded-lg bg-accent px-3 py-1.5 text-[0.8rem] font-semibold text-ink"
+                    className="rounded-md bg-gray-900 px-3 py-1.5 text-[0.8rem] font-medium text-white"
                   >
                     Associer
                   </button>
@@ -299,6 +316,7 @@ export default function ParentsManager({ organizationId }: { organizationId: str
           ))
         )}
       </div>
+      {dialog}
     </div>
   );
 }
