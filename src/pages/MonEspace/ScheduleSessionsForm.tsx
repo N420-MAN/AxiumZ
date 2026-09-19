@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
+import { useLocale } from "../../i18n/LocaleContext";
 
 interface SessionRow {
   id: string;
@@ -9,15 +10,6 @@ interface SessionRow {
   ends_at: string;
   room: string | null;
 }
-
-const DAY_OPTIONS = [
-  { value: 1, label: "Lundi" },
-  { value: 2, label: "Mardi" },
-  { value: 3, label: "Mercredi" },
-  { value: 4, label: "Jeudi" },
-  { value: 5, label: "Vendredi" },
-  { value: 6, label: "Samedi" },
-];
 
 const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.85rem] text-gray-900 outline-none focus:border-gray-400";
@@ -49,6 +41,18 @@ export default function ScheduleSessionsForm({
   teacherId: string | null;
   organizationId: string;
 }) {
+  const { t, locale } = useLocale();
+  const m = t.monEspace.gestion.scheduler;
+  const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
+  const DAY_OPTIONS = [
+    { value: 1, label: m.days.mon },
+    { value: 2, label: m.days.tue },
+    { value: 3, label: m.days.wed },
+    { value: 4, label: m.days.thu },
+    { value: 5, label: m.days.fri },
+    { value: 6, label: m.days.sat },
+  ];
+
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -119,8 +123,14 @@ export default function ScheduleSessionsForm({
         const sameRoom = Boolean(form.room) && c.room === form.room;
         const sameTeacher = Boolean(teacherId) && c.classes?.teacher_id === teacherId;
         if (sameRoom || sameTeacher) {
-          const reason = sameTeacher && sameRoom ? "enseignant et salle" : sameTeacher ? "enseignant" : "salle";
-          conflicts.push(`${dateStr} ${form.startTime} : conflit de ${reason} avec "${c.classes?.name}"`);
+          const reason = sameTeacher && sameRoom ? m.conflictReasonBoth : sameTeacher ? m.conflictReasonTeacher : m.conflictReasonRoom;
+          conflicts.push(
+            m.conflictWith
+              .replace("{date}", dateStr)
+              .replace("{time}", form.startTime)
+              .replace("{reason}", reason)
+              .replace("{name}", c.classes?.name ?? ""),
+          );
         }
       }
     }
@@ -152,21 +162,35 @@ export default function ScheduleSessionsForm({
   async function handleSubmit() {
     const dates = computeDates();
     if (dates.length === 0) {
-      setError("Aucune date ne correspond à cette période et ce jour de la semaine.");
+      setError(m.noDatesInRange);
       return;
     }
-    const dayLabel = DAY_OPTIONS.find((d) => d.value === form.weekday)?.label;
-    const baseMessage = `Créer ${dates.length} séance${dates.length > 1 ? "s" : ""} le ${dayLabel} de ${form.startTime} à ${form.endTime}, du ${new Date(form.startDate).toLocaleDateString("fr-FR")} au ${new Date(form.endDate).toLocaleDateString("fr-FR")} ?`;
+    const dayLabel = DAY_OPTIONS.find((d) => d.value === form.weekday)?.label ?? "";
+    const fromStr = new Date(form.startDate).toLocaleDateString(dateLocale);
+    const toStr = new Date(form.endDate).toLocaleDateString(dateLocale);
+    const fillTemplate = (template: string) =>
+      template
+        .replace("{count}", String(dates.length))
+        .replace("{day}", dayLabel)
+        .replace("{start}", form.startTime)
+        .replace("{end}", form.endTime)
+        .replace("{from}", fromStr)
+        .replace("{to}", toStr);
 
     const conflicts = await checkConflicts(dates);
     if (conflicts.length === 0) {
-      confirm(baseMessage, () => createSessions(dates), "Créer", false);
+      confirm(fillTemplate(m.confirmCreate), () => createSessions(dates), m.create.replace("{count}", String(dates.length)), false);
       return;
     }
 
     const shown = conflicts.slice(0, 5).join("\n");
-    const more = conflicts.length > 5 ? `\n+ ${conflicts.length - 5} autre(s) conflit(s)` : "";
-    confirm(`⚠️ Conflit(s) détecté(s) :\n${shown}${more}\n\n${baseMessage} (malgré le conflit)`, () => createSessions(dates), "Créer quand même", true);
+    const more = conflicts.length > 5 ? `\n${m.moreConflicts.replace("{count}", String(conflicts.length - 5))}` : "";
+    confirm(
+      `${m.conflictsDetected}\n${shown}${more}\n\n${fillTemplate(m.confirmCreateAnyway)}`,
+      () => createSessions(dates),
+      m.createAnyway,
+      true,
+    );
   }
 
   const previewCount = showForm ? computeDates().length : 0;
@@ -174,9 +198,9 @@ export default function ScheduleSessionsForm({
   return (
     <div className="mt-4 border-t border-gray-200 pt-3">
       <div className="flex items-center justify-between">
-        <h4 className="text-[0.85rem] font-semibold text-gray-900">Séances programmées ({sessions.length})</h4>
+        <h4 className="text-[0.85rem] font-semibold text-gray-900">{m.scheduledSessions.replace("{count}", String(sessions.length))}</h4>
         <button type="button" onClick={() => setShowForm((v) => !v)} className="text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
-          {showForm ? "Annuler" : "+ Planifier"}
+          {showForm ? t.monEspace.gestion.common.cancel : m.schedule}
         </button>
       </div>
 
@@ -193,13 +217,13 @@ export default function ScheduleSessionsForm({
           </select>
           <input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} className={inputClass} />
           <input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} className={inputClass} />
-          <input placeholder="Salle" value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} className={inputClass} />
+          <input placeholder={m.room} value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} className={inputClass} />
           <label className="col-span-1">
-            <span className="text-[0.72rem] text-gray-500">Du</span>
+            <span className="text-[0.72rem] text-gray-500">{m.from}</span>
             <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className={`mt-0.5 ${inputClass}`} />
           </label>
           <label className="col-span-1">
-            <span className="text-[0.72rem] text-gray-500">Au</span>
+            <span className="text-[0.72rem] text-gray-500">{m.to}</span>
             <input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} className={`mt-0.5 ${inputClass}`} />
           </label>
 
@@ -208,12 +232,12 @@ export default function ScheduleSessionsForm({
               type="button"
               onClick={handleSubmit}
               disabled={saving || previewCount === 0}
-              className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.8rem] font-medium text-white disabled:opacity-50"
+              className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.8rem] font-medium text-paper disabled:opacity-50"
             >
-              {saving ? "Création…" : `Créer ${previewCount || ""} séance${previewCount > 1 ? "s" : ""}`}
+              {saving ? m.creating : m.create.replace("{count}", String(previewCount || ""))}
             </button>
             {form.startDate && form.endDate && previewCount === 0 && (
-              <span className="text-[0.75rem] text-gray-400">Aucune date sur cette période.</span>
+              <span className="text-[0.75rem] text-gray-400">{m.noDateForPeriod}</span>
             )}
           </div>
         </div>
@@ -221,21 +245,21 @@ export default function ScheduleSessionsForm({
 
       <div className="mt-3 space-y-1">
         {loading ? (
-          <p className="text-[0.78rem] text-gray-400">Chargement…</p>
+          <p className="text-[0.78rem] text-gray-400">{m.loading}</p>
         ) : sessions.length === 0 ? (
-          <p className="text-[0.78rem] text-gray-400">Aucune séance planifiée.</p>
+          <p className="text-[0.78rem] text-gray-400">{m.noSessionsScheduled}</p>
         ) : (
           sessions.slice(0, 8).map((s) => (
             <div key={s.id} className="flex items-center justify-between text-[0.78rem] text-gray-600">
               <span>
-                {new Date(s.starts_at).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })} —{" "}
-                {new Date(s.starts_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                {new Date(s.starts_at).toLocaleDateString(dateLocale, { weekday: "short", day: "numeric", month: "short" })} —{" "}
+                {new Date(s.starts_at).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
               </span>
               {s.room && <span className="text-gray-400">{s.room}</span>}
             </div>
           ))
         )}
-        {sessions.length > 8 && <p className="text-[0.75rem] text-gray-400">+ {sessions.length - 8} autres — voir le Planning.</p>}
+        {sessions.length > 8 && <p className="text-[0.75rem] text-gray-400">{m.moreSessionsSeePlanning.replace("{count}", String(sessions.length - 8))}</p>}
       </div>
       {dialog}
     </div>

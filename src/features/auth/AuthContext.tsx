@@ -14,6 +14,7 @@ export interface Profile {
   full_name: string | null;
   phone: string | null;
   avatar_url: string | null;
+  preferred_locale: "fr" | "en" | null;
 }
 
 export type RoleName = "super_admin" | "center_admin" | "teacher" | "student" | "parent";
@@ -50,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfileAndMemberships = useCallback(async (userId: string) => {
     const [{ data: profileData, error: profileError }, { data: memberData, error: memberError }] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, phone, avatar_url").eq("id", userId).maybeSingle(),
+      supabase.from("profiles").select("id, full_name, phone, avatar_url, preferred_locale").eq("id", userId).maybeSingle(),
       supabase
         .from("organization_members")
         .select("organization_id, role_id, organizations(name), roles(name)")

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
+import { useLocale } from "../../i18n/LocaleContext";
 
 interface CourseRow {
   id: string;
@@ -21,6 +22,10 @@ const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
 
 export default function CoursesTable({ organizationId }: { organizationId: string }) {
+  const { t } = useLocale();
+  const m = t.monEspace.gestion.courses;
+  const c = t.monEspace.gestion.common;
+
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [classAgg, setClassAgg] = useState<Record<string, { classCount: number; studentCount: number }>>({});
   const [loading, setLoading] = useState(true);
@@ -128,18 +133,18 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
     <div className="rounded-lg border border-gray-200 bg-white">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 p-5">
         <div>
-          <h2 className="text-[1.1rem] font-semibold text-gray-900">Programmes</h2>
-          <p className="mt-0.5 text-[0.8rem] text-gray-500">{courses.length} au total</p>
+          <h2 className="text-[1.1rem] font-semibold text-gray-900">{m.title}</h2>
+          <p className="mt-0.5 text-[0.8rem] text-gray-500">{courses.length} {c.total}</p>
         </div>
         <div className="flex items-center gap-2">
           <input
-            placeholder="Rechercher un programme…"
+            placeholder={m.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-56 rounded-md border border-gray-200 px-3 py-1.5 text-[0.85rem] outline-none focus:border-gray-400"
           />
-          <button type="button" onClick={() => (showForm ? setShowForm(false) : openAddForm())} className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white">
-            {showForm ? "Annuler" : "+ Ajouter"}
+          <button type="button" onClick={() => (showForm ? setShowForm(false) : openAddForm())} className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.82rem] font-medium text-paper">
+            {showForm ? c.cancel : c.add}
           </button>
         </div>
       </div>
@@ -148,28 +153,28 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
 
       {showForm && (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 border-b border-gray-100 p-5 sm:grid-cols-3">
-          <input required placeholder="Nom du programme" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
-          <input placeholder="Niveau (ex: Terminale)" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className={inputClass} />
-          <input placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputClass} />
-          <button type="submit" disabled={saving} className="sm:col-span-3 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50">
-            {saving ? "Enregistrement…" : editingId ? "Enregistrer les modifications" : "Enregistrer"}
+          <input required placeholder={m.name} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
+          <input placeholder={m.level} value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className={inputClass} />
+          <input placeholder={m.description} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputClass} />
+          <button type="submit" disabled={saving} className="sm:col-span-3 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50">
+            {saving ? c.saving : editingId ? c.saveEdits : c.save}
           </button>
         </form>
       )}
 
       <div className="overflow-x-auto">
         {loading ? (
-          <p className="p-5 text-[0.85rem] text-gray-400">Chargement…</p>
+          <p className="p-5 text-[0.85rem] text-gray-400">{c.loading}</p>
         ) : filteredSorted.length === 0 ? (
-          <p className="p-5 text-[0.85rem] text-gray-400">{search ? "Aucun résultat." : "Aucun programme pour le moment."}</p>
+          <p className="p-5 text-[0.85rem] text-gray-400">{search ? c.noResults : m.empty}</p>
         ) : (
           <table className="w-full min-w-[560px] text-left text-[0.85rem]">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="px-5 py-2.5"><SortHeader label="Nom" sortKeyValue="name" /></th>
-                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">Niveau</th>
-                <th className="px-3 py-2.5"><SortHeader label="Classes actives" sortKeyValue="classes" /></th>
-                <th className="px-3 py-2.5"><SortHeader label="Élèves au total" sortKeyValue="students" /></th>
+                <th className="px-5 py-2.5"><SortHeader label={t.monEspace.gestion.students.colName} sortKeyValue="name" /></th>
+                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">{m.colLevel}</th>
+                <th className="px-3 py-2.5"><SortHeader label={m.colActiveClasses} sortKeyValue="classes" /></th>
+                <th className="px-3 py-2.5"><SortHeader label={m.colTotalStudents} sortKeyValue="students" /></th>
                 <th className="px-5 py-2.5" />
               </tr>
             </thead>
@@ -184,19 +189,14 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
                     <td className="px-3 py-2.5 text-gray-700">{agg.studentCount}</td>
                     <td className="px-5 py-2.5 text-right">
                       <button type="button" onClick={() => openEditForm(c)} className="mr-3 text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
-                        Modifier
+                        {t.monEspace.gestion.common.edit}
                       </button>
                       <button
                         type="button"
-                        onClick={() =>
-                          confirm(
-                            `Supprimer le programme "${c.name}" ? Toutes les classes de ce programme seront également supprimées, ainsi que les inscriptions, séances, présences et notes associées. Cette action est irréversible.`,
-                            () => handleDelete(c.id),
-                          )
-                        }
+                        onClick={() => confirm(m.deleteConfirm.replace("{name}", c.name), () => handleDelete(c.id))}
                         className="text-[0.78rem] text-red-600 hover:underline"
                       >
-                        Supprimer
+                        {t.monEspace.gestion.common.delete}
                       </button>
                     </td>
                   </tr>

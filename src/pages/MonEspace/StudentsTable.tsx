@@ -4,6 +4,7 @@ import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import SendAnnouncementModal from "./SendAnnouncementModal";
+import { useLocale } from "../../i18n/LocaleContext";
 
 interface StudentRow {
   id: string;
@@ -24,6 +25,10 @@ const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
 
 export default function StudentsTable({ organizationId }: { organizationId: string }) {
+  const { t, locale } = useLocale();
+  const m = t.monEspace.gestion.students;
+  const c = t.monEspace.gestion.common;
+  const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -137,10 +142,10 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
     setInviting(null);
     if (inviteError || data?.error) {
       const message = await extractFunctionErrorMessage(inviteError, data);
-      setInviteResult((prev) => ({ ...prev, [row.id]: `Erreur : ${message}` }));
+      setInviteResult((prev) => ({ ...prev, [row.id]: c.inviteError.replace("{message}", message) }));
       return;
     }
-    setInviteResult((prev) => ({ ...prev, [row.id]: "Invitation envoyée ✓" }));
+    setInviteResult((prev) => ({ ...prev, [row.id]: c.inviteSuccess }));
     load();
   }
 
@@ -159,12 +164,12 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
     <div className="rounded-lg border border-gray-200 bg-white">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 p-5">
         <div>
-          <h2 className="text-[1.1rem] font-semibold text-gray-900">Élèves</h2>
-          <p className="mt-0.5 text-[0.8rem] text-gray-500">{students.length} au total</p>
+          <h2 className="text-[1.1rem] font-semibold text-gray-900">{m.title}</h2>
+          <p className="mt-0.5 text-[0.8rem] text-gray-500">{students.length} {c.total}</p>
         </div>
         <div className="flex items-center gap-2">
           <input
-            placeholder="Rechercher un élève…"
+            placeholder={m.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-56 rounded-md border border-gray-200 px-3 py-1.5 text-[0.85rem] outline-none focus:border-gray-400"
@@ -172,9 +177,9 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
           <button
             type="button"
             onClick={() => (showForm ? setShowForm(false) : openAddForm())}
-            className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
+            className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.82rem] font-medium text-paper"
           >
-            {showForm ? "Annuler" : "+ Ajouter"}
+            {showForm ? c.cancel : c.add}
           </button>
         </div>
       </div>
@@ -183,31 +188,31 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
 
       {showForm && (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 border-b border-gray-100 p-5 sm:grid-cols-3">
-          <input required placeholder="Prénom" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className={inputClass} />
-          <input required placeholder="Nom" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className={inputClass} />
-          <input placeholder="Numéro élève" value={form.student_number} onChange={(e) => setForm({ ...form, student_number: e.target.value })} className={inputClass} />
-          <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
-          <input placeholder="Téléphone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputClass} />
-          <button type="submit" disabled={saving} className="rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50">
-            {saving ? "Enregistrement…" : editingId ? "Enregistrer les modifications" : "Enregistrer"}
+          <input required placeholder={m.firstName} value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className={inputClass} />
+          <input required placeholder={m.lastName} value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className={inputClass} />
+          <input placeholder={m.studentNumber} value={form.student_number} onChange={(e) => setForm({ ...form, student_number: e.target.value })} className={inputClass} />
+          <input type="email" placeholder={m.email} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
+          <input placeholder={m.phone} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputClass} />
+          <button type="submit" disabled={saving} className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50">
+            {saving ? c.saving : editingId ? c.saveEdits : c.save}
           </button>
         </form>
       )}
 
       <div className="overflow-x-auto">
         {loading ? (
-          <p className="p-5 text-[0.85rem] text-gray-400">Chargement…</p>
+          <p className="p-5 text-[0.85rem] text-gray-400">{c.loading}</p>
         ) : filteredSorted.length === 0 ? (
-          <p className="p-5 text-[0.85rem] text-gray-400">{search ? "Aucun résultat." : "Aucun élève pour le moment."}</p>
+          <p className="p-5 text-[0.85rem] text-gray-400">{search ? c.noResults : m.empty}</p>
         ) : (
           <table className="w-full min-w-[720px] text-left text-[0.85rem]">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="px-5 py-2.5"><SortHeader label="Nom" sortKeyValue="name" /></th>
-                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">Contact</th>
-                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">Classes</th>
-                <th className="px-3 py-2.5"><SortHeader label="Inscrit le" sortKeyValue="created_at" /></th>
-                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">Compte</th>
+                <th className="px-5 py-2.5"><SortHeader label={m.colName} sortKeyValue="name" /></th>
+                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">{m.colContact}</th>
+                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">{m.colClasses}</th>
+                <th className="px-3 py-2.5"><SortHeader label={m.colEnrolled} sortKeyValue="created_at" /></th>
+                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">{m.colAccount}</th>
                 <th className="px-5 py-2.5" />
               </tr>
             </thead>
@@ -221,10 +226,10 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
                     </td>
                     <td className="px-3 py-2.5 text-gray-500">{s.email ?? s.phone ?? "—"}</td>
                     <td className="px-3 py-2.5 text-gray-600">{classNames.length > 0 ? classNames.join(", ") : "—"}</td>
-                    <td className="px-3 py-2.5 text-gray-500">{new Date(s.created_at).toLocaleDateString("fr-FR")}</td>
+                    <td className="px-3 py-2.5 text-gray-500">{new Date(s.created_at).toLocaleDateString(dateLocale)}</td>
                     <td className="px-3 py-2.5">
                       {s.user_id ? (
-                        <span className="text-[0.76rem] font-medium text-green-700">Actif</span>
+                        <span className="text-[0.76rem] font-medium text-green-700">{c.active}</span>
                       ) : s.email ? (
                         <button
                           type="button"
@@ -232,26 +237,26 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
                           disabled={inviting === s.id}
                           className="text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline disabled:opacity-60"
                         >
-                          {inviting === s.id ? "Envoi…" : "Inviter"}
+                          {inviting === s.id ? c.inviting : c.invite}
                         </button>
                       ) : (
-                        <span className="text-[0.74rem] text-gray-400">Pas d'email</span>
+                        <span className="text-[0.74rem] text-gray-400">{c.noEmail}</span>
                       )}
                       {inviteResult[s.id] && <p className="mt-0.5 text-[0.7rem] text-gray-400">{inviteResult[s.id]}</p>}
                     </td>
                     <td className="px-5 py-2.5 text-right">
                       <button type="button" onClick={() => setAnnouncingTo(s)} className="mr-3 text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
-                        Annoncer
+                        {c.announce}
                       </button>
                       <button type="button" onClick={() => openEditForm(s)} className="mr-3 text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
-                        Modifier
+                        {c.edit}
                       </button>
                       <button
                         type="button"
-                        onClick={() => confirm(`Supprimer ${s.first_name} ${s.last_name} ? Cette action est irréversible.`, () => handleDelete(s.id))}
+                        onClick={() => confirm(m.deleteConfirm.replace("{name}", `${s.first_name} ${s.last_name}`), () => handleDelete(s.id))}
                         className="text-[0.78rem] text-red-600 hover:underline"
                       >
-                        Supprimer
+                        {c.delete}
                       </button>
                     </td>
                   </tr>

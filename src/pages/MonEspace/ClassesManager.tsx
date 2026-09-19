@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import ScheduleSessionsForm from "./ScheduleSessionsForm";
+import { useLocale } from "../../i18n/LocaleContext";
 
 interface Course {
   id: string;
@@ -37,6 +38,9 @@ const inputClass =
 const selectClass = inputClass;
 
 export default function ClassesManager({ organizationId }: { organizationId: string }) {
+  const { t } = useLocale();
+  const m = t.monEspace.gestion.classes;
+  const c = t.monEspace.gestion.common;
   const [classes, setClasses] = useState<ClassRow[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -157,13 +161,13 @@ export default function ClassesManager({ organizationId }: { organizationId: str
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-[1rem] font-semibold text-gray-900">Classes</h3>
+        <h3 className="text-[1rem] font-semibold text-gray-900">{m.title}</h3>
         <button
           type="button"
           onClick={() => (showForm ? setShowForm(false) : openAddClassForm())}
-          className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
+          className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.82rem] font-medium text-paper"
         >
-          {showForm ? "Annuler" : "+ Ajouter"}
+          {showForm ? c.cancel : c.add}
         </button>
       </div>
 
@@ -173,19 +177,19 @@ export default function ClassesManager({ organizationId }: { organizationId: str
         <form onSubmit={handleSubmitClass} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
           <input
             required
-            placeholder="Nom de la classe"
+            placeholder={m.name}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             className={inputClass}
           />
-          <input placeholder="Salle" value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} className={inputClass} />
+          <input placeholder={m.room} value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} className={inputClass} />
           <select
             required
             value={form.course_id}
             onChange={(e) => setForm({ ...form, course_id: e.target.value })}
             className={selectClass}
           >
-            <option value="">Programme…</option>
+            <option value="">{m.pickCourse}</option>
             {courses.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -193,7 +197,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
             ))}
           </select>
           <select value={form.teacher_id} onChange={(e) => setForm({ ...form, teacher_id: e.target.value })} className={selectClass}>
-            <option value="">Enseignant (optionnel)…</option>
+            <option value="">{m.pickTeacherOptional}</option>
             {teachers.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.first_name} {t.last_name}
@@ -203,18 +207,18 @@ export default function ClassesManager({ organizationId }: { organizationId: str
           <button
             type="submit"
             disabled={saving}
-            className="sm:col-span-2 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
+            className="sm:col-span-2 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50"
           >
-            {saving ? "Enregistrement…" : editingId ? "Enregistrer les modifications" : "Enregistrer"}
+            {saving ? c.saving : editingId ? c.saveEdits : c.save}
           </button>
         </form>
       )}
 
       <div className="mt-4 space-y-2">
         {loading ? (
-          <p className="text-[0.85rem] text-gray-400">Chargement…</p>
+          <p className="text-[0.85rem] text-gray-400">{c.loading}</p>
         ) : classes.length === 0 ? (
-          <p className="text-[0.85rem] text-gray-400">Aucune classe pour le moment.</p>
+          <p className="text-[0.85rem] text-gray-400">{m.empty}</p>
         ) : (
           classes.map((cls) => (
             <div key={cls.id} className="rounded-md border border-gray-200 bg-gray-50">
@@ -222,27 +226,27 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                 <button type="button" onClick={() => toggleExpand(cls.id)} className="text-left">
                   <span className="text-[0.9rem] font-medium text-gray-900">{cls.name}</span>
                   <span className="ml-2 text-[0.8rem] text-gray-500">
-                    {cls.courses?.name} {cls.teachers ? `— ${cls.teachers.first_name} ${cls.teachers.last_name}` : "(sans enseignant)"}
+                    {cls.courses?.name} {cls.teachers ? `— ${cls.teachers.first_name} ${cls.teachers.last_name}` : m.noTeacher}
                   </span>
                 </button>
                 <div className="flex items-center gap-3">
                   <button type="button" onClick={() => toggleExpand(cls.id)} className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline">
-                    {expanded === cls.id ? "Fermer" : "Élèves"}
+                    {expanded === cls.id ? m.close : m.students}
                   </button>
                   <button type="button" onClick={() => openEditClassForm(cls)} className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline">
-                    Modifier
+                    {c.edit}
                   </button>
                   <button
                     type="button"
                     onClick={() =>
                       confirm(
-                        `Supprimer la classe "${cls.name}" ? Les inscriptions, séances, présences, évaluations, notes, devoirs et documents liés à cette classe seront également supprimés. Cette action est irréversible.`,
+                        m.deleteConfirm.replace("{name}", cls.name),
                         () => handleDeleteClass(cls.id),
                       )
                     }
                     className="text-[0.8rem] text-red-600 hover:underline"
                   >
-                    Supprimer
+                    {c.delete}
                   </button>
                 </div>
               </div>
@@ -251,7 +255,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                 <div className="border-t border-gray-200 px-4 py-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <select value={enrollStudentId} onChange={(e) => setEnrollStudentId(e.target.value)} className={`${selectClass} w-auto`}>
-                      <option value="">Inscrire un élève…</option>
+                      <option value="">{m.enrollStudent}</option>
                       {students.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.first_name} {s.last_name}
@@ -261,14 +265,14 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                     <button
                       type="button"
                       onClick={() => handleEnroll(cls.id)}
-                      className="rounded-md bg-gray-900 px-3 py-2 text-[0.82rem] font-medium text-white"
+                      className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3 py-2 text-[0.82rem] font-medium text-paper"
                     >
-                      Inscrire
+                      {m.enroll}
                     </button>
                   </div>
                   <div className="mt-3 space-y-1.5">
                     {(enrollments[cls.id] ?? []).length === 0 ? (
-                      <p className="text-[0.8rem] text-gray-400">Aucun élève inscrit.</p>
+                      <p className="text-[0.8rem] text-gray-400">{m.noEnrollments}</p>
                     ) : (
                       enrollments[cls.id].map((e) => (
                         <div key={e.student_id} className="flex items-center justify-between text-[0.85rem]">
@@ -278,13 +282,13 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                           <button
                             type="button"
                             onClick={() =>
-                              confirm(`Retirer ${e.students?.first_name} de cette classe ? Son historique de notes et présences sera conservé.`, () =>
+                              confirm(m.removeConfirm.replace("{name}", e.students?.first_name ?? ""), () =>
                                 handleUnenroll(cls.id, e.student_id),
                               )
                             }
                             className="text-[0.78rem] text-red-600 hover:underline"
                           >
-                            Retirer
+                            {m.remove}
                           </button>
                         </div>
                       ))

@@ -4,6 +4,7 @@ import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import SendAnnouncementModal from "./SendAnnouncementModal";
+import { useLocale } from "../../i18n/LocaleContext";
 
 interface StudentOption {
   id: string;
@@ -31,6 +32,11 @@ const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
 
 export default function ParentsTable({ organizationId }: { organizationId: string }) {
+  const { t, locale } = useLocale();
+  const m = t.monEspace.gestion.parents;
+  const c = t.monEspace.gestion.common;
+  const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
+
   const [parents, setParents] = useState<ParentRow[]>([]);
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,14 +129,14 @@ export default function ParentsTable({ organizationId }: { organizationId: strin
       .single();
     if (insertError || !newParent) {
       setSaving(false);
-      setError(insertError ? humanizeError(insertError) : "Erreur lors de la création du parent.");
+      setError(insertError ? humanizeError(insertError) : m.createError);
       return;
     }
     if (form.student_id) {
       const { error: linkError } = await supabase.from("parent_students").insert({ parent_id: newParent.id, student_id: form.student_id });
       if (linkError) {
         setSaving(false);
-        setError(`Parent créé, mais l'association a échoué : ${humanizeError(linkError)}`);
+        setError(m.linkError.replace("{message}", humanizeError(linkError)));
         load();
         return;
       }
@@ -174,10 +180,10 @@ export default function ParentsTable({ organizationId }: { organizationId: strin
     setInviting(null);
     if (inviteError || data?.error) {
       const message = await extractFunctionErrorMessage(inviteError, data);
-      setInviteResult((prev) => ({ ...prev, [p.id]: `Erreur : ${message}` }));
+      setInviteResult((prev) => ({ ...prev, [p.id]: c.inviteError.replace("{message}", message) }));
       return;
     }
-    setInviteResult((prev) => ({ ...prev, [p.id]: "Invitation envoyée ✓" }));
+    setInviteResult((prev) => ({ ...prev, [p.id]: c.inviteSuccess }));
     load();
   }
 
@@ -204,18 +210,18 @@ export default function ParentsTable({ organizationId }: { organizationId: strin
     <div className="rounded-lg border border-gray-200 bg-white">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 p-5">
         <div>
-          <h2 className="text-[1.1rem] font-semibold text-gray-900">Parents</h2>
-          <p className="mt-0.5 text-[0.8rem] text-gray-500">{parents.length} au total</p>
+          <h2 className="text-[1.1rem] font-semibold text-gray-900">{m.title}</h2>
+          <p className="mt-0.5 text-[0.8rem] text-gray-500">{parents.length} {c.total}</p>
         </div>
         <div className="flex items-center gap-2">
           <input
-            placeholder="Rechercher un parent ou un enfant…"
+            placeholder={m.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-64 rounded-md border border-gray-200 px-3 py-1.5 text-[0.85rem] outline-none focus:border-gray-400"
           />
-          <button type="button" onClick={() => (showForm ? setShowForm(false) : openAddForm())} className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white">
-            {showForm ? "Annuler" : "+ Ajouter"}
+          <button type="button" onClick={() => (showForm ? setShowForm(false) : openAddForm())} className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.82rem] font-medium text-paper">
+            {showForm ? c.cancel : c.add}
           </button>
         </div>
       </div>
@@ -224,13 +230,13 @@ export default function ParentsTable({ organizationId }: { organizationId: strin
 
       {showForm && (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 border-b border-gray-100 p-5 sm:grid-cols-3">
-          <input required placeholder="Prénom" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className={inputClass} />
-          <input required placeholder="Nom" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className={inputClass} />
-          <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
-          <input placeholder="Téléphone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputClass} />
+          <input required placeholder={t.monEspace.gestion.students.firstName} value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className={inputClass} />
+          <input required placeholder={t.monEspace.gestion.students.lastName} value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className={inputClass} />
+          <input type="email" placeholder={t.monEspace.gestion.students.email} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
+          <input placeholder={t.monEspace.gestion.students.phone} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputClass} />
           {!editingId && (
             <select value={form.student_id} onChange={(e) => setForm({ ...form, student_id: e.target.value })} className={`sm:col-span-2 ${inputClass}`}>
-              <option value="">Associer à un élève (optionnel)…</option>
+              <option value="">{m.linkOptional}</option>
               {students.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.first_name} {s.last_name}
@@ -238,26 +244,26 @@ export default function ParentsTable({ organizationId }: { organizationId: strin
               ))}
             </select>
           )}
-          <button type="submit" disabled={saving} className="sm:col-span-3 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50">
-            {saving ? "Enregistrement…" : editingId ? "Enregistrer les modifications" : "Enregistrer"}
+          <button type="submit" disabled={saving} className="sm:col-span-3 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50">
+            {saving ? c.saving : editingId ? c.saveEdits : c.save}
           </button>
         </form>
       )}
 
       <div className="overflow-x-auto">
         {loading ? (
-          <p className="p-5 text-[0.85rem] text-gray-400">Chargement…</p>
+          <p className="p-5 text-[0.85rem] text-gray-400">{c.loading}</p>
         ) : filteredSorted.length === 0 ? (
-          <p className="p-5 text-[0.85rem] text-gray-400">{search ? "Aucun résultat." : "Aucun parent pour le moment."}</p>
+          <p className="p-5 text-[0.85rem] text-gray-400">{search ? c.noResults : m.empty}</p>
         ) : (
           <table className="w-full min-w-[720px] text-left text-[0.85rem]">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="px-5 py-2.5"><SortHeader label="Nom" sortKeyValue="name" /></th>
-                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">Contact</th>
-                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">Enfants</th>
-                <th className="px-3 py-2.5"><SortHeader label="Ajouté le" sortKeyValue="created_at" /></th>
-                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">Compte</th>
+                <th className="px-5 py-2.5"><SortHeader label={t.monEspace.gestion.students.colName} sortKeyValue="name" /></th>
+                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">{t.monEspace.gestion.students.colContact}</th>
+                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">{m.colChildren}</th>
+                <th className="px-3 py-2.5"><SortHeader label={m.colAdded} sortKeyValue="created_at" /></th>
+                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">{t.monEspace.gestion.students.colAccount}</th>
                 <th className="px-5 py-2.5" />
               </tr>
             </thead>
@@ -277,44 +283,44 @@ export default function ParentsTable({ organizationId }: { organizationId: strin
                       {addingChildFor === p.id ? (
                         <div className="mt-1 flex items-center gap-1">
                           <select value={extraChildId} onChange={(e) => setExtraChildId(e.target.value)} className="rounded border border-gray-200 px-1.5 py-0.5 text-[0.75rem]">
-                            <option value="">Élève…</option>
+                            <option value="">{m.pickStudent}</option>
                             {students.filter((s) => !p.children.some((c) => c.student_id === s.id)).map((s) => (
                               <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
                             ))}
                           </select>
-                          <button type="button" onClick={() => handleAddChild(p.id)} className="text-[0.72rem] text-gray-600 hover:underline">OK</button>
+                          <button type="button" onClick={() => handleAddChild(p.id)} className="text-[0.72rem] text-gray-600 hover:underline">{m.confirmChild}</button>
                         </div>
                       ) : (
-                        <button type="button" onClick={() => setAddingChildFor(p.id)} className="text-[0.75rem] text-gray-400 hover:text-gray-700">+ enfant</button>
+                        <button type="button" onClick={() => setAddingChildFor(p.id)} className="text-[0.75rem] text-gray-400 hover:text-gray-700">{m.addChild}</button>
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-2.5 text-gray-500">{new Date(p.created_at).toLocaleDateString("fr-FR")}</td>
+                  <td className="px-3 py-2.5 text-gray-500">{new Date(p.created_at).toLocaleDateString(dateLocale)}</td>
                   <td className="px-3 py-2.5">
                     {p.user_id ? (
-                      <span className="text-[0.76rem] font-medium text-green-700">Actif</span>
+                      <span className="text-[0.76rem] font-medium text-green-700">{c.active}</span>
                     ) : p.email ? (
                       <button type="button" onClick={() => handleInvite(p)} disabled={inviting === p.id} className="text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline disabled:opacity-60">
-                        {inviting === p.id ? "Envoi…" : "Inviter"}
+                        {inviting === p.id ? c.inviting : c.invite}
                       </button>
                     ) : (
-                      <span className="text-[0.74rem] text-gray-400">Pas d'email</span>
+                      <span className="text-[0.74rem] text-gray-400">{c.noEmail}</span>
                     )}
                     {inviteResult[p.id] && <p className="mt-0.5 text-[0.7rem] text-gray-400">{inviteResult[p.id]}</p>}
                   </td>
                   <td className="px-5 py-2.5 text-right">
                     <button type="button" onClick={() => setAnnouncingTo(p)} className="mr-3 text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
-                      Annoncer
+                      {c.announce}
                     </button>
                     <button type="button" onClick={() => openEditForm(p)} className="mr-3 text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
-                      Modifier
+                      {c.edit}
                     </button>
                     <button
                       type="button"
-                      onClick={() => confirm(`Supprimer ${p.first_name} ${p.last_name} ? Cette action est irréversible.`, () => handleDelete(p.id))}
+                      onClick={() => confirm(m.deleteConfirm.replace("{name}", `${p.first_name} ${p.last_name}`), () => handleDelete(p.id))}
                       className="text-[0.78rem] text-red-600 hover:underline"
                     >
-                      Supprimer
+                      {c.delete}
                     </button>
                   </td>
                 </tr>

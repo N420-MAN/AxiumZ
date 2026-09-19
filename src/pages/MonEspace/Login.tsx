@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useAuth } from "../../features/auth/AuthContext";
+import { supabase } from "../../lib/supabaseClient";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const inputClass =
@@ -36,6 +37,18 @@ export default function Login() {
     }
     // On success, AuthContext's onAuthStateChange listener updates the
     // session automatically — MonEspaceApp re-renders into the dashboard.
+  }
+
+  async function handleGoogleSignIn() {
+    // The invite-only boundary isn't enforced here — it's enforced in the
+    // database (a trigger only grants access if the email matches a
+    // pre-created student/teacher/parent) and by MonEspaceApp's post-login
+    // check, which signs out and rejects anyone who authenticates
+    // successfully but ends up with zero organization memberships.
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: "https://www.axiumz.com/fr/mon-espace" },
+    });
   }
 
   return (
@@ -90,6 +103,26 @@ export default function Login() {
             {status === "loading" ? a.loading : a.signInButton}
           </button>
         </form>
+
+        <div className="my-5 flex items-center gap-3">
+          <div className="h-px flex-1 bg-paper/10" />
+          <span className="text-[0.78rem] text-mist">{a.orDivider}</span>
+          <div className="h-px flex-1 bg-paper/10" />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          className="flex w-full items-center justify-center gap-2.5 rounded-full border border-paper/15 bg-paper px-6 py-3 text-[0.9rem] font-medium text-ink transition-opacity hover:opacity-90"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+            <path fill="#4285F4" d="M23.52 12.27c0-.82-.07-1.6-.2-2.36H12v4.47h6.47c-.28 1.5-1.13 2.78-2.4 3.63v3.02h3.88c2.27-2.09 3.57-5.17 3.57-8.76Z" />
+            <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.95-2.9l-3.88-3.02c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11C3.25 21.3 7.31 24 12 24Z" />
+            <path fill="#FBBC05" d="M5.27 14.27a7.2 7.2 0 0 1-.38-2.27c0-.79.14-1.56.38-2.27V6.62H1.27A11.98 11.98 0 0 0 0 12c0 1.94.46 3.77 1.27 5.38l4-3.11Z" />
+            <path fill="#EA4335" d="M12 4.77c1.76 0 3.35.6 4.6 1.79l3.45-3.45C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.62l4 3.11C6.22 6.88 8.87 4.77 12 4.77Z" />
+          </svg>
+          {a.googleButton}
+        </button>
       </motion.div>
     </section>
   );

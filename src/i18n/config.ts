@@ -12,7 +12,8 @@ export type PageKey =
   | "contact"
   | "inscription"
   | "monEspace"
-  | "privacy";
+  | "privacy"
+  | "terms";
 
 /**
  * Slug map: each page key maps to its path segment in each language.
@@ -28,6 +29,7 @@ export const SLUGS: Record<Locale, Partial<Record<PageKey, string>>> = {
     inscription: "inscription",
     monEspace: "mon-espace",
     privacy: "confidentialite",
+    terms: "conditions-generales",
   },
   en: {
     centre: "centre",
@@ -38,6 +40,7 @@ export const SLUGS: Record<Locale, Partial<Record<PageKey, string>>> = {
     inscription: "registration",
     monEspace: "mon-espace",
     privacy: "privacy-policy",
+    terms: "terms-of-service",
   },
 };
 

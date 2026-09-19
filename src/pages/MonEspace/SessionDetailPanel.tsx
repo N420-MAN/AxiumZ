@@ -151,7 +151,7 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
                     type="button"
                     onClick={saveNotes}
                     disabled={savingNotes || notes === savedNotes}
-                    className="mt-2 rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white disabled:opacity-40"
+                    className="mt-2 rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.82rem] font-medium text-paper disabled:opacity-40"
                   >
                     {savingNotes ? m.saving : m.save}
                   </button>

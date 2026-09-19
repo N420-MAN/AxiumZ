@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Routes, Route, Navigate, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Routes, Route, Navigate, useParams, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "../../features/auth/AuthContext";
 import { usePageMeta } from "../../hooks/usePageMeta";
 import { useLocale, LocaleProvider } from "../../i18n/LocaleContext";
@@ -35,12 +35,28 @@ function NotConfigured() {
 }
 
 function AuthenticatedApp() {
-  const { memberships, isSuperAdmin } = useAuth();
+  const { memberships, isSuperAdmin, profile } = useAuth();
   const { lang } = useParams();
   const base = `/${lang ?? "fr"}/mon-espace`;
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
   const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
   const isTeacher = primaryRole === "teacher";
+
+  // Land the person in whichever language they last chose, instead of
+  // always defaulting to French — but only once per app load (a ref
+  // guard, not state, so this can't re-trigger and fight a manual
+  // language switch later in the same session).
+  const location = useLocation();
+  const navigate = useNavigate();
+  const didRedirectForLocale = useRef(false);
+  useEffect(() => {
+    if (didRedirectForLocale.current) return;
+    didRedirectForLocale.current = true;
+    if (profile?.preferred_locale && profile.preferred_locale !== lang) {
+      navigate(location.pathname.replace(/^\/(fr|en)/, `/${profile.preferred_locale}`), { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.preferred_locale]);
 
   return (
     <Routes>
@@ -58,9 +74,23 @@ function AuthenticatedApp() {
   );
 }
 
+function NotInvited() {
+  const { t } = useLocale();
+  const a = t.auth;
+
+  return (
+    <section className="flex min-h-screen items-center justify-center bg-ink px-6 py-24 text-center text-paper">
+      <div className="max-w-md">
+        <h1 className="font-display text-[1.4rem] font-extrabold">{a.notInvitedTitle}</h1>
+        <p className="mt-4 text-[0.92rem] leading-relaxed text-mist">{a.notInvitedBody}</p>
+      </div>
+    </section>
+  );
+}
+
 function MonEspaceGate() {
   const { t } = useLocale();
-  const { session, loading } = useAuth();
+  const { session, loading, memberships, signOut } = useAuth();
   usePageMeta(`${t.auth.dashboardTitle} — AxiumZ`, t.auth.dashboardTitle, "monEspace", { noindex: true });
 
   // Read the value captured at app entry (see authFlowCapture.ts) instead of
@@ -68,6 +98,29 @@ function MonEspaceGate() {
   // component mounts, Supabase's own client may have already stripped it.
   const [authFlowType] = useState<"invite" | "recovery" | null>(() => capturedAuthFlowType);
   const [passwordJustSet, setPasswordJustSet] = useState(false);
+
+  // Once loading finishes, a real session with zero memberships means this
+  // person authenticated successfully (almost certainly via Google) but
+  // matches no invited student/teacher/parent record — the
+  // zz_link_google_oauth_user trigger deliberately leaves such accounts
+  // with no organization membership at all. This state is tracked
+  // separately from `session` and, once true, never reverts — signing the
+  // person out clears `session` immediately, and without this separate
+  // flag the rejection screen would flash and vanish before anyone could
+  // read it, replaced instantly by the Login screen.
+  const [rejected, setRejected] = useState(false);
+  const signOutRef = useRef(false);
+  useEffect(() => {
+    if (!loading && session && memberships.length === 0 && !signOutRef.current) {
+      signOutRef.current = true;
+      setRejected(true);
+      signOut();
+    }
+  }, [loading, session, memberships, signOut]);
+
+  if (rejected) {
+    return <NotInvited />;
+  }
 
   if (!isSupabaseConfigured) {
     return <NotConfigured />;

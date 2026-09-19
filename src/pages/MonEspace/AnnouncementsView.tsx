@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useLocale } from "../../i18n/LocaleContext";
+import { humanizeError } from "../../lib/humanizeError";
 
 interface Announcement {
   id: string;
@@ -25,19 +26,18 @@ interface StudentOption {
   last_name: string;
 }
 
-const ROLE_OPTIONS = [
-  { value: "student", label: "Élèves" },
-  { value: "parent", label: "Parents" },
-  { value: "teacher", label: "Enseignants" },
-  { value: "admin", label: "Admins" }, // expands to center_admin + super_admin on submit
-];
-
 type Scope = "org" | "class" | "students";
 
 export default function AnnouncementsView() {
   const { isSuperAdmin, memberships } = useAuth();
   const { locale, t } = useLocale();
   const m = t.monEspace.announcements;
+  const ROLE_OPTIONS = [
+    { value: "student", label: m.roleStudents },
+    { value: "parent", label: m.roleParents },
+    { value: "teacher", label: m.roleTeachers },
+    { value: "admin", label: m.roleAdmins }, // expands to center_admin + super_admin on submit
+  ];
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
   const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
@@ -64,7 +64,7 @@ export default function AnnouncementsView() {
       .order("created_at", { ascending: false });
 
     if (fetchError) {
-      setError(fetchError.message);
+      setError(humanizeError(fetchError));
       setAnnouncements([]);
     } else {
       setAnnouncements((data as unknown as Announcement[]) ?? []);
@@ -129,7 +129,7 @@ export default function AnnouncementsView() {
     if (scope === "students" && isTeacher) {
       if (selectedStudents.length === 0) {
         setSaving(false);
-        setError("Choisissez au moins un élève.");
+        setError(m.chooseAtLeastOneStudent);
         return;
       }
       // One announcement per selected student — each is its own
@@ -147,7 +147,7 @@ export default function AnnouncementsView() {
       const failed = results.find((r) => r.error);
       setSaving(false);
       if (failed?.error) {
-        setError(failed.error.message);
+        setError(humanizeError(failed.error));
         return;
       }
       for (const r of results) if (r.data) notifyEmail(r.data.id);
@@ -164,7 +164,7 @@ export default function AnnouncementsView() {
       const { data: inserted, error: insertError } = await supabase.from("announcements").insert(payload).select("id").single();
       setSaving(false);
       if (insertError) {
-        setError(insertError.message);
+        setError(humanizeError(insertError));
         return;
       }
       if (inserted) notifyEmail(inserted.id);
@@ -181,9 +181,9 @@ export default function AnnouncementsView() {
 
   function describeTarget(a: Announcement): string {
     if (a.classes) return a.classes.name;
-    if (a.target_student_id || a.target_teacher_id || a.target_parent_id) return "Message individuel";
+    if (a.target_student_id || a.target_teacher_id || a.target_parent_id) return m.individualMessage;
     if (a.target_roles && a.target_roles.length > 0) {
-      const labels = a.target_roles.map((r) => (r === "center_admin" || r === "super_admin" ? "Admins" : ROLE_OPTIONS.find((o) => o.value === r)?.label ?? r));
+      const labels = a.target_roles.map((r) => (r === "center_admin" || r === "super_admin" ? m.roleAdmins : ROLE_OPTIONS.find((o) => o.value === r)?.label ?? r));
       return Array.from(new Set(labels)).join(", ");
     }
     return m.wholeOrg;
@@ -197,7 +197,7 @@ export default function AnnouncementsView() {
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
-            className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
+            className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.82rem] font-medium text-paper"
           >
             {showForm ? m.cancelButton : m.newButton}
           </button>
@@ -224,16 +224,16 @@ export default function AnnouncementsView() {
 
           <div className="mt-3 flex gap-1.5">
             {isAdmin && (
-              <button type="button" onClick={() => setScope("org")} className={`rounded-full px-3 py-1 text-[0.78rem] font-medium ${scope === "org" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"}`}>
-                Toute l'organisation
+              <button type="button" onClick={() => setScope("org")} className={`rounded-full px-3 py-1 text-[0.78rem] font-medium ${scope === "org" ? "bg-gradient-to-br from-ink to-ink-soft text-paper" : "bg-gray-100 text-gray-600"}`}>
+                {m.scopeOrg}
               </button>
             )}
-            <button type="button" onClick={() => setScope("class")} className={`rounded-full px-3 py-1 text-[0.78rem] font-medium ${scope === "class" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"}`}>
-              {isAdmin ? "Une classe" : "Ma classe"}
+            <button type="button" onClick={() => setScope("class")} className={`rounded-full px-3 py-1 text-[0.78rem] font-medium ${scope === "class" ? "bg-gradient-to-br from-ink to-ink-soft text-paper" : "bg-gray-100 text-gray-600"}`}>
+              {isAdmin ? m.scopeOneClass : m.scopeMyClass}
             </button>
             {isTeacher && (
-              <button type="button" onClick={() => setScope("students")} className={`rounded-full px-3 py-1 text-[0.78rem] font-medium ${scope === "students" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"}`}>
-                Élève(s) spécifique(s)
+              <button type="button" onClick={() => setScope("students")} className={`rounded-full px-3 py-1 text-[0.78rem] font-medium ${scope === "students" ? "bg-gradient-to-br from-ink to-ink-soft text-paper" : "bg-gray-100 text-gray-600"}`}>
+                {m.scopeStudents}
               </button>
             )}
           </div>
@@ -246,7 +246,7 @@ export default function AnnouncementsView() {
                   {opt.label}
                 </label>
               ))}
-              <span className="self-center text-[0.75rem] text-gray-400">{selectedRoles.length === 0 ? "(aucune sélection = tout le monde)" : ""}</span>
+              <span className="self-center text-[0.75rem] text-gray-400">{selectedRoles.length === 0 ? m.noRoleSelectionMeansEveryone : ""}</span>
             </div>
           )}
 
@@ -269,7 +269,7 @@ export default function AnnouncementsView() {
           {scope === "students" && isTeacher && (
             <div className="mt-2.5 flex flex-wrap gap-2">
               {myStudents.length === 0 ? (
-                <p className="text-[0.8rem] text-gray-400">Aucun élève inscrit dans vos classes.</p>
+                <p className="text-[0.8rem] text-gray-400">{m.noStudentsInClasses}</p>
               ) : (
                 myStudents.map((s) => (
                   <label key={s.id} className="flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-[0.8rem] text-gray-700">
@@ -285,7 +285,7 @@ export default function AnnouncementsView() {
           <button
             type="submit"
             disabled={saving}
-            className="mt-3 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
+            className="mt-3 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50"
           >
             {saving ? m.publishing : m.publishButton}
           </button>

@@ -1,11 +1,34 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
+import { useLocale } from "../../i18n/LocaleContext";
 
 const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
 
 export default function SettingsView() {
+  const { t, locale } = useLocale();
+  const m = t.monEspace.gestion.settings;
+  const gc = t.monEspace.gestion.common;
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [localeSaving, setLocaleSaving] = useState(false);
+
+  async function switchLocale(target: "fr" | "en") {
+    if (target === locale || localeSaving) return;
+    setLocaleSaving(true);
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData.user) {
+      await supabase.from("profiles").update({ preferred_locale: target }).eq("id", userData.user.id);
+    }
+    setLocaleSaving(false);
+    // Mon Espace's sub-paths are identical in both languages, so switching
+    // is just swapping the leading /fr or /en segment in place.
+    navigate(location.pathname.replace(/^\/(fr|en)/, `/${target}`), { replace: true });
+  }
+
+  const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneLoading, setPhoneLoading] = useState(true);
   const [phoneSaving, setPhoneSaving] = useState(false);
@@ -25,7 +48,8 @@ export default function SettingsView() {
         // authenticated user has a profiles row regardless of role —
         // students/teachers/parents specifically get kept in sync on save,
         // since that's what the notification functions actually read from.
-        const { data: profile } = await supabase.from("profiles").select("phone").eq("id", userData.user.id).maybeSingle();
+        const { data: profile } = await supabase.from("profiles").select("full_name, phone").eq("id", userData.user.id).maybeSingle();
+        setFullName(profile?.full_name ?? "");
         setPhone(profile?.phone ?? "");
       }
       setPhoneLoading(false);
@@ -45,7 +69,7 @@ export default function SettingsView() {
     }
     const userId = userData.user.id;
 
-    const { error: profileError } = await supabase.from("profiles").update({ phone: phone || null }).eq("id", userId);
+    const { error: profileError } = await supabase.from("profiles").update({ full_name: fullName || null, phone: phone || null }).eq("id", userId);
     if (profileError) {
       setPhoneSaving(false);
       setPhoneMessage({ text: humanizeError(profileError), isError: true });
@@ -62,7 +86,7 @@ export default function SettingsView() {
     ]);
 
     setPhoneSaving(false);
-    setPhoneMessage({ text: "Numéro mis à jour.", isError: false });
+    setPhoneMessage({ text: m.profileUpdated, isError: false });
   }
 
   async function handleChangePassword(e: FormEvent) {
@@ -70,11 +94,11 @@ export default function SettingsView() {
     setPasswordMessage(null);
 
     if (newPassword.length < 6) {
-      setPasswordMessage({ text: "Le mot de passe doit contenir au moins 6 caractères.", isError: true });
+      setPasswordMessage({ text: m.passwordTooShort, isError: true });
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordMessage({ text: "Les mots de passe ne correspondent pas.", isError: true });
+      setPasswordMessage({ text: m.passwordMismatch, isError: true });
       return;
     }
 
@@ -88,23 +112,51 @@ export default function SettingsView() {
     }
     setNewPassword("");
     setConfirmPassword("");
-    setPasswordMessage({ text: "Mot de passe mis à jour.", isError: false });
+    setPasswordMessage({ text: m.passwordUpdated, isError: false });
   }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-8 sm:py-10">
-      <h1 className="font-display text-[1.5rem] font-bold text-gray-900">Paramètres</h1>
+      <h1 className="font-display text-[1.5rem] font-bold text-gray-900">{m.title}</h1>
 
       <div className="mt-6 rounded-lg border border-gray-200 bg-white p-5">
-        <h2 className="text-[1rem] font-semibold text-gray-900">Téléphone</h2>
-        <p className="mt-0.5 text-[0.8rem] text-gray-500">Utilisé pour les notifications et par les personnes qui ont besoin de vous contacter.</p>
+        <h2 className="text-[1rem] font-semibold text-gray-900">{m.languageTitle}</h2>
+        <p className="mt-0.5 text-[0.8rem] text-gray-500">{m.languageDescription}</p>
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={() => switchLocale("fr")}
+            className={`rounded-md px-4 py-2 text-[0.85rem] font-medium ${locale === "fr" ? "bg-gradient-to-br from-ink to-ink-soft text-paper" : "border border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+          >
+            Français
+          </button>
+          <button
+            type="button"
+            onClick={() => switchLocale("en")}
+            className={`rounded-md px-4 py-2 text-[0.85rem] font-medium ${locale === "en" ? "bg-gradient-to-br from-ink to-ink-soft text-paper" : "border border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+          >
+            English
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-lg border border-gray-200 bg-white p-5">
+        <h2 className="text-[1rem] font-semibold text-gray-900">{m.profileTitle}</h2>
+        <p className="mt-0.5 text-[0.8rem] text-gray-500">{m.profileDescription}</p>
         {phoneLoading ? (
-          <p className="mt-3 text-[0.85rem] text-gray-400">Chargement…</p>
+          <p className="mt-3 text-[0.85rem] text-gray-400">{gc.loading}</p>
         ) : (
-          <form onSubmit={handleSavePhone} className="mt-3 flex items-center gap-2">
+          <form onSubmit={handleSavePhone} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            <input
+              type="text"
+              placeholder={m.fullNamePlaceholder}
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className={inputClass}
+            />
             <input
               type="tel"
-              placeholder="06 12 34 56 78"
+              placeholder={m.phonePlaceholder}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className={inputClass}
@@ -112,9 +164,9 @@ export default function SettingsView() {
             <button
               type="submit"
               disabled={phoneSaving}
-              className="shrink-0 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
+              className="shrink-0 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50"
             >
-              {phoneSaving ? "Enregistrement…" : "Enregistrer"}
+              {phoneSaving ? gc.saving : gc.save}
             </button>
           </form>
         )}
@@ -124,12 +176,12 @@ export default function SettingsView() {
       </div>
 
       <div className="mt-5 rounded-lg border border-gray-200 bg-white p-5">
-        <h2 className="text-[1rem] font-semibold text-gray-900">Mot de passe</h2>
-        <p className="mt-0.5 text-[0.8rem] text-gray-500">Choisissez un nouveau mot de passe pour votre compte.</p>
+        <h2 className="text-[1rem] font-semibold text-gray-900">{m.passwordTitle}</h2>
+        <p className="mt-0.5 text-[0.8rem] text-gray-500">{m.passwordDescription}</p>
         <form onSubmit={handleChangePassword} className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <input
             type="password"
-            placeholder="Nouveau mot de passe"
+            placeholder={m.newPasswordPlaceholder}
             minLength={6}
             autoComplete="new-password"
             value={newPassword}
@@ -138,7 +190,7 @@ export default function SettingsView() {
           />
           <input
             type="password"
-            placeholder="Confirmer le mot de passe"
+            placeholder={m.confirmPasswordPlaceholder}
             minLength={6}
             autoComplete="new-password"
             value={confirmPassword}
@@ -148,9 +200,9 @@ export default function SettingsView() {
           <button
             type="submit"
             disabled={passwordSaving}
-            className="sm:col-span-2 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
+            className="sm:col-span-2 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50"
           >
-            {passwordSaving ? "Enregistrement…" : "Modifier le mot de passe"}
+            {passwordSaving ? gc.saving : m.changePassword}
           </button>
         </form>
         {passwordMessage && (

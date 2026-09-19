@@ -77,17 +77,17 @@ export default function TodayView() {
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-lg bg-white border border-gray-200 p-4">
-          <p className="text-[0.8rem] text-gray-500">{m.sessionsToday}</p>
-          <p className="mt-1.5 text-[1.5rem] font-semibold text-gray-900">{sessions.length}</p>
+        <div className="rounded-xl bg-gradient-to-br from-ink to-ink-soft p-4 text-paper">
+          <p className="text-[0.78rem] uppercase tracking-wide text-mist">{m.sessionsToday}</p>
+          <p className="mt-2 text-[1.9rem] font-bold">{sessions.length}</p>
         </div>
-        <div className="rounded-lg bg-white border border-gray-200 p-4">
-          <p className="text-[0.8rem] text-gray-500">{m.students}</p>
-          <p className="mt-1.5 text-[1.5rem] font-semibold text-gray-900">{studentCount ?? "—"}</p>
+        <div className="rounded-xl bg-gradient-to-br from-accent to-accent-bright p-4 text-ink">
+          <p className="text-[0.78rem] uppercase tracking-wide text-ink/70">{m.students}</p>
+          <p className="mt-2 text-[1.9rem] font-bold">{studentCount ?? "—"}</p>
         </div>
-        <div className="rounded-lg bg-white border border-gray-200 p-4">
-          <p className="text-[0.8rem] text-gray-500">{m.sessionsThisWeek}</p>
-          <p className="mt-1.5 text-[1.5rem] font-semibold text-gray-900">{weekCount ?? "—"}</p>
+        <div className="rounded-xl bg-gradient-to-br from-red to-red-bright p-4 text-paper">
+          <p className="text-[0.78rem] uppercase tracking-wide text-paper/75">{m.sessionsThisWeek}</p>
+          <p className="mt-2 text-[1.9rem] font-bold">{weekCount ?? "—"}</p>
         </div>
       </div>
 

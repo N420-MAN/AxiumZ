@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
+import { useLocale } from "../../i18n/LocaleContext";
 
 export interface Term {
   id: string;
@@ -16,6 +17,10 @@ const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
 
 export default function TermsManager({ organizationId }: { organizationId: string }) {
+  const { t, locale } = useLocale();
+  const m = t.monEspace.gestion.terms;
+  const c = t.monEspace.gestion.common;
+  const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const [terms, setTerms] = useState<Term[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -94,15 +99,15 @@ export default function TermsManager({ organizationId }: { organizationId: strin
     <div className="rounded-lg border border-gray-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-[1rem] font-semibold text-gray-900">Périodes académiques</h3>
-          <p className="mt-0.5 text-[0.78rem] text-gray-500">Définit les dates de début/fin utilisées pour planifier les séances.</p>
+          <h3 className="text-[1rem] font-semibold text-gray-900">{m.title}</h3>
+          <p className="mt-0.5 text-[0.78rem] text-gray-500">{m.description}</p>
         </div>
         <button
           type="button"
           onClick={() => (showForm ? setShowForm(false) : openAddForm())}
-          className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
+          className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.82rem] font-medium text-paper"
         >
-          {showForm ? "Annuler" : "+ Ajouter"}
+          {showForm ? c.cancel : c.add}
         </button>
       </div>
 
@@ -112,13 +117,13 @@ export default function TermsManager({ organizationId }: { organizationId: strin
         <form onSubmit={handleSubmit} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
           <input
             required
-            placeholder="Nom (ex : Semestre 1 2026-2027)"
+            placeholder={m.namePlaceholder}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             className={`sm:col-span-2 ${inputClass}`}
           />
           <label className="block">
-            <span className="text-[0.78rem] text-gray-500">Début</span>
+            <span className="text-[0.78rem] text-gray-500">{m.start}</span>
             <input
               required
               type="date"
@@ -128,7 +133,7 @@ export default function TermsManager({ organizationId }: { organizationId: strin
             />
           </label>
           <label className="block">
-            <span className="text-[0.78rem] text-gray-500">Fin</span>
+            <span className="text-[0.78rem] text-gray-500">{m.end}</span>
             <input
               required
               type="date"
@@ -139,43 +144,43 @@ export default function TermsManager({ organizationId }: { organizationId: strin
           </label>
           <label className="flex items-center gap-2 text-[0.85rem] text-gray-700 sm:col-span-2">
             <input type="checkbox" checked={form.is_current} onChange={(e) => setForm({ ...form, is_current: e.target.checked })} />
-            Période actuelle
+            {m.current}
           </label>
           <button
             type="submit"
             disabled={saving}
-            className="sm:col-span-2 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
+            className="sm:col-span-2 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50"
           >
-            {saving ? "Enregistrement…" : editingId ? "Enregistrer les modifications" : "Enregistrer"}
+            {saving ? c.saving : editingId ? c.saveEdits : c.save}
           </button>
         </form>
       )}
 
       <div className="mt-4 space-y-1.5">
         {loading ? (
-          <p className="text-[0.85rem] text-gray-400">Chargement…</p>
+          <p className="text-[0.85rem] text-gray-400">{c.loading}</p>
         ) : terms.length === 0 ? (
-          <p className="text-[0.85rem] text-gray-400">Aucune période définie.</p>
+          <p className="text-[0.85rem] text-gray-400">{m.empty}</p>
         ) : (
           terms.map((t) => (
             <div key={t.id} className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-4 py-2 text-[0.85rem]">
               <span className="text-gray-800">
                 {t.name}
                 <span className="ml-2 text-gray-400">
-                  {new Date(t.start_date).toLocaleDateString("fr-FR")} – {new Date(t.end_date).toLocaleDateString("fr-FR")}
+                  {new Date(t.start_date).toLocaleDateString(dateLocale)} – {new Date(t.end_date).toLocaleDateString(dateLocale)}
                 </span>
               </span>
               <div className="flex items-center gap-3">
-                {t.is_current && <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-[0.72rem] font-medium text-green-700">Actuelle</span>}
+                {t.is_current && <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-[0.72rem] font-medium text-green-700">{m.currentBadge}</span>}
                 <button type="button" onClick={() => openEditForm(t)} className="text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
-                  Modifier
+                  {c.edit}
                 </button>
                 <button
                   type="button"
-                  onClick={() => confirm(`Supprimer la période "${t.name}" ?`, () => handleDelete(t.id))}
+                  onClick={() => confirm(m.deleteConfirm.replace("{name}", t.name), () => handleDelete(t.id))}
                   className="text-[0.78rem] text-red-600 hover:underline"
                 >
-                  Supprimer
+                  {c.delete}
                 </button>
               </div>
             </div>

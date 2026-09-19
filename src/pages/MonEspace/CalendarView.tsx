@@ -226,14 +226,14 @@ export default function CalendarView() {
           <button
             type="button"
             onClick={() => setViewMode("grid")}
-            className={`rounded px-2.5 py-1 text-[0.78rem] font-medium ${viewMode === "grid" ? "bg-gray-900 text-white" : "text-gray-600"}`}
+            className={`rounded px-2.5 py-1 text-[0.78rem] font-medium ${viewMode === "grid" ? "bg-gradient-to-br from-ink to-ink-soft text-paper" : "text-gray-600"}`}
           >
             Grille
           </button>
           <button
             type="button"
             onClick={() => setViewMode("list")}
-            className={`rounded px-2.5 py-1 text-[0.78rem] font-medium ${viewMode === "list" ? "bg-gray-900 text-white" : "text-gray-600"}`}
+            className={`rounded px-2.5 py-1 text-[0.78rem] font-medium ${viewMode === "list" ? "bg-gradient-to-br from-ink to-ink-soft text-paper" : "text-gray-600"}`}
           >
             Liste
           </button>

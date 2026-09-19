@@ -167,7 +167,7 @@ export default function OverviewView() {
               type="button"
               onClick={() => setSelectedChild(c.id)}
               className={`rounded-full px-3.5 py-1.5 text-[0.82rem] font-medium ${
-                selectedChild === c.id ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"
+                selectedChild === c.id ? "bg-gradient-to-br from-ink to-ink-soft text-paper" : "bg-gray-100 text-gray-600"
               }`}
             >
               {c.first_name} {c.last_name}
@@ -225,9 +225,9 @@ export default function OverviewView() {
             {averages.length > 0 && (
               <div className="mt-2 space-y-1">
                 {averages.map((a) => (
-                  <div key={a.class_id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-1.5 text-[0.83rem]">
-                    <span className="text-gray-600">{classNames[a.class_id] ?? "—"}</span>
-                    <span className="font-semibold text-gray-900">{a.average_out_of_20}/20</span>
+                  <div key={a.class_id} className="flex items-center justify-between rounded-lg bg-gradient-to-r from-ink to-ink-soft px-3 py-2 text-[0.83rem] text-paper">
+                    <span className="text-mist">{classNames[a.class_id] ?? "—"}</span>
+                    <span className="font-bold">{a.average_out_of_20}/20</span>
                   </div>
                 ))}
               </div>

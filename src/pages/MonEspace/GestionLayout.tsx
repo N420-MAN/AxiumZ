@@ -8,18 +8,9 @@ import ClassesManager from "./ClassesManager";
 import EntityManager from "./EntityManager";
 import TermsManager from "./TermsManager";
 import AuditLogViewer from "./AuditLogViewer";
+import AdminsManager from "./AdminsManager";
 
-const TABS = [
-  { to: "eleves", label: "Élèves" },
-  { to: "parents", label: "Parents" },
-  { to: "programmes", label: "Programmes" },
-  { to: "classes", label: "Classes" },
-  { to: "enseignants", label: "Enseignants" },
-  { to: "periodes", label: "Périodes" },
-  { to: "journal", label: "Journal" },
-];
-
-function GestionShell() {
+function GestionShell({ tabs }: { tabs: { to: string; label: string }[] }) {
   const { lang } = useParams();
   const base = `/${lang ?? "fr"}/mon-espace/gestion`;
 
@@ -27,13 +18,13 @@ function GestionShell() {
     <div>
       <div className="border-b border-gray-200 bg-white px-4 sm:px-8">
         <nav className="flex gap-1 overflow-x-auto">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <NavLink
               key={tab.to}
               to={`${base}/${tab.to}`}
               className={({ isActive }) =>
                 `whitespace-nowrap border-b-2 px-3 py-3 text-[0.85rem] font-medium transition-colors ${
-                  isActive ? "border-gray-900 text-gray-900" : "border-transparent text-gray-500 hover:text-gray-900"
+                  isActive ? "border-ink text-ink" : "border-transparent text-gray-500 hover:text-gray-900"
                 }`
               }
             >
@@ -50,12 +41,22 @@ function GestionShell() {
 }
 
 export default function GestionLayout() {
-  const { memberships } = useAuth();
+  const { memberships, isSuperAdmin } = useAuth();
   const { t } = useLocale();
   const m = t.monEspace.gestion;
   const { lang } = useParams();
   const base = `/${lang ?? "fr"}/mon-espace/gestion`;
   const orgId = memberships.find((mem) => mem.role_name === "center_admin")?.organization_id ?? memberships[0]?.organization_id;
+
+  const tabs = [
+    { to: "eleves", label: m.students.title },
+    { to: "parents", label: m.parents.title },
+    { to: "programmes", label: m.courses.title },
+    { to: "classes", label: m.classes.title },
+    { to: "enseignants", label: m.teachersTitle },
+    ...(isSuperAdmin ? [{ to: "admins", label: m.admins.title }] : []),
+    { to: "journal", label: m.journal.title },
+  ];
 
   if (!orgId) {
     return (
@@ -67,7 +68,7 @@ export default function GestionLayout() {
 
   return (
     <Routes>
-      <Route element={<GestionShell />}>
+      <Route element={<GestionShell tabs={tabs} />}>
         <Route index element={<Navigate to={`${base}/eleves`} replace />} />
         <Route path="eleves" element={<StudentsTable organizationId={orgId} />} />
         <Route path="parents" element={<ParentsTable organizationId={orgId} />} />
@@ -79,11 +80,12 @@ export default function GestionLayout() {
             <EntityManager
               table="teachers"
               organizationId={orgId}
-              title="Enseignants"
-              extraFields={[{ key: "specialization", label: "Spécialisation" }]}
+              title={m.teachersTitle}
+              extraFields={[{ key: "specialization", label: m.specialization }]}
             />
           }
         />
+        {isSuperAdmin && <Route path="admins" element={<AdminsManager organizationId={orgId} />} />}
         <Route path="periodes" element={<TermsManager organizationId={orgId} />} />
         <Route path="journal" element={<AuditLogViewer organizationId={orgId} />} />
         <Route path="*" element={<Navigate to={`${base}/eleves`} replace />} />

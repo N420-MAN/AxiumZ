@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../features/auth/AuthContext";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
+import { useLocale } from "../../i18n/LocaleContext";
 
 interface ClassOption {
   id: string;
@@ -31,11 +32,14 @@ interface AverageRow {
   grade_count: number;
 }
 
-const TYPE_LABELS: Record<string, string> = { quiz: "Quiz", test: "Devoir", exam: "Examen", project: "Projet", oral: "Oral" };
 const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.85rem] text-gray-900 outline-none focus:border-gray-400";
 
 export default function GradesView() {
+  const { t } = useLocale();
+  const m = t.monEspace.gestion.grades;
+  const c = t.monEspace.gestion.common;
+  const TYPE_LABELS: Record<string, string> = { quiz: m.typeQuiz, test: m.typeTest, exam: m.typeExam, project: m.typeProject, oral: m.typeOral };
   const { isSuperAdmin, memberships } = useAuth();
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
   const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
@@ -154,12 +158,12 @@ export default function GradesView() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8 sm:py-10">
-      <h1 className="font-display text-[1.5rem] font-bold text-gray-900">Notes</h1>
+      <h1 className="font-display text-[1.5rem] font-bold text-gray-900">{m.title}</h1>
 
       {loading ? (
         <div className="mt-6 h-40" />
       ) : classes.length === 0 ? (
-        <p className="mt-4 text-[0.88rem] text-gray-400">Aucune classe.</p>
+        <p className="mt-4 text-[0.88rem] text-gray-400">{m.noClasses}</p>
       ) : (
         <>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -169,7 +173,7 @@ export default function GradesView() {
                 type="button"
                 onClick={() => setSelectedClass(c.id)}
                 className={`rounded-full px-3.5 py-1.5 text-[0.82rem] font-medium ${
-                  selectedClass === c.id ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  selectedClass === c.id ? "bg-gradient-to-br from-ink to-ink-soft text-paper" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 {c.name}
@@ -184,15 +188,15 @@ export default function GradesView() {
             <button
               type="button"
               onClick={() => setShowForm((v) => !v)}
-              className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
+              className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.82rem] font-medium text-paper"
             >
-              {showForm ? "Annuler" : "+ Évaluation"}
+              {showForm ? c.cancel : m.newAssessment}
             </button>
           </div>
 
           {showForm && (
             <form onSubmit={handleAddAssessment} className="mt-3 grid grid-cols-2 gap-2 rounded-md border border-gray-200 bg-gray-50 p-3 sm:grid-cols-4">
-              <input required placeholder="Titre" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={`col-span-2 ${inputClass}`} />
+              <input required placeholder={m.titlePlaceholder} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={`col-span-2 ${inputClass}`} />
               <select value={form.assessment_type} onChange={(e) => setForm({ ...form, assessment_type: e.target.value })} className={inputClass}>
                 {Object.entries(TYPE_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>{label}</option>
@@ -200,22 +204,22 @@ export default function GradesView() {
               </select>
               <input type="date" value={form.assessment_date} onChange={(e) => setForm({ ...form, assessment_date: e.target.value })} className={inputClass} />
               <label className="block">
-                <span className="text-[0.72rem] text-gray-500">Note maximale</span>
+                <span className="text-[0.72rem] text-gray-500">{m.maxScore}</span>
                 <input type="number" min="1" value={form.max_score} onChange={(e) => setForm({ ...form, max_score: e.target.value })} className={`mt-0.5 ${inputClass}`} />
               </label>
               <label className="block">
-                <span className="text-[0.72rem] text-gray-500">Coefficient</span>
+                <span className="text-[0.72rem] text-gray-500">{m.weight}</span>
                 <input type="number" min="0.5" step="0.5" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className={`mt-0.5 ${inputClass}`} />
               </label>
-              <button type="submit" disabled={saving} className="col-span-2 rounded-md bg-gray-900 px-4 py-2 text-[0.82rem] font-medium text-white disabled:opacity-50 sm:col-span-4">
-                {saving ? "Enregistrement…" : "Créer l'évaluation"}
+              <button type="submit" disabled={saving} className="col-span-2 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.82rem] font-medium text-paper disabled:opacity-50 sm:col-span-4">
+                {saving ? c.saving : m.createAssessment}
               </button>
             </form>
           )}
 
           <div className="mt-4 space-y-2">
             {assessments.length === 0 ? (
-              <p className="text-[0.85rem] text-gray-400">Aucune évaluation pour cette classe.</p>
+              <p className="text-[0.85rem] text-gray-400">{m.noAssessments}</p>
             ) : (
               assessments.map((a) => (
                 <div key={a.id} className="rounded-md border border-gray-200 bg-white">
@@ -223,7 +227,7 @@ export default function GradesView() {
                     <span className="text-[0.88rem] font-medium text-gray-900">
                       {a.title} <span className="text-[0.76rem] font-normal text-gray-400">— {TYPE_LABELS[a.assessment_type]} · /{a.max_score} · coef. {a.weight}</span>
                     </span>
-                    <span className="text-[0.78rem] text-gray-500">{activeAssessment === a.id ? "Fermer" : "Noter"}</span>
+                    <span className="text-[0.78rem] text-gray-500">{activeAssessment === a.id ? m.close : m.grade}</span>
                   </button>
                   {activeAssessment === a.id && (
                     <div className="space-y-1.5 border-t border-gray-100 px-4 py-3">
@@ -246,10 +250,10 @@ export default function GradesView() {
                       })}
                       <button
                         type="button"
-                        onClick={() => confirm(`Supprimer l'évaluation "${a.title}" ? Toutes les notes associées seront également supprimées.`, () => handleDeleteAssessment(a.id))}
+                        onClick={() => confirm(m.deleteAssessmentConfirm.replace("{name}", a.title), () => handleDeleteAssessment(a.id))}
                         className="mt-2 text-[0.76rem] text-red-600 hover:underline"
                       >
-                        Supprimer l'évaluation
+                        {m.deleteAssessment}
                       </button>
                     </div>
                   )}
@@ -260,7 +264,7 @@ export default function GradesView() {
 
           {enrollments.length > 0 && (
             <div className="mt-6">
-              <h3 className="text-[0.85rem] font-semibold text-gray-900">Moyennes</h3>
+              <h3 className="text-[0.85rem] font-semibold text-gray-900">{m.averages}</h3>
               <div className="mt-2 space-y-1">
                 {enrollments.map((e) => {
                   const avg = averages.find((a) => a.student_id === e.student_id);

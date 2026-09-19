@@ -4,8 +4,8 @@ import { NavLink, Outlet, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useLocale } from "../../i18n/LocaleContext";
 import NotificationBell from "./NotificationBell";
-import MonEspaceLanguageSwitcher from "./MonEspaceLanguageSwitcher";
 import MonEspaceErrorBoundary from "./MonEspaceErrorBoundary";
+import axiumzLogo from "../../assets/images/axiumz-logo.png";
 
 interface NavItem {
   to: string;
@@ -26,6 +26,13 @@ const ICONS = {
   menu: <path d="M3 5h14M3 10h14M3 15h14" />,
 };
 
+function initialsFrom(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export default function MonEspaceLayout() {
   const { profile, memberships, isSuperAdmin, signOut } = useAuth();
   const { t } = useLocale();
@@ -35,8 +42,6 @@ export default function MonEspaceLayout() {
   const m = t.monEspace.layout;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // A teacher tapping a nav link inside the mobile drawer should land on
-  // the new page with the drawer already closed, not still open on top of it.
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
@@ -44,12 +49,8 @@ export default function MonEspaceLayout() {
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
   const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
   const isTeacher = primaryRole === "teacher";
+  const displayName = profile?.full_name?.trim() || m.myAccount;
 
-  // Absolute paths (starting with /) everywhere on purpose — relative paths
-  // here caused a severe bug where every navigation appended to the current
-  // URL instead of replacing it, and once the URL was malformed the
-  // catch-all route kept re-appending forever. Absolute paths make this
-  // fully deterministic, independent of route-nesting depth.
   const navItems: NavItem[] = [
     { to: `${base}/aujourdhui`, label: isAdmin || isTeacher ? m.todayNav : m.overviewNav, icon: ICONS.today },
     { to: `${base}/planning`, label: m.planningNav, icon: ICONS.calendar },
@@ -60,14 +61,23 @@ export default function MonEspaceLayout() {
 
   const sidebarContent = (
     <>
-      <div className="flex items-center justify-between px-2 pb-6">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent-soft text-[0.75rem] font-bold text-ink">
-            A
-          </div>
-          <span className="font-display text-[0.9rem] font-bold text-ink">AxiumZ</span>
-        </div>
+      <div className="flex items-center justify-between px-1 pb-5">
+        <img src={axiumzLogo} alt="AxiumZ" className="h-8 w-auto object-contain" />
         <NotificationBell />
+      </div>
+
+      {/* Always-visible identity block — the person's name should never be
+          more than a glance away, regardless of which page they're on. */}
+      <div className="mb-5 flex items-center gap-2.5 rounded-xl bg-gradient-to-br from-ink to-ink-soft px-3 py-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-[0.78rem] font-bold text-ink">
+          {initialsFrom(displayName)}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-[0.85rem] font-semibold text-paper">{displayName}</p>
+          <p className="text-[0.7rem] text-mist">
+            {isAdmin ? "Administrateur" : isTeacher ? "Enseignant" : "Mon espace"}
+          </p>
+        </div>
       </div>
 
       <nav className="flex flex-1 flex-col gap-0.5">
@@ -76,8 +86,8 @@ export default function MonEspaceLayout() {
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex items-center gap-2.5 rounded-md px-2.5 py-2.5 text-[0.85rem] font-medium transition-colors md:py-2 ${
-                isActive ? "bg-gray-100 text-ink" : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+              `flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-[0.85rem] font-medium transition-colors md:py-2 ${
+                isActive ? "bg-gradient-to-r from-ink to-ink-soft text-paper shadow-sm" : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
               }`
             }
           >
@@ -90,15 +100,11 @@ export default function MonEspaceLayout() {
       </nav>
 
       <div className="mt-auto border-t border-gray-200 pt-3">
-        <div className="flex items-center justify-between px-2">
-          <span className="text-[0.8rem] font-medium text-gray-700">{profile?.full_name || m.myAccount}</span>
-          <MonEspaceLanguageSwitcher />
-        </div>
         <NavLink
           to={`${base}/parametres`}
-          className="mt-1 block w-full rounded-md px-2.5 py-2 text-left text-[0.8rem] text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-700 md:py-1.5"
+          className="block w-full rounded-md px-2.5 py-2 text-left text-[0.8rem] text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-700 md:py-1.5"
         >
-          Paramètres
+          {m.settingsNav}
         </NavLink>
         <button
           type="button"
@@ -112,10 +118,7 @@ export default function MonEspaceLayout() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 text-gray-900 md:flex-row">
-      {/* Mobile-only top bar: the sidebar itself is hidden below md, so this
-          is the only way to reach navigation, notifications, or sign out on
-          a phone-width screen. */}
+    <div className="flex min-h-screen flex-col bg-paper text-gray-900 md:flex-row">
       <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 md:hidden">
         <button
           type="button"
@@ -127,14 +130,10 @@ export default function MonEspaceLayout() {
             {ICONS.menu}
           </svg>
         </button>
-        <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-accent-soft text-[0.7rem] font-bold text-ink">A</div>
-          <span className="font-display text-[0.85rem] font-bold text-ink">AxiumZ</span>
-        </div>
+        <img src={axiumzLogo} alt="AxiumZ" className="h-6 w-auto object-contain" />
         <NotificationBell />
       </div>
 
-      {/* Backdrop, mobile only, shown while the drawer is open */}
       {mobileMenuOpen && (
         <div
           className="fixed inset-0 z-30 bg-gray-900/40 md:hidden"
@@ -144,7 +143,7 @@ export default function MonEspaceLayout() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-gray-200 bg-white px-3 py-5 transition-transform duration-200 ease-out md:relative md:z-auto md:w-56 md:shrink-0 md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-gray-200 bg-white px-3 py-5 transition-transform duration-200 ease-out md:relative md:z-auto md:w-60 md:shrink-0 md:translate-x-0 ${
           mobileMenuOpen ? "translate-x-0" : ""
         }`}
       >

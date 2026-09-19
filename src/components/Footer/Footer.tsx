@@ -121,6 +121,9 @@ export default function Footer() {
             <Link to={pathFor(locale, "privacy")} className="text-mist hover:text-paper">
               {t.footer.privacyLink}
             </Link>
+            <Link to={pathFor(locale, "terms")} className="text-mist hover:text-paper">
+              {t.footer.termsLink}
+            </Link>
             <span className="text-mist/70">{BRAND.address}</span>
           </div>
         </div>

@@ -40,7 +40,7 @@ export default class MonEspaceErrorBoundary extends Component<Props, State> {
           <button
             type="button"
             onClick={() => this.setState({ error: null })}
-            className="mt-5 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white"
+            className="mt-5 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper"
           >
             Réessayer
           </button>

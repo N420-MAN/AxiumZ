@@ -48,8 +48,8 @@ export function useConfirmDialog() {
               state.onConfirm();
               setState(null);
             }}
-            className={`rounded-md px-3.5 py-1.5 text-[0.82rem] font-medium text-white ${
-              state.isDestructive === false ? "bg-gray-900 hover:bg-gray-800" : "bg-red-600 hover:bg-red-700"
+            className={`rounded-md px-3.5 py-1.5 text-[0.82rem] font-medium text-paper ${
+              state.isDestructive === false ? "bg-gradient-to-br from-ink to-ink-soft hover:opacity-90" : "bg-red-600 hover:bg-red-700"
             }`}
           >
             {state.confirmLabel ?? defaultConfirmLabel}

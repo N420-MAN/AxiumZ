@@ -10,6 +10,7 @@ const Methodologie = lazy(() => import("../pages/Methodologie/Methodologie"));
 const Contact = lazy(() => import("../pages/Contact/Contact"));
 const Inscription = lazy(() => import("../pages/Inscription/Inscription"));
 const Privacy = lazy(() => import("../pages/Privacy/Privacy"));
+const Terms = lazy(() => import("../pages/Terms/Terms"));
 const NotFound = lazy(() => import("../pages/NotFound/NotFound"));
 
 export default function PageResolver() {
@@ -33,6 +34,8 @@ export default function PageResolver() {
         return <Inscription />;
       case "privacy":
         return <Privacy />;
+      case "terms":
+        return <Terms />;
       default:
         return <NotFound />;
     }
