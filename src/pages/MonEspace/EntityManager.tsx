@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
+import SendAnnouncementModal from "./SendAnnouncementModal";
 
 interface ExtraField {
   key: string;
@@ -38,9 +39,11 @@ export default function EntityManager({ table, organizationId, title, extraField
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [inviting, setInviting] = useState<string | null>(null);
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({});
   const { confirm, dialog } = useConfirmDialog();
+  const [announcingTo, setAnnouncingTo] = useState<Row | null>(null);
 
   async function load() {
     setLoading(true);
@@ -63,21 +66,44 @@ export default function EntityManager({ table, organizationId, title, extraField
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table, organizationId]);
 
-  async function handleAdd(e: FormEvent) {
+  function openAddForm() {
+    setEditingId(null);
+    setForm({});
+    setShowForm(true);
+  }
+
+  function openEditForm(row: Row) {
+    setEditingId(row.id);
+    const prefill: Record<string, string> = {
+      first_name: row.first_name ?? "",
+      last_name: row.last_name ?? "",
+      email: row.email ?? "",
+      phone: row.phone ?? "",
+    };
+    for (const f of extraFields) {
+      const value = row[f.key];
+      prefill[f.key] = value == null ? "" : String(value);
+    }
+    setForm(prefill);
+    setShowForm(true);
+  }
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
 
-    const payload: Record<string, string> = { organization_id: organizationId, ...form };
-
-    const { error: insertError } = await supabase.from(table).insert(payload);
+    const { error: saveError } = editingId
+      ? await supabase.from(table).update(form).eq("id", editingId)
+      : await supabase.from(table).insert({ organization_id: organizationId, ...form });
     setSaving(false);
 
-    if (insertError) {
-      setError(humanizeError(insertError));
+    if (saveError) {
+      setError(humanizeError(saveError));
       return;
     }
     setForm({});
+    setEditingId(null);
     setShowForm(false);
     load();
   }
@@ -124,7 +150,7 @@ export default function EntityManager({ table, organizationId, title, extraField
         <h3 className="text-[1rem] font-semibold text-gray-900">{title}</h3>
         <button
           type="button"
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => (showForm ? setShowForm(false) : openAddForm())}
           className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
         >
           {showForm ? "Annuler" : "+ Ajouter"}
@@ -134,7 +160,7 @@ export default function EntityManager({ table, organizationId, title, extraField
       {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
 
       {showForm && (
-        <form onSubmit={handleAdd} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
+        <form onSubmit={handleSubmit} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
           <input
             required
             placeholder="Prénom"
@@ -177,7 +203,7 @@ export default function EntityManager({ table, organizationId, title, extraField
             disabled={saving}
             className="sm:col-span-2 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
           >
-            {saving ? "Enregistrement…" : "Enregistrer"}
+            {saving ? "Enregistrement…" : editingId ? "Enregistrer les modifications" : "Enregistrer"}
           </button>
         </form>
       )}
@@ -212,6 +238,12 @@ export default function EntityManager({ table, organizationId, title, extraField
                   ) : (
                     <span className="text-[0.76rem] text-gray-400">Pas d'email</span>
                   )}
+                  <button type="button" onClick={() => setAnnouncingTo(row)} className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline">
+                    Annoncer
+                  </button>
+                  <button type="button" onClick={() => openEditForm(row)} className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline">
+                    Modifier
+                  </button>
                   <button
                     type="button"
                     onClick={() =>
@@ -229,6 +261,15 @@ export default function EntityManager({ table, organizationId, title, extraField
         )}
       </div>
       {dialog}
+      {announcingTo && (
+        <SendAnnouncementModal
+          targetType={table === "students" ? "student" : table === "teachers" ? "teacher" : "parent"}
+          targetId={announcingTo.id}
+          targetName={`${announcingTo.first_name} ${announcingTo.last_name}`}
+          organizationId={organizationId}
+          onClose={() => setAnnouncingTo(null)}
+        />
+      )}
     </div>
   );
 }

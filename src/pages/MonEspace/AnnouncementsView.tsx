@@ -8,6 +8,10 @@ interface Announcement {
   title: string;
   content: string;
   class_id: string | null;
+  target_roles: string[] | null;
+  target_student_id: string | null;
+  target_teacher_id: string | null;
+  target_parent_id: string | null;
   created_at: string;
   classes: { name: string } | null;
 }
@@ -15,6 +19,20 @@ interface ClassOption {
   id: string;
   name: string;
 }
+interface StudentOption {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
+const ROLE_OPTIONS = [
+  { value: "student", label: "Élèves" },
+  { value: "parent", label: "Parents" },
+  { value: "teacher", label: "Enseignants" },
+  { value: "admin", label: "Admins" }, // expands to center_admin + super_admin on submit
+];
+
+type Scope = "org" | "class" | "students";
 
 export default function AnnouncementsView() {
   const { isSuperAdmin, memberships } = useAuth();
@@ -28,17 +46,21 @@ export default function AnnouncementsView() {
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [myClasses, setMyClasses] = useState<ClassOption[]>([]);
+  const [myStudents, setMyStudents] = useState<StudentOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scope, setScope] = useState<Scope>("org");
   const [form, setForm] = useState({ title: "", content: "", classId: "" });
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
 
   async function load() {
     setLoading(true);
     const { data, error: fetchError } = await supabase
       .from("announcements")
-      .select("id, title, content, class_id, created_at, classes(name)")
+      .select("id, title, content, class_id, target_roles, target_student_id, target_teacher_id, target_parent_id, created_at, classes(name)")
       .order("created_at", { ascending: false });
 
     if (fetchError) {
@@ -55,6 +77,18 @@ export default function AnnouncementsView() {
         if (teacherRow) {
           const { data: classData } = await supabase.from("classes").select("id, name").eq("teacher_id", teacherRow.id);
           setMyClasses(classData ?? []);
+          const classIds = (classData ?? []).map((c) => c.id);
+          if (classIds.length > 0) {
+            const { data: enrollData } = await supabase
+              .from("class_students")
+              .select("student_id, students(id, first_name, last_name)")
+              .in("class_id", classIds);
+            const seen = new Map<string, StudentOption>();
+            for (const e of (enrollData as unknown as { students: StudentOption | null }[]) ?? []) {
+              if (e.students) seen.set(e.students.id, e.students);
+            }
+            setMyStudents(Array.from(seen.values()));
+          }
         }
       }
     } else if (isAdmin && orgId) {
@@ -69,43 +103,91 @@ export default function AnnouncementsView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function toggleRole(value: string) {
+    setSelectedRoles((prev) => (prev.includes(value) ? prev.filter((r) => r !== value) : [...prev, value]));
+  }
+  function toggleStudent(id: string) {
+    setSelectedStudents((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
+  }
+
+  function notifyEmail(announcementId: string) {
+    supabase.functions.invoke("send-announcement-email", { body: { announcementId } }).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error("Announcement email notification failed:", err);
+    });
+  }
+
   async function handlePost(e: FormEvent) {
     e.preventDefault();
     if (!orgId) return;
     setSaving(true);
     setError(null);
 
-    const { data: inserted, error: insertError } = await supabase
-      .from("announcements")
-      .insert({
+    // "Admins" in the UI expands to both role names the database actually uses.
+    const expandedRoles = selectedRoles.flatMap((r) => (r === "admin" ? ["center_admin", "super_admin"] : [r]));
+
+    if (scope === "students" && isTeacher) {
+      if (selectedStudents.length === 0) {
+        setSaving(false);
+        setError("Choisissez au moins un élève.");
+        return;
+      }
+      // One announcement per selected student — each is its own
+      // individually-scoped, individually-visible message, not a single
+      // row shared across several people.
+      const results = await Promise.all(
+        selectedStudents.map((studentId) =>
+          supabase
+            .from("announcements")
+            .insert({ organization_id: orgId, target_student_id: studentId, title: form.title, content: form.content, published_at: new Date().toISOString() })
+            .select("id")
+            .single(),
+        ),
+      );
+      const failed = results.find((r) => r.error);
+      setSaving(false);
+      if (failed?.error) {
+        setError(failed.error.message);
+        return;
+      }
+      for (const r of results) if (r.data) notifyEmail(r.data.id);
+    } else {
+      const payload: Record<string, unknown> = {
         organization_id: orgId,
-        class_id: form.classId || null,
         title: form.title,
         content: form.content,
         published_at: new Date().toISOString(),
-      })
-      .select("id")
-      .single();
+      };
+      if (scope === "class") payload.class_id = form.classId;
+      else if (scope === "org" && expandedRoles.length > 0) payload.target_roles = expandedRoles;
 
-    setSaving(false);
-    if (insertError) {
-      setError(insertError.message);
-      return;
-    }
-
-    if (inserted) {
-      supabase.functions.invoke("send-announcement-email", { body: { announcementId: inserted.id } }).catch((err) => {
-        // eslint-disable-next-line no-console
-        console.error("Announcement email notification failed:", err);
-      });
+      const { data: inserted, error: insertError } = await supabase.from("announcements").insert(payload).select("id").single();
+      setSaving(false);
+      if (insertError) {
+        setError(insertError.message);
+        return;
+      }
+      if (inserted) notifyEmail(inserted.id);
     }
 
     setForm({ title: "", content: "", classId: "" });
+    setSelectedRoles([]);
+    setSelectedStudents([]);
     setShowForm(false);
     load();
   }
 
   const canPost = isAdmin || isTeacher;
+
+  function describeTarget(a: Announcement): string {
+    if (a.classes) return a.classes.name;
+    if (a.target_student_id || a.target_teacher_id || a.target_parent_id) return "Message individuel";
+    if (a.target_roles && a.target_roles.length > 0) {
+      const labels = a.target_roles.map((r) => (r === "center_admin" || r === "super_admin" ? "Admins" : ROLE_OPTIONS.find((o) => o.value === r)?.label ?? r));
+      return Array.from(new Set(labels)).join(", ");
+    }
+    return m.wholeOrg;
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
@@ -139,20 +221,36 @@ export default function AnnouncementsView() {
             onChange={(e) => setForm({ ...form, content: e.target.value })}
             className="mt-2.5 w-full rounded-md border border-gray-200 px-3 py-2 text-[0.9rem] outline-none focus:border-gray-400"
           />
-          {isAdmin ? (
-            <select
-              value={form.classId}
-              onChange={(e) => setForm({ ...form, classId: e.target.value })}
-              className="mt-2.5 w-full rounded-md border border-gray-200 px-3 py-2 text-[0.88rem] text-gray-700"
-            >
-              <option value="">{m.wholeOrg}</option>
-              {myClasses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
+
+          <div className="mt-3 flex gap-1.5">
+            {isAdmin && (
+              <button type="button" onClick={() => setScope("org")} className={`rounded-full px-3 py-1 text-[0.78rem] font-medium ${scope === "org" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"}`}>
+                Toute l'organisation
+              </button>
+            )}
+            <button type="button" onClick={() => setScope("class")} className={`rounded-full px-3 py-1 text-[0.78rem] font-medium ${scope === "class" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"}`}>
+              {isAdmin ? "Une classe" : "Ma classe"}
+            </button>
+            {isTeacher && (
+              <button type="button" onClick={() => setScope("students")} className={`rounded-full px-3 py-1 text-[0.78rem] font-medium ${scope === "students" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"}`}>
+                Élève(s) spécifique(s)
+              </button>
+            )}
+          </div>
+
+          {scope === "org" && isAdmin && (
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {ROLE_OPTIONS.map((opt) => (
+                <label key={opt.value} className="flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-[0.8rem] text-gray-700">
+                  <input type="checkbox" checked={selectedRoles.includes(opt.value)} onChange={() => toggleRole(opt.value)} />
+                  {opt.label}
+                </label>
               ))}
-            </select>
-          ) : (
+              <span className="self-center text-[0.75rem] text-gray-400">{selectedRoles.length === 0 ? "(aucune sélection = tout le monde)" : ""}</span>
+            </div>
+          )}
+
+          {scope === "class" && (
             <select
               required
               value={form.classId}
@@ -167,6 +265,22 @@ export default function AnnouncementsView() {
               ))}
             </select>
           )}
+
+          {scope === "students" && isTeacher && (
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {myStudents.length === 0 ? (
+                <p className="text-[0.8rem] text-gray-400">Aucun élève inscrit dans vos classes.</p>
+              ) : (
+                myStudents.map((s) => (
+                  <label key={s.id} className="flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-[0.8rem] text-gray-700">
+                    <input type="checkbox" checked={selectedStudents.includes(s.id)} onChange={() => toggleStudent(s.id)} />
+                    {s.first_name} {s.last_name}
+                  </label>
+                ))
+              )}
+            </div>
+          )}
+
           {error && <p className="mt-2 text-[0.82rem] text-red-600">{error}</p>}
           <button
             type="submit"
@@ -189,7 +303,7 @@ export default function AnnouncementsView() {
             <div key={a.id} className="rounded-lg border border-gray-200 bg-white p-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-[0.92rem] font-semibold text-gray-900">{a.title}</h3>
-                <span className="text-[0.75rem] text-gray-400">{a.classes ? a.classes.name : m.wholeOrg}</span>
+                <span className="text-[0.75rem] text-gray-400">{describeTarget(a)}</span>
               </div>
               <p className="mt-1.5 text-[0.87rem] text-gray-600">{a.content}</p>
               <p className="mt-2 text-[0.72rem] text-gray-400">

@@ -12,12 +12,16 @@ interface UpcomingSession {
   id: string;
   starts_at: string;
   room: string | null;
-  classes: { name: string } | null;
+  classes: { name: string; teachers: { first_name: string; last_name: string; phone: string | null } | null } | null;
 }
 interface GradeRow {
   id: string;
   score: number;
   assessments: { title: string; max_score: number | null } | null;
+}
+interface AverageRow {
+  class_id: string;
+  average_out_of_20: number;
 }
 interface AttendanceRow {
   id: string;
@@ -51,6 +55,8 @@ export default function OverviewView() {
   const [loading, setLoading] = useState(true);
   const [upcoming, setUpcoming] = useState<UpcomingSession[]>([]);
   const [grades, setGrades] = useState<GradeRow[]>([]);
+  const [averages, setAverages] = useState<AverageRow[]>([]);
+  const [classNames, setClassNames] = useState<Record<string, string>>({});
   const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
   const [notes, setNotes] = useState<NoteRow[]>([]);
 
@@ -99,11 +105,11 @@ export default function OverviewView() {
       const { data: enrolledClasses } = await supabase.from("class_students").select("class_id").eq("student_id", selectedChild);
       const classIds = (enrolledClasses ?? []).map((c) => c.class_id);
 
-      const [{ data: upcomingData }, { data: gradeData }, { data: attData }, { data: pastData }] = await Promise.all([
+      const [{ data: upcomingData }, { data: gradeData }, { data: attData }, { data: pastData }, { data: avgData }, { data: classNameData }] = await Promise.all([
         classIds.length
           ? supabase
               .from("class_sessions")
-              .select("id, starts_at, room, classes(name)")
+              .select("id, starts_at, room, classes(name, teachers(first_name, last_name, phone))")
               .in("class_id", classIds)
               .gte("starts_at", now)
               .order("starts_at")
@@ -131,9 +137,14 @@ export default function OverviewView() {
               .order("starts_at", { ascending: false })
               .limit(3)
           : Promise.resolve({ data: [] }),
+        supabase.from("student_class_averages").select("class_id, average_out_of_20").eq("student_id", selectedChild),
+        classIds.length ? supabase.from("classes").select("id, name").in("id", classIds) : Promise.resolve({ data: [] }),
       ]);
 
-      setUpcoming((upcomingData as unknown as UpcomingSession[]) ?? []);
+      setAverages(avgData ?? []);
+      const nameMap: Record<string, string> = {};
+      for (const c of classNameData ?? []) nameMap[c.id] = c.name;
+      setClassNames(nameMap);      setUpcoming((upcomingData as unknown as UpcomingSession[]) ?? []);
       setGrades((gradeData as unknown as GradeRow[]) ?? []);
       setAttendance((attData as unknown as AttendanceRow[]) ?? []);
       setNotes((pastData as unknown as NoteRow[]) ?? []);
@@ -183,6 +194,16 @@ export default function OverviewView() {
                 {upcoming.map((s) => (
                   <div key={s.id} className="rounded-lg border border-gray-200 bg-white p-3">
                     <p className="text-[0.85rem] font-medium text-gray-900">{s.classes?.name}</p>
+                    {s.classes?.teachers && (
+                      <p className="mt-0.5 text-[0.78rem] text-gray-500">
+                        {s.classes.teachers.first_name} {s.classes.teachers.last_name}
+                        {s.classes.teachers.phone && (
+                          <a href={`tel:${s.classes.teachers.phone}`} className="ml-1.5 text-gray-400 hover:text-gray-700 hover:underline">
+                            {s.classes.teachers.phone}
+                          </a>
+                        )}
+                      </p>
+                    )}
                     <p className="mt-0.5 text-[0.78rem] text-gray-500">
                       {new Date(s.starts_at).toLocaleString(dateLocale, {
                         weekday: "short",
@@ -201,6 +222,16 @@ export default function OverviewView() {
 
           <div>
             <h2 className="text-[0.9rem] font-semibold text-gray-900">{m.recentGrades}</h2>
+            {averages.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {averages.map((a) => (
+                  <div key={a.class_id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-1.5 text-[0.83rem]">
+                    <span className="text-gray-600">{classNames[a.class_id] ?? "—"}</span>
+                    <span className="font-semibold text-gray-900">{a.average_out_of_20}/20</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {grades.length === 0 ? (
               <p className="mt-2 text-[0.85rem] text-gray-400">{m.noGrades}</p>
             ) : (

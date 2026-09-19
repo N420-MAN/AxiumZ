@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
+import { useConfirmDialog } from "./useConfirmDialog";
 
 export interface Term {
   id: string;
@@ -10,6 +11,7 @@ export interface Term {
   is_current: boolean;
 }
 
+const EMPTY_FORM = { name: "", start_date: "", end_date: "", is_current: true };
 const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
 
@@ -17,9 +19,11 @@ export default function TermsManager({ organizationId }: { organizationId: strin
   const [terms, setTerms] = useState<Term[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", start_date: "", end_date: "", is_current: true });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const { confirm, dialog } = useConfirmDialog();
 
   async function load() {
     setLoading(true);
@@ -38,31 +42,52 @@ export default function TermsManager({ organizationId }: { organizationId: strin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId]);
 
-  async function handleAdd(e: FormEvent) {
+  function openAddForm() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setShowForm(true);
+  }
+
+  function openEditForm(t: Term) {
+    setEditingId(t.id);
+    setForm({ name: t.name, start_date: t.start_date, end_date: t.end_date, is_current: t.is_current });
+    setShowForm(true);
+  }
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
 
+    // Only one term per org can be "current" — the database enforces this
+    // too, but clearing it explicitly here avoids a confusing constraint
+    // error on what's actually a normal, expected action.
     if (form.is_current) {
-      await supabase.from("academic_terms").update({ is_current: false }).eq("organization_id", organizationId).eq("is_current", true);
+      let clearQuery = supabase.from("academic_terms").update({ is_current: false }).eq("organization_id", organizationId).eq("is_current", true);
+      if (editingId) clearQuery = clearQuery.neq("id", editingId);
+      await clearQuery;
     }
 
-    const { error: insertError } = await supabase.from("academic_terms").insert({
-      organization_id: organizationId,
-      name: form.name,
-      start_date: form.start_date,
-      end_date: form.end_date,
-      is_current: form.is_current,
-    });
+    const payload = { name: form.name, start_date: form.start_date, end_date: form.end_date, is_current: form.is_current };
+    const { error: saveError } = editingId
+      ? await supabase.from("academic_terms").update(payload).eq("id", editingId)
+      : await supabase.from("academic_terms").insert({ organization_id: organizationId, ...payload });
 
     setSaving(false);
-    if (insertError) {
-      setError(humanizeError(insertError));
+    if (saveError) {
+      setError(humanizeError(saveError));
       return;
     }
-    setForm({ name: "", start_date: "", end_date: "", is_current: true });
+    setForm(EMPTY_FORM);
+    setEditingId(null);
     setShowForm(false);
     load();
+  }
+
+  async function handleDelete(id: string) {
+    const { error: deleteError } = await supabase.from("academic_terms").delete().eq("id", id);
+    if (deleteError) setError(humanizeError(deleteError));
+    else load();
   }
 
   return (
@@ -74,7 +99,7 @@ export default function TermsManager({ organizationId }: { organizationId: strin
         </div>
         <button
           type="button"
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => (showForm ? setShowForm(false) : openAddForm())}
           className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
         >
           {showForm ? "Annuler" : "+ Ajouter"}
@@ -84,7 +109,7 @@ export default function TermsManager({ organizationId }: { organizationId: strin
       {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
 
       {showForm && (
-        <form onSubmit={handleAdd} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
+        <form onSubmit={handleSubmit} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
           <input
             required
             placeholder="Nom (ex : Semestre 1 2026-2027)"
@@ -121,7 +146,7 @@ export default function TermsManager({ organizationId }: { organizationId: strin
             disabled={saving}
             className="sm:col-span-2 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
           >
-            {saving ? "Enregistrement…" : "Enregistrer"}
+            {saving ? "Enregistrement…" : editingId ? "Enregistrer les modifications" : "Enregistrer"}
           </button>
         </form>
       )}
@@ -140,11 +165,24 @@ export default function TermsManager({ organizationId }: { organizationId: strin
                   {new Date(t.start_date).toLocaleDateString("fr-FR")} – {new Date(t.end_date).toLocaleDateString("fr-FR")}
                 </span>
               </span>
-              {t.is_current && <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-[0.72rem] font-medium text-green-700">Actuelle</span>}
+              <div className="flex items-center gap-3">
+                {t.is_current && <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-[0.72rem] font-medium text-green-700">Actuelle</span>}
+                <button type="button" onClick={() => openEditForm(t)} className="text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
+                  Modifier
+                </button>
+                <button
+                  type="button"
+                  onClick={() => confirm(`Supprimer la période "${t.name}" ?`, () => handleDelete(t.id))}
+                  className="text-[0.78rem] text-red-600 hover:underline"
+                >
+                  Supprimer
+                </button>
+              </div>
             </div>
           ))
         )}
       </div>
+      {dialog}
     </div>
   );
 }

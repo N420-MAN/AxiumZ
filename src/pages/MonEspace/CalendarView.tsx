@@ -13,13 +13,19 @@ interface SessionRow {
     id: string;
     name: string;
     teacher_id: string | null;
-    teachers: { user_id: string | null; first_name: string; last_name: string } | null;
+    teachers: { user_id: string | null; first_name: string; last_name: string; phone: string | null } | null;
   } | null;
 }
 interface TeacherOption {
   id: string;
   first_name: string;
   last_name: string;
+}
+interface ExamMarker {
+  id: string;
+  title: string;
+  assessment_date: string;
+  classes: { name: string } | null;
 }
 
 const START_HOUR = 8;
@@ -62,6 +68,7 @@ export default function CalendarView() {
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [exams, setExams] = useState<ExamMarker[]>([]);
   const [teachers, setTeachers] = useState<TeacherOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [openSession, setOpenSession] = useState<SessionRow | null>(null);
@@ -96,18 +103,41 @@ export default function CalendarView() {
       setLoading(true);
       const rangeEnd = new Date(weekStart);
       rangeEnd.setDate(rangeEnd.getDate() + 7);
-      const { data } = await supabase
-        .from("class_sessions")
-        .select("id, starts_at, ends_at, room, classes(id, name, teacher_id, teachers(user_id, first_name, last_name))")
-        .gte("starts_at", weekStart.toISOString())
-        .lt("starts_at", rangeEnd.toISOString())
-        .order("starts_at");
+      const weekEndStr = rangeEnd.toISOString().slice(0, 10);
+      const weekStartStr = weekStart.toISOString().slice(0, 10);
+
+      const [{ data }, { data: examData }] = await Promise.all([
+        supabase
+          .from("class_sessions")
+          .select("id, starts_at, ends_at, room, classes(id, name, teacher_id, teachers(user_id, first_name, last_name, phone))")
+          .gte("starts_at", weekStart.toISOString())
+          .lt("starts_at", rangeEnd.toISOString())
+          .order("starts_at"),
+        supabase
+          .from("assessments")
+          .select("id, title, assessment_date, classes(name)")
+          .gte("assessment_date", weekStartStr)
+          .lt("assessment_date", weekEndStr)
+          .not("assessment_date", "is", null),
+      ]);
       setSessions((data as unknown as SessionRow[]) ?? []);
+      setExams((examData as unknown as ExamMarker[]) ?? []);
       setLoading(false);
     }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekOffset]);
+
+  const examsByDay = useMemo(() => {
+    const map: Record<number, ExamMarker[]> = {};
+    for (const exam of exams) {
+      const dayIdx = (new Date(`${exam.assessment_date}T12:00:00`).getDay() + 6) % 7;
+      if (dayIdx > 5) continue;
+      if (!map[dayIdx]) map[dayIdx] = [];
+      map[dayIdx].push(exam);
+    }
+    return map;
+  }, [exams]);
 
   const filteredSessions = useMemo(() => {
     return sessions.filter((s) => {
@@ -226,6 +256,11 @@ export default function CalendarView() {
                   }`}
                 >
                   {label}
+                  {examsByDay[i]?.map((exam) => (
+                    <div key={exam.id} className="mx-1 mt-1 truncate rounded bg-red-50 px-1 py-0.5 text-[0.68rem] font-medium text-red-700" title={exam.title}>
+                      📝 {exam.title}
+                    </div>
+                  ))}
                 </div>
               );
             })}
@@ -278,13 +313,21 @@ export default function CalendarView() {
             const daySessions = filteredSessions
               .filter((s) => (new Date(s.starts_at).getDay() + 6) % 7 === dayIdx)
               .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
-            if (daySessions.length === 0) return null;
+            const dayExams = examsByDay[dayIdx] ?? [];
+            if (daySessions.length === 0 && dayExams.length === 0) return null;
             return (
               <div key={label}>
                 <h3 className="text-[0.82rem] font-semibold text-gray-900">
                   {label} <span className="font-normal text-gray-400">{dayDate.toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}</span>
                 </h3>
                 <div className="mt-1.5 space-y-1.5">
+                  {dayExams.map((exam) => (
+                    <div key={exam.id} className="flex items-center gap-2 rounded-md border border-red-100 bg-red-50 px-3 py-2 text-[0.83rem] text-red-800">
+                      <span>📝</span>
+                      <span className="font-medium">{exam.title}</span>
+                      <span className="text-red-600">— {exam.classes?.name}</span>
+                    </div>
+                  ))}
                   {daySessions.map((s) => (
                     <button
                       key={s.id}
@@ -296,8 +339,13 @@ export default function CalendarView() {
                         <span className={`h-2 w-2 shrink-0 rounded-full ${classDotColor(s.classes?.id)}`} />
                         <span className="text-[0.85rem] font-medium text-gray-900">{s.classes?.name}</span>
                         {s.classes?.teachers && (
-                          <span className="text-[0.78rem] text-gray-500">
+                          <span className="flex items-center gap-1.5 text-[0.78rem] text-gray-500">
                             {s.classes.teachers.first_name} {s.classes.teachers.last_name}
+                            {s.classes.teachers.phone && (
+                              <a href={`tel:${s.classes.teachers.phone}`} onClick={(e) => e.stopPropagation()} className="text-gray-400 hover:text-gray-700 hover:underline">
+                                {s.classes.teachers.phone}
+                              </a>
+                            )}
                           </span>
                         )}
                       </div>
@@ -314,7 +362,7 @@ export default function CalendarView() {
               </div>
             );
           })}
-          {filteredSessions.length === 0 && <p className="text-[0.85rem] text-gray-400">Aucune séance cette semaine.</p>}
+          {filteredSessions.length === 0 && exams.length === 0 && <p className="text-[0.85rem] text-gray-400">Aucune séance cette semaine.</p>}
         </div>
       )}
 

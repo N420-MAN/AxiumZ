@@ -11,6 +11,8 @@ import MonEspaceLayout from "./MonEspaceLayout";
 import TodayView from "./TodayView";
 import OverviewView from "./OverviewView";
 import CalendarView from "./CalendarView";
+import GradesView from "./GradesView";
+import SettingsView from "./SettingsView";
 import AnnouncementsView from "./AnnouncementsView";
 import GestionLayout from "./GestionLayout";
 
@@ -46,8 +48,10 @@ function AuthenticatedApp() {
         <Route index element={<Navigate to={`${base}/aujourdhui`} replace />} />
         <Route path="aujourdhui" element={isAdmin || isTeacher ? <TodayView /> : <OverviewView />} />
         <Route path="planning" element={<CalendarView />} />
+        {(isAdmin || isTeacher) && <Route path="notes" element={<GradesView />} />}
         {isAdmin && <Route path="gestion/*" element={<GestionLayout />} />}
         <Route path="annonces" element={<AnnouncementsView />} />
+        <Route path="parametres" element={<SettingsView />} />
         <Route path="*" element={<Navigate to={`${base}/aujourdhui`} replace />} />
       </Route>
     </Routes>

@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
+import SendAnnouncementModal from "./SendAnnouncementModal";
 
 interface StudentRow {
   id: string;
@@ -10,12 +11,14 @@ interface StudentRow {
   last_name: string;
   email: string | null;
   phone: string | null;
+  student_number: string | null;
   user_id: string | null;
   created_at: string;
   class_students: { classes: { name: string } | null }[];
 }
 
 type SortKey = "name" | "created_at";
+const EMPTY_FORM = { first_name: "", last_name: "", email: "", phone: "", student_number: "" };
 
 const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
@@ -28,17 +31,19 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ first_name: "", last_name: "", email: "", phone: "", student_number: "" });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [inviting, setInviting] = useState<string | null>(null);
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({});
   const { confirm, dialog } = useConfirmDialog();
+  const [announcingTo, setAnnouncingTo] = useState<StudentRow | null>(null);
 
   async function load() {
     setLoading(true);
     const { data, error: fetchError } = await supabase
       .from("students")
-      .select("id, first_name, last_name, email, phone, user_id, created_at, class_students(classes(name))")
+      .select("id, first_name, last_name, email, phone, student_number, user_id, created_at, class_students(classes(name))")
       .eq("organization_id", organizationId);
     if (fetchError) setError(humanizeError(fetchError));
     else setError(null);
@@ -73,23 +78,44 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
     }
   }
 
-  async function handleAdd(e: FormEvent) {
+  function openAddForm() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setShowForm(true);
+  }
+
+  function openEditForm(s: StudentRow) {
+    setEditingId(s.id);
+    setForm({
+      first_name: s.first_name,
+      last_name: s.last_name,
+      email: s.email ?? "",
+      phone: s.phone ?? "",
+      student_number: s.student_number ?? "",
+    });
+    setShowForm(true);
+  }
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const { error: insertError } = await supabase.from("students").insert({
-      organization_id: organizationId,
+    const payload = {
       first_name: form.first_name,
       last_name: form.last_name,
       email: form.email || null,
       phone: form.phone || null,
       student_number: form.student_number || null,
-    });
+    };
+    const { error: saveError } = editingId
+      ? await supabase.from("students").update(payload).eq("id", editingId)
+      : await supabase.from("students").insert({ organization_id: organizationId, ...payload });
     setSaving(false);
-    if (insertError) {
-      setError(humanizeError(insertError));
+    if (saveError) {
+      setError(humanizeError(saveError));
       return;
     }
-    setForm({ first_name: "", last_name: "", email: "", phone: "", student_number: "" });
+    setForm(EMPTY_FORM);
+    setEditingId(null);
     setShowForm(false);
     setError(null);
     load();
@@ -145,7 +171,7 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
           />
           <button
             type="button"
-            onClick={() => setShowForm((v) => !v)}
+            onClick={() => (showForm ? setShowForm(false) : openAddForm())}
             className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
           >
             {showForm ? "Annuler" : "+ Ajouter"}
@@ -156,14 +182,14 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
       {error && <p className="px-5 pt-3 text-[0.82rem] text-red-600">{error}</p>}
 
       {showForm && (
-        <form onSubmit={handleAdd} className="grid grid-cols-1 gap-3 border-b border-gray-100 p-5 sm:grid-cols-3">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 border-b border-gray-100 p-5 sm:grid-cols-3">
           <input required placeholder="Prénom" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className={inputClass} />
           <input required placeholder="Nom" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className={inputClass} />
           <input placeholder="Numéro élève" value={form.student_number} onChange={(e) => setForm({ ...form, student_number: e.target.value })} className={inputClass} />
           <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
           <input placeholder="Téléphone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputClass} />
           <button type="submit" disabled={saving} className="rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50">
-            {saving ? "Enregistrement…" : "Enregistrer"}
+            {saving ? "Enregistrement…" : editingId ? "Enregistrer les modifications" : "Enregistrer"}
           </button>
         </form>
       )}
@@ -214,6 +240,12 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
                       {inviteResult[s.id] && <p className="mt-0.5 text-[0.7rem] text-gray-400">{inviteResult[s.id]}</p>}
                     </td>
                     <td className="px-5 py-2.5 text-right">
+                      <button type="button" onClick={() => setAnnouncingTo(s)} className="mr-3 text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
+                        Annoncer
+                      </button>
+                      <button type="button" onClick={() => openEditForm(s)} className="mr-3 text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
+                        Modifier
+                      </button>
                       <button
                         type="button"
                         onClick={() => confirm(`Supprimer ${s.first_name} ${s.last_name} ? Cette action est irréversible.`, () => handleDelete(s.id))}
@@ -230,6 +262,15 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
         )}
       </div>
       {dialog}
+      {announcingTo && (
+        <SendAnnouncementModal
+          targetType="student"
+          targetId={announcingTo.id}
+          targetName={`${announcingTo.first_name} ${announcingTo.last_name}`}
+          organizationId={organizationId}
+          onClose={() => setAnnouncingTo(null)}
+        />
+      )}
     </div>
   );
 }

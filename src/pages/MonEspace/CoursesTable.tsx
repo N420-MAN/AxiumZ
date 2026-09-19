@@ -7,6 +7,7 @@ interface CourseRow {
   id: string;
   name: string;
   level: string | null;
+  description: string | null;
 }
 interface ClassAggRow {
   id: string;
@@ -30,12 +31,13 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", level: "", description: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const { confirm, dialog } = useConfirmDialog();
 
   async function load() {
     setLoading(true);
     const [{ data: courseData, error: courseError }, { data: classData }] = await Promise.all([
-      supabase.from("courses").select("id, name, level").eq("organization_id", organizationId),
+      supabase.from("courses").select("id, name, level, description").eq("organization_id", organizationId),
       supabase.from("classes").select("id, course_id, class_students(count)").eq("organization_id", organizationId),
     ]);
     if (courseError) setError(humanizeError(courseError));
@@ -78,21 +80,32 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
     }
   }
 
-  async function handleAdd(e: FormEvent) {
+  function openAddForm() {
+    setEditingId(null);
+    setForm({ name: "", level: "", description: "" });
+    setShowForm(true);
+  }
+
+  function openEditForm(c: CourseRow) {
+    setEditingId(c.id);
+    setForm({ name: c.name, level: c.level ?? "", description: c.description ?? "" });
+    setShowForm(true);
+  }
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const { error: insertError } = await supabase.from("courses").insert({
-      organization_id: organizationId,
-      name: form.name,
-      level: form.level || null,
-      description: form.description || null,
-    });
+    const payload = { name: form.name, level: form.level || null, description: form.description || null };
+    const { error: saveError } = editingId
+      ? await supabase.from("courses").update(payload).eq("id", editingId)
+      : await supabase.from("courses").insert({ organization_id: organizationId, ...payload });
     setSaving(false);
-    if (insertError) {
-      setError(humanizeError(insertError));
+    if (saveError) {
+      setError(humanizeError(saveError));
       return;
     }
     setForm({ name: "", level: "", description: "" });
+    setEditingId(null);
     setShowForm(false);
     setError(null);
     load();
@@ -125,7 +138,7 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
             onChange={(e) => setSearch(e.target.value)}
             className="w-56 rounded-md border border-gray-200 px-3 py-1.5 text-[0.85rem] outline-none focus:border-gray-400"
           />
-          <button type="button" onClick={() => setShowForm((v) => !v)} className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white">
+          <button type="button" onClick={() => (showForm ? setShowForm(false) : openAddForm())} className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white">
             {showForm ? "Annuler" : "+ Ajouter"}
           </button>
         </div>
@@ -134,12 +147,12 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
       {error && <p className="px-5 pt-3 text-[0.82rem] text-red-600">{error}</p>}
 
       {showForm && (
-        <form onSubmit={handleAdd} className="grid grid-cols-1 gap-3 border-b border-gray-100 p-5 sm:grid-cols-3">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 border-b border-gray-100 p-5 sm:grid-cols-3">
           <input required placeholder="Nom du programme" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
           <input placeholder="Niveau (ex: Terminale)" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className={inputClass} />
           <input placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputClass} />
           <button type="submit" disabled={saving} className="sm:col-span-3 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50">
-            {saving ? "Enregistrement…" : "Enregistrer"}
+            {saving ? "Enregistrement…" : editingId ? "Enregistrer les modifications" : "Enregistrer"}
           </button>
         </form>
       )}
@@ -170,6 +183,9 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
                     <td className="px-3 py-2.5 text-gray-700">{agg.classCount}</td>
                     <td className="px-3 py-2.5 text-gray-700">{agg.studentCount}</td>
                     <td className="px-5 py-2.5 text-right">
+                      <button type="button" onClick={() => openEditForm(c)} className="mr-3 text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
+                        Modifier
+                      </button>
                       <button
                         type="button"
                         onClick={() =>

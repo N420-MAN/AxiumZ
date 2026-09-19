@@ -22,6 +22,8 @@ interface ClassRow {
   id: string;
   name: string;
   room: string | null;
+  course_id: string;
+  teacher_id: string | null;
   courses: { name: string } | null;
   teachers: { first_name: string; last_name: string } | null;
 }
@@ -47,6 +49,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
   const [error, setError] = useState<string | null>(null);
   const { confirm, dialog } = useConfirmDialog();
   const [form, setForm] = useState({ name: "", course_id: "", teacher_id: "", room: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [enrollStudentId, setEnrollStudentId] = useState("");
 
   async function loadAll() {
@@ -55,7 +58,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       await Promise.all([
         supabase
           .from("classes")
-          .select("id, name, room, courses(name), teachers(first_name, last_name)")
+          .select("id, name, room, course_id, teacher_id, courses(name), teachers(first_name, last_name)")
           .eq("organization_id", organizationId)
           .order("name"),
         supabase.from("courses").select("id, name").eq("organization_id", organizationId).order("name"),
@@ -91,22 +94,32 @@ export default function ClassesManager({ organizationId }: { organizationId: str
     if (!enrollments[classId]) loadEnrollments(classId);
   }
 
-  async function handleAddClass(e: FormEvent) {
+  function openAddClassForm() {
+    setEditingId(null);
+    setForm({ name: "", course_id: "", teacher_id: "", room: "" });
+    setShowForm(true);
+  }
+
+  function openEditClassForm(cls: ClassRow) {
+    setEditingId(cls.id);
+    setForm({ name: cls.name, course_id: cls.course_id, teacher_id: cls.teacher_id ?? "", room: cls.room ?? "" });
+    setShowForm(true);
+  }
+
+  async function handleSubmitClass(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const { error: insertError } = await supabase.from("classes").insert({
-      organization_id: organizationId,
-      name: form.name,
-      course_id: form.course_id,
-      teacher_id: form.teacher_id || null,
-      room: form.room || null,
-    });
+    const payload = { name: form.name, course_id: form.course_id, teacher_id: form.teacher_id || null, room: form.room || null };
+    const { error: saveError } = editingId
+      ? await supabase.from("classes").update(payload).eq("id", editingId)
+      : await supabase.from("classes").insert({ organization_id: organizationId, ...payload });
     setSaving(false);
-    if (insertError) {
-      setError(humanizeError(insertError));
+    if (saveError) {
+      setError(humanizeError(saveError));
       return;
     }
     setForm({ name: "", course_id: "", teacher_id: "", room: "" });
+    setEditingId(null);
     setShowForm(false);
     setError(null);
     loadAll();
@@ -125,6 +138,12 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       setError(humanizeError(enrollError));
       return;
     }
+    // Best-effort, same pattern as absence notifications: the enrollment
+    // already succeeded regardless of whether this notification succeeds.
+    supabase.functions.invoke("notify-enrollment", { body: { studentId: enrollStudentId, classId } }).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error("Enrollment notification failed:", err);
+    });
     setEnrollStudentId("");
     loadEnrollments(classId);
   }
@@ -141,7 +160,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
         <h3 className="text-[1rem] font-semibold text-gray-900">Classes</h3>
         <button
           type="button"
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => (showForm ? setShowForm(false) : openAddClassForm())}
           className="rounded-md bg-gray-900 px-3.5 py-1.5 text-[0.82rem] font-medium text-white"
         >
           {showForm ? "Annuler" : "+ Ajouter"}
@@ -151,7 +170,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
 
       {showForm && (
-        <form onSubmit={handleAddClass} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
+        <form onSubmit={handleSubmitClass} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
           <input
             required
             placeholder="Nom de la classe"
@@ -186,7 +205,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
             disabled={saving}
             className="sm:col-span-2 rounded-md bg-gray-900 px-4 py-2 text-[0.85rem] font-medium text-white disabled:opacity-50"
           >
-            {saving ? "Enregistrement…" : "Enregistrer"}
+            {saving ? "Enregistrement…" : editingId ? "Enregistrer les modifications" : "Enregistrer"}
           </button>
         </form>
       )}
@@ -209,6 +228,9 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                 <div className="flex items-center gap-3">
                   <button type="button" onClick={() => toggleExpand(cls.id)} className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline">
                     {expanded === cls.id ? "Fermer" : "Élèves"}
+                  </button>
+                  <button type="button" onClick={() => openEditClassForm(cls)} className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline">
+                    Modifier
                   </button>
                   <button
                     type="button"
@@ -269,7 +291,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                     )}
                   </div>
 
-                  <ScheduleSessionsForm classId={cls.id} defaultRoom={cls.room} organizationId={organizationId} />
+                  <ScheduleSessionsForm classId={cls.id} defaultRoom={cls.room} teacherId={cls.teacher_id} organizationId={organizationId} />
                 </div>
               )}
             </div>

@@ -38,7 +38,17 @@ function datesForWeekday(startDate: string, endDate: string, weekday: number): D
   return dates;
 }
 
-export default function ScheduleSessionsForm({ classId, defaultRoom, organizationId }: { classId: string; defaultRoom: string | null; organizationId: string }) {
+export default function ScheduleSessionsForm({
+  classId,
+  defaultRoom,
+  teacherId,
+  organizationId,
+}: {
+  classId: string;
+  defaultRoom: string | null;
+  teacherId: string | null;
+  organizationId: string;
+}) {
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -77,6 +87,46 @@ export default function ScheduleSessionsForm({ classId, defaultRoom, organizatio
     return datesForWeekday(form.startDate, form.endDate, form.weekday);
   }
 
+  // Checks every proposed date/time against other classes' sessions in the
+  // same window, flagging a conflict when either the same room or the same
+  // teacher is already booked at an overlapping time. This doesn't block
+  // creation — it surfaces what would double-book, in the confirmation
+  // dialog, so the admin decides with full information rather than finding
+  // out from an empty room later.
+  async function checkConflicts(dates: Date[]): Promise<string[]> {
+    if (!form.room && !teacherId) return [];
+
+    const { data } = await supabase
+      .from("class_sessions")
+      .select("starts_at, ends_at, room, classes(name, teacher_id)")
+      .neq("class_id", classId)
+      .gte("starts_at", new Date(`${form.startDate}T00:00:00`).toISOString())
+      .lte("starts_at", new Date(`${form.endDate}T23:59:59`).toISOString());
+
+    const candidates =
+      (data as unknown as { starts_at: string; ends_at: string; room: string | null; classes: { name: string; teacher_id: string | null } | null }[]) ?? [];
+
+    const conflicts: string[] = [];
+    for (const d of dates) {
+      const dateStr = d.toISOString().slice(0, 10);
+      const proposedStart = new Date(`${dateStr}T${form.startTime}:00`);
+      const proposedEnd = new Date(`${dateStr}T${form.endTime}:00`);
+
+      for (const c of candidates) {
+        const overlaps = proposedStart < new Date(c.ends_at) && new Date(c.starts_at) < proposedEnd;
+        if (!overlaps) continue;
+
+        const sameRoom = Boolean(form.room) && c.room === form.room;
+        const sameTeacher = Boolean(teacherId) && c.classes?.teacher_id === teacherId;
+        if (sameRoom || sameTeacher) {
+          const reason = sameTeacher && sameRoom ? "enseignant et salle" : sameTeacher ? "enseignant" : "salle";
+          conflicts.push(`${dateStr} ${form.startTime} : conflit de ${reason} avec "${c.classes?.name}"`);
+        }
+      }
+    }
+    return conflicts;
+  }
+
   async function createSessions(dates: Date[]) {
     setSaving(true);
     setError(null);
@@ -99,17 +149,24 @@ export default function ScheduleSessionsForm({ classId, defaultRoom, organizatio
     load();
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const dates = computeDates();
     if (dates.length === 0) {
       setError("Aucune date ne correspond à cette période et ce jour de la semaine.");
       return;
     }
     const dayLabel = DAY_OPTIONS.find((d) => d.value === form.weekday)?.label;
-    confirm(
-      `Créer ${dates.length} séance${dates.length > 1 ? "s" : ""} le ${dayLabel} de ${form.startTime} à ${form.endTime}, du ${new Date(form.startDate).toLocaleDateString("fr-FR")} au ${new Date(form.endDate).toLocaleDateString("fr-FR")} ?`,
-      () => createSessions(dates),
-    );
+    const baseMessage = `Créer ${dates.length} séance${dates.length > 1 ? "s" : ""} le ${dayLabel} de ${form.startTime} à ${form.endTime}, du ${new Date(form.startDate).toLocaleDateString("fr-FR")} au ${new Date(form.endDate).toLocaleDateString("fr-FR")} ?`;
+
+    const conflicts = await checkConflicts(dates);
+    if (conflicts.length === 0) {
+      confirm(baseMessage, () => createSessions(dates), "Créer", false);
+      return;
+    }
+
+    const shown = conflicts.slice(0, 5).join("\n");
+    const more = conflicts.length > 5 ? `\n+ ${conflicts.length - 5} autre(s) conflit(s)` : "";
+    confirm(`⚠️ Conflit(s) détecté(s) :\n${shown}${more}\n\n${baseMessage} (malgré le conflit)`, () => createSessions(dates), "Créer quand même", true);
   }
 
   const previewCount = showForm ? computeDates().length : 0;
