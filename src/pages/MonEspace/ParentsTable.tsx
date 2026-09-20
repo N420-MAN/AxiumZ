@@ -148,9 +148,15 @@ export default function ParentsTable({ organizationId }: { organizationId: strin
   }
 
   async function handleDelete(id: string) {
-    const { error: deleteError } = await supabase.from("parents").delete().eq("id", id);
-    if (deleteError) setError(humanizeError(deleteError));
-    else load();
+    const { data, error: deleteError } = await supabase.functions.invoke("delete-person", {
+      body: { organizationId, table: "parents", recordId: id },
+    });
+    if (deleteError || data?.error) {
+      const message = await extractFunctionErrorMessage(deleteError, data);
+      setError(message);
+      return;
+    }
+    load();
   }
 
   async function handleAddChild(parentId: string) {

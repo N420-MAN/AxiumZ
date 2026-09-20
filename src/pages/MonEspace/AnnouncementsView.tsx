@@ -14,6 +14,8 @@ interface Announcement {
   target_teacher_id: string | null;
   target_parent_id: string | null;
   created_at: string;
+  created_by_name: string | null;
+  created_by_role: string | null;
   classes: { name: string } | null;
 }
 interface ClassOption {
@@ -60,7 +62,7 @@ export default function AnnouncementsView() {
     setLoading(true);
     const { data, error: fetchError } = await supabase
       .from("announcements")
-      .select("id, title, content, class_id, target_roles, target_student_id, target_teacher_id, target_parent_id, created_at, classes(name)")
+      .select("id, title, content, class_id, target_roles, target_student_id, target_teacher_id, target_parent_id, created_at, created_by_name, created_by_role, classes(name)")
       .order("created_at", { ascending: false });
 
     if (fetchError) {
@@ -178,6 +180,14 @@ export default function AnnouncementsView() {
   }
 
   const canPost = isAdmin || isTeacher;
+
+  function roleLabel(role: string | null): string {
+    if (role === "student") return m.roleStudents;
+    if (role === "parent") return m.roleParents;
+    if (role === "teacher") return m.roleTeachers;
+    if (role === "center_admin" || role === "super_admin") return m.roleAdmins;
+    return role ?? "";
+  }
 
   function describeTarget(a: Announcement): string {
     if (a.classes) return a.classes.name;
@@ -307,6 +317,7 @@ export default function AnnouncementsView() {
               </div>
               <p className="mt-1.5 text-[0.87rem] text-gray-600">{a.content}</p>
               <p className="mt-2 text-[0.72rem] text-gray-400">
+                {a.created_by_name && `${m.sentBy.replace("{name}", a.created_by_name).replace("{role}", roleLabel(a.created_by_role))} · `}
                 {new Date(a.created_at).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>

@@ -113,9 +113,12 @@ export default function EntityManager({ table, organizationId, title, extraField
   }
 
   async function handleDelete(id: string) {
-    const { error: deleteError } = await supabase.from(table).delete().eq("id", id);
-    if (deleteError) {
-      setError(humanizeError(deleteError));
+    const { data, error: deleteError } = await supabase.functions.invoke("delete-person", {
+      body: { organizationId, table, recordId: id },
+    });
+    if (deleteError || data?.error) {
+      const message = await extractFunctionErrorMessage(deleteError, data);
+      setError(message);
       return;
     }
     load();

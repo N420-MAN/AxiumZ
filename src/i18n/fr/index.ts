@@ -373,8 +373,15 @@ const fr: Dictionary = {
     notInvitedTitle: "Compte non reconnu",
     notInvitedBody: "Cette adresse Google n'est associée à aucun compte AxiumZ. Mon Espace fonctionne uniquement sur invitation — contactez l'administrateur de votre centre pour être ajouté.",
     backToSignIn: "Retour à la connexion",
+    forgotPasswordLink: "Mot de passe oublié ?",
+    forgotPasswordTitle: "Réinitialiser le mot de passe",
+    forgotPasswordBody: "Saisissez votre adresse e-mail. Si un compte existe, un lien de réinitialisation vous sera envoyé.",
+    sendResetLink: "Envoyer le lien",
+    sending: "Envoi…",
+    resetLinkSent: "Si un compte existe avec cette adresse, un e-mail contenant un lien de réinitialisation vient d'être envoyé.",
     loading: "Chargement…",
     dashboardTitle: "Mon espace",
+    backToWebsite: "← Retour au site",
   },
   monEspace: {
     layout: {
@@ -421,7 +428,7 @@ const fr: Dictionary = {
       title: "Planning",
       previous: "← Précédente",
       next: "Suivante →",
-      dayLabels: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"],
+      dayLabels: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
     },
     sessionDetail: {
       close: "Fermer",
@@ -470,6 +477,7 @@ const fr: Dictionary = {
       noRoleSelectionMeansEveryone: "(aucune sélection = tout le monde)",
       noStudentsInClasses: "Aucun élève inscrit dans vos classes.",
       chooseAtLeastOneStudent: "Choisissez au moins un élève.",
+      sentBy: "Par {name} · {role}",
     },
     notifications: {
       title: "Notifications",
@@ -633,7 +641,7 @@ const fr: Dictionary = {
         conflictReasonRoom: "salle",
         conflictWith: "{date} {time} : conflit de {reason} avec \"{name}\"",
         createAnyway: "Créer quand même",
-        days: { mon: "Lundi", tue: "Mardi", wed: "Mercredi", thu: "Jeudi", fri: "Vendredi", sat: "Samedi" },
+        days: { mon: "Lundi", tue: "Mardi", wed: "Mercredi", thu: "Jeudi", fri: "Vendredi", sat: "Samedi", sun: "Dimanche" },
       },
       journal: {
         title: "Journal d'activité",

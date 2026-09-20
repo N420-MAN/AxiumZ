@@ -51,6 +51,7 @@ export default function ScheduleSessionsForm({
     { value: 4, label: m.days.thu },
     { value: 5, label: m.days.fri },
     { value: 6, label: m.days.sat },
+    { value: 0, label: m.days.sun },
   ];
 
   const [sessions, setSessions] = useState<SessionRow[]>([]);

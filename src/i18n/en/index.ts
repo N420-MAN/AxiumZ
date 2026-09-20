@@ -373,8 +373,15 @@ const en: Dictionary = {
     notInvitedTitle: "Account not recognized",
     notInvitedBody: "This Google address isn't linked to any AxiumZ account. Mon Espace works by invitation only — contact your center's administrator to be added.",
     backToSignIn: "Back to sign in",
+    forgotPasswordLink: "Forgot your password?",
+    forgotPasswordTitle: "Reset your password",
+    forgotPasswordBody: "Enter your email address. If an account exists, a reset link will be sent to you.",
+    sendResetLink: "Send link",
+    sending: "Sending…",
+    resetLinkSent: "If an account exists with that address, an email with a reset link was just sent.",
     loading: "Loading…",
     dashboardTitle: "My Space",
+    backToWebsite: "← Back to website",
   },
   monEspace: {
     layout: {
@@ -421,7 +428,7 @@ const en: Dictionary = {
       title: "Schedule",
       previous: "← Previous",
       next: "Next →",
-      dayLabels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+      dayLabels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     },
     sessionDetail: {
       close: "Close",
@@ -470,6 +477,7 @@ const en: Dictionary = {
       noRoleSelectionMeansEveryone: "(no selection = everyone)",
       noStudentsInClasses: "No students enrolled in your classes.",
       chooseAtLeastOneStudent: "Choose at least one student.",
+      sentBy: "By {name} · {role}",
     },
     notifications: {
       title: "Notifications",
@@ -633,7 +641,7 @@ const en: Dictionary = {
         conflictReasonRoom: "room",
         conflictWith: "{date} {time}: {reason} conflict with \"{name}\"",
         createAnyway: "Create anyway",
-        days: { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday" },
+        days: { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" },
       },
       journal: {
         title: "Activity log",

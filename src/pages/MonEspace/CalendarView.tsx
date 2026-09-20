@@ -132,7 +132,7 @@ export default function CalendarView() {
     const map: Record<number, ExamMarker[]> = {};
     for (const exam of exams) {
       const dayIdx = (new Date(`${exam.assessment_date}T12:00:00`).getDay() + 6) % 7;
-      if (dayIdx > 5) continue;
+      
       if (!map[dayIdx]) map[dayIdx] = [];
       map[dayIdx].push(exam);
     }
@@ -244,7 +244,7 @@ export default function CalendarView() {
         <div className="mt-4 h-96" />
       ) : viewMode === "grid" ? (
         <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <div className="grid min-w-[720px] grid-cols-[52px_repeat(6,1fr)]">
+          <div className="grid min-w-[840px] grid-cols-[52px_repeat(7,1fr)]">
             <div className="border-b border-gray-100" />
             {m.dayLabels.map((label, i) => {
               const isToday = new Date().toDateString() === new Date(weekStart.getTime() + i * 86400000).toDateString();
@@ -265,13 +265,13 @@ export default function CalendarView() {
               );
             })}
           </div>
-          <div className="relative grid min-w-[720px] grid-cols-[52px_repeat(6,1fr)]" style={{ gridAutoRows: "44px" }}>
+          <div className="relative grid min-w-[840px] grid-cols-[52px_repeat(7,1fr)]" style={{ gridAutoRows: "44px" }}>
             {HOURS.map((h, i) => (
               <div key={h} className="border-t border-gray-100 px-1.5 py-0.5 text-[0.7rem] text-gray-400" style={{ gridColumn: 1, gridRow: i + 1 }}>
                 {h}h
               </div>
             ))}
-            {Array.from({ length: 6 }, (_, dayIdx) => (
+            {Array.from({ length: 7 }, (_, dayIdx) => (
               <div
                 key={dayIdx}
                 style={{ gridColumn: dayIdx + 2, gridRow: `1 / ${HOURS.length + 1}` }}
@@ -283,7 +283,7 @@ export default function CalendarView() {
               const start = new Date(s.starts_at);
               const end = new Date(s.ends_at);
               const dayIdx = (start.getDay() + 6) % 7; // Monday = 0
-              if (dayIdx > 5) return null; // Sunday sessions won't fit this Mon–Sat grid
+              
               const startRow = start.getHours() - START_HOUR + start.getMinutes() / 60 + 1;
               const endRow = end.getHours() - START_HOUR + end.getMinutes() / 60 + 1;
               if (startRow < 1 || startRow > HOURS.length + 1) return null;

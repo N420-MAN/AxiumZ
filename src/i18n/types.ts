@@ -194,8 +194,15 @@ export interface Dictionary {
     notInvitedTitle: string;
     notInvitedBody: string;
     backToSignIn: string;
+    forgotPasswordLink: string;
+    forgotPasswordTitle: string;
+    forgotPasswordBody: string;
+    sendResetLink: string;
+    sending: string;
+    resetLinkSent: string;
     loading: string;
     dashboardTitle: string;
+    backToWebsite: string;
   };
   monEspace: {
     layout: {
@@ -291,6 +298,7 @@ export interface Dictionary {
       noRoleSelectionMeansEveryone: string;
       noStudentsInClasses: string;
       chooseAtLeastOneStudent: string;
+      sentBy: string;
     };
     notifications: {
       title: string;
@@ -454,7 +462,7 @@ export interface Dictionary {
         conflictReasonRoom: string;
         conflictWith: string;
         createAnyway: string;
-        days: { mon: string; tue: string; wed: string; thu: string; fri: string; sat: string };
+        days: { mon: string; tue: string; wed: string; thu: string; fri: string; sat: string; sun: string };
       };
       journal: {
         title: string;
