@@ -3,6 +3,8 @@ import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import ScheduleSessionsForm from "./ScheduleSessionsForm";
+import SyllabusProgressSection from "./SyllabusProgressSection";
+import MaterialsSection from "./MaterialsSection";
 import { useLocale } from "../../i18n/LocaleContext";
 
 interface Course {
@@ -25,8 +27,10 @@ interface ClassRow {
   room: string | null;
   course_id: string;
   teacher_id: string | null;
+  capacity: number | null;
   courses: { name: string } | null;
   teachers: { first_name: string; last_name: string } | null;
+  class_students: { count: number }[];
 }
 interface Enrollment {
   student_id: string;
@@ -52,7 +56,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { confirm, dialog } = useConfirmDialog();
-  const [form, setForm] = useState({ name: "", course_id: "", teacher_id: "", room: "" });
+  const [form, setForm] = useState({ name: "", course_id: "", teacher_id: "", room: "", capacity: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [enrollStudentId, setEnrollStudentId] = useState("");
 
@@ -62,7 +66,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       await Promise.all([
         supabase
           .from("classes")
-          .select("id, name, room, course_id, teacher_id, courses(name), teachers(first_name, last_name)")
+          .select("id, name, room, course_id, teacher_id, capacity, courses(name), teachers(first_name, last_name), class_students(count)")
           .eq("organization_id", organizationId)
           .order("name"),
         supabase.from("courses").select("id, name").eq("organization_id", organizationId).order("name"),
@@ -100,20 +104,26 @@ export default function ClassesManager({ organizationId }: { organizationId: str
 
   function openAddClassForm() {
     setEditingId(null);
-    setForm({ name: "", course_id: "", teacher_id: "", room: "" });
+    setForm({ name: "", course_id: "", teacher_id: "", room: "", capacity: "" });
     setShowForm(true);
   }
 
   function openEditClassForm(cls: ClassRow) {
     setEditingId(cls.id);
-    setForm({ name: cls.name, course_id: cls.course_id, teacher_id: cls.teacher_id ?? "", room: cls.room ?? "" });
+    setForm({ name: cls.name, course_id: cls.course_id, teacher_id: cls.teacher_id ?? "", room: cls.room ?? "", capacity: cls.capacity?.toString() ?? "" });
     setShowForm(true);
   }
 
   async function handleSubmitClass(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const payload = { name: form.name, course_id: form.course_id, teacher_id: form.teacher_id || null, room: form.room || null };
+    const payload = {
+      name: form.name,
+      course_id: form.course_id,
+      teacher_id: form.teacher_id || null,
+      room: form.room || null,
+      capacity: form.capacity ? Number(form.capacity) : null,
+    };
     const { error: saveError } = editingId
       ? await supabase.from("classes").update(payload).eq("id", editingId)
       : await supabase.from("classes").insert({ organization_id: organizationId, ...payload });
@@ -122,7 +132,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       setError(humanizeError(saveError));
       return;
     }
-    setForm({ name: "", course_id: "", teacher_id: "", room: "" });
+    setForm({ name: "", course_id: "", teacher_id: "", room: "", capacity: "" });
     setEditingId(null);
     setShowForm(false);
     setError(null);
@@ -183,6 +193,14 @@ export default function ClassesManager({ organizationId }: { organizationId: str
             className={inputClass}
           />
           <input placeholder={m.room} value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} className={inputClass} />
+          <input
+            type="number"
+            min="1"
+            placeholder={m.capacityPlaceholder}
+            value={form.capacity}
+            onChange={(e) => setForm({ ...form, capacity: e.target.value })}
+            className={inputClass}
+          />
           <select
             required
             value={form.course_id}
@@ -228,6 +246,20 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                   <span className="ml-2 text-[0.8rem] text-gray-500">
                     {cls.courses?.name} {cls.teachers ? `— ${cls.teachers.first_name} ${cls.teachers.last_name}` : m.noTeacher}
                   </span>
+                  {(() => {
+                    const enrolled = cls.class_students?.[0]?.count ?? 0;
+                    const isFull = cls.capacity != null && enrolled >= cls.capacity;
+                    const isNearFull = cls.capacity != null && !isFull && enrolled >= cls.capacity * 0.8;
+                    return (
+                      <span
+                        className={`ml-2 rounded-full px-2 py-0.5 text-[0.72rem] font-medium ${
+                          isFull ? "bg-red-50 text-red-700" : isNearFull ? "bg-amber-50 text-amber-700" : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {cls.capacity != null ? `${enrolled}/${cls.capacity}` : enrolled}
+                      </span>
+                    );
+                  })()}
                 </button>
                 <div className="flex items-center gap-3">
                   <button type="button" onClick={() => toggleExpand(cls.id)} className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline">
@@ -296,6 +328,8 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                   </div>
 
                   <ScheduleSessionsForm classId={cls.id} defaultRoom={cls.room} teacherId={cls.teacher_id} organizationId={organizationId} />
+                  <SyllabusProgressSection classId={cls.id} courseId={cls.course_id} />
+                  <MaterialsSection classId={cls.id} organizationId={organizationId} canEdit />
                 </div>
               )}
             </div>

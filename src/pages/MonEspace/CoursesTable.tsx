@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import { useLocale } from "../../i18n/LocaleContext";
+import SyllabusModal from "./SyllabusModal";
 
 interface CourseRow {
   id: string;
@@ -38,6 +39,7 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
   const [form, setForm] = useState({ name: "", level: "", description: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const { confirm, dialog } = useConfirmDialog();
+  const [syllabusTarget, setSyllabusTarget] = useState<{ id: string; name: string } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -188,6 +190,9 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
                     <td className="px-3 py-2.5 text-gray-700">{agg.classCount}</td>
                     <td className="px-3 py-2.5 text-gray-700">{agg.studentCount}</td>
                     <td className="px-5 py-2.5 text-right">
+                      <button type="button" onClick={() => setSyllabusTarget({ id: c.id, name: c.name })} className="mr-3 text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
+                        {t.monEspace.syllabus.manageLink}
+                      </button>
                       <button type="button" onClick={() => openEditForm(c)} className="mr-3 text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
                         {t.monEspace.gestion.common.edit}
                       </button>
@@ -207,6 +212,9 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
         )}
       </div>
       {dialog}
+      {syllabusTarget && (
+        <SyllabusModal courseId={syllabusTarget.id} courseName={syllabusTarget.name} onClose={() => setSyllabusTarget(null)} />
+      )}
     </div>
   );
 }

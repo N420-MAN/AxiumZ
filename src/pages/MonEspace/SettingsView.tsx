@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
+import { uploadTeacherAvatar } from "../../lib/avatarUpload";
+import TeacherAvatar from "./TeacherAvatar";
 
 const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
@@ -11,6 +13,7 @@ export default function SettingsView() {
   const { t, locale } = useLocale();
   const m = t.monEspace.gestion.settings;
   const gc = t.monEspace.gestion.common;
+  const tp = t.monEspace.teacherProfile;
   const location = useLocation();
   const navigate = useNavigate();
   const [localeSaving, setLocaleSaving] = useState(false);
@@ -34,6 +37,14 @@ export default function SettingsView() {
   const [phoneSaving, setPhoneSaving] = useState(false);
   const [phoneMessage, setPhoneMessage] = useState<{ text: string; isError: boolean } | null>(null);
 
+  // Only populated when this person has their own teachers row — bio and
+  // photo are teacher-specific, unlike name/phone which every role has.
+  const [teacherId, setTeacherId] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [bio, setBio] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -51,6 +62,13 @@ export default function SettingsView() {
         const { data: profile } = await supabase.from("profiles").select("full_name, phone").eq("id", userData.user.id).maybeSingle();
         setFullName(profile?.full_name ?? "");
         setPhone(profile?.phone ?? "");
+
+        const { data: teacherRow } = await supabase.from("teachers").select("id, avatar_url, bio").eq("user_id", userData.user.id).maybeSingle();
+        if (teacherRow) {
+          setTeacherId(teacherRow.id);
+          setAvatarUrl(teacherRow.avatar_url);
+          setBio(teacherRow.bio ?? "");
+        }
       }
       setPhoneLoading(false);
     }
@@ -81,12 +99,25 @@ export default function SettingsView() {
     // zero rows, which is not an error.
     await Promise.all([
       supabase.from("students").update({ phone: phone || null }).eq("user_id", userId),
-      supabase.from("teachers").update({ phone: phone || null }).eq("user_id", userId),
+      supabase.from("teachers").update({ phone: phone || null, bio: bio || null }).eq("user_id", userId),
       supabase.from("parents").update({ phone: phone || null }).eq("user_id", userId),
     ]);
 
     setPhoneSaving(false);
     setPhoneMessage({ text: m.profileUpdated, isError: false });
+  }
+
+  async function handleAvatarChange(file: File | undefined) {
+    if (!file || !teacherId) return;
+    setAvatarUploading(true);
+    setAvatarError(null);
+    const result = await uploadTeacherAvatar(teacherId, file);
+    setAvatarUploading(false);
+    if ("error" in result) {
+      setAvatarError(result.error === "too_large" ? tp.photoTooLarge : result.error === "invalid_type" ? tp.photoInvalidType : tp.uploadFailed);
+      return;
+    }
+    setAvatarUrl(result.url);
   }
 
   async function handleChangePassword(e: FormEvent) {
@@ -146,29 +177,56 @@ export default function SettingsView() {
         {phoneLoading ? (
           <p className="mt-3 text-[0.85rem] text-gray-400">{gc.loading}</p>
         ) : (
-          <form onSubmit={handleSavePhone} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
-            <input
-              type="text"
-              placeholder={m.fullNamePlaceholder}
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className={inputClass}
-            />
-            <input
-              type="tel"
-              placeholder={m.phonePlaceholder}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className={inputClass}
-            />
-            <button
-              type="submit"
-              disabled={phoneSaving}
-              className="shrink-0 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50"
-            >
-              {phoneSaving ? gc.saving : gc.save}
-            </button>
-          </form>
+          <>
+            {teacherId && (
+              <div className="mt-3 flex items-center gap-3">
+                <TeacherAvatar avatarUrl={avatarUrl} name={fullName || "?"} size={56} />
+                <label className="cursor-pointer text-[0.82rem] text-gray-600 hover:text-gray-900 hover:underline">
+                  {avatarUploading ? tp.uploading : tp.uploadPhoto}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => handleAvatarChange(e.target.files?.[0])}
+                  />
+                </label>
+              </div>
+            )}
+            {avatarError && <p className="mt-2 text-[0.8rem] text-red-600">{avatarError}</p>}
+
+            <form onSubmit={handleSavePhone} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+              <input
+                type="text"
+                placeholder={m.fullNamePlaceholder}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className={inputClass}
+              />
+              <input
+                type="tel"
+                placeholder={m.phonePlaceholder}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className={inputClass}
+              />
+              <button
+                type="submit"
+                disabled={phoneSaving}
+                className="shrink-0 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50"
+              >
+                {phoneSaving ? gc.saving : gc.save}
+              </button>
+              {teacherId && (
+                <textarea
+                  placeholder={tp.bioPlaceholder}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  rows={3}
+                  className={`sm:col-span-3 ${inputClass}`}
+                />
+              )}
+            </form>
+          </>
         )}
         {phoneMessage && (
           <p className={`mt-2 text-[0.8rem] ${phoneMessage.isError ? "text-red-600" : "text-green-700"}`}>{phoneMessage.text}</p>

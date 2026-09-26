@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useParams, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "../../features/auth/AuthContext";
 import { usePageMeta } from "../../hooks/usePageMeta";
@@ -12,6 +12,8 @@ import TodayView from "./TodayView";
 import OverviewView from "./OverviewView";
 import CalendarView from "./CalendarView";
 import GradesView from "./GradesView";
+const StatisticsView = lazy(() => import("./StatisticsView"));
+const StudentProfileView = lazy(() => import("./StudentProfileView"));
 import SettingsView from "./SettingsView";
 import AnnouncementsView from "./AnnouncementsView";
 import GestionLayout from "./GestionLayout";
@@ -64,7 +66,25 @@ function AuthenticatedApp() {
         <Route index element={<Navigate to={`${base}/aujourdhui`} replace />} />
         <Route path="aujourdhui" element={isAdmin || isTeacher ? <TodayView /> : <OverviewView />} />
         <Route path="planning" element={<CalendarView />} />
+        <Route
+          path="eleve/:studentId"
+          element={
+            <Suspense fallback={<div className="mx-auto max-w-3xl px-4 py-10 sm:px-8" />}>
+              <StudentProfileView />
+            </Suspense>
+          }
+        />
         {(isAdmin || isTeacher) && <Route path="notes" element={<GradesView />} />}
+        {(isAdmin || isTeacher) && (
+          <Route
+            path="statistiques"
+            element={
+              <Suspense fallback={<div className="mx-auto max-w-4xl px-4 py-10 sm:px-8" />}>
+                <StatisticsView />
+              </Suspense>
+            }
+          />
+        )}
         {isAdmin && <Route path="gestion/*" element={<GestionLayout />} />}
         <Route path="annonces" element={<AnnouncementsView />} />
         <Route path="parametres" element={<SettingsView />} />

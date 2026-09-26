@@ -23,6 +23,7 @@ const ICONS = {
   manage: <path d="M10 3v3.5M10 13.5V17M4.2 5.8l2.5 2.5M13.3 11.7l2.5 2.5M3 10h3.5M13.5 10H17M4.2 14.2l2.5-2.5M13.3 8.3l2.5-2.5" />,
   announcements: <path d="M3 11V9a2 2 0 0 1 2-2h1l6-3v12l-6-3H5a2 2 0 0 1-2-2Zm9-8v14M15 8a3 3 0 0 1 0 4" />,
   grades: <path d="M6 3h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm2 4h4M8 9.5h4M8 12h2.5" />,
+  stats: <path d="M4 16V9M9 16V4M14 16v-6M4 16h12" />,
   menu: <path d="M3 5h14M3 10h14M3 15h14" />,
 };
 
@@ -55,6 +56,7 @@ export default function MonEspaceLayout() {
     { to: `${base}/aujourdhui`, label: isAdmin || isTeacher ? m.todayNav : m.overviewNav, icon: ICONS.today },
     { to: `${base}/planning`, label: m.planningNav, icon: ICONS.calendar },
     ...(isAdmin || isTeacher ? [{ to: `${base}/notes`, label: "Notes", icon: ICONS.grades }] : []),
+    ...(isAdmin || isTeacher ? [{ to: `${base}/statistiques`, label: t.monEspace.statistics.navLabel, icon: ICONS.stats }] : []),
     ...(isAdmin ? [{ to: `${base}/gestion`, label: m.manageNav, icon: ICONS.manage }] : []),
     { to: `${base}/annonces`, label: m.announcementsNav, icon: ICONS.announcements },
   ];

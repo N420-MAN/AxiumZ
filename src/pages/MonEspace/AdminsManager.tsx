@@ -123,8 +123,8 @@ export default function AdminsManager({ organizationId }: { organizationId: stri
           <p className="text-[0.85rem] text-gray-400">{m.empty}</p>
         ) : (
           admins.map((a) => (
-            <div key={a.user_id} className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-4 py-2.5">
-              <div>
+            <div key={a.user_id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-gray-200 bg-gray-50 px-4 py-2.5">
+              <div className="min-w-0">
                 <span className="text-[0.9rem] font-medium text-gray-900">{a.profiles?.full_name || m.unnamed}</span>
                 <span className="ml-2 text-[0.78rem] text-gray-500">{a.role_id === 1 ? m.roleSuperAdmin : m.roleCenterAdmin}</span>
               </div>

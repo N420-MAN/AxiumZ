@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useLocale } from "../../i18n/LocaleContext";
+import AtRiskPanel from "./AtRiskPanel";
 
 interface SessionRow {
   id: string;
@@ -120,6 +121,8 @@ export default function TodayView() {
           </div>
         )}
       </div>
+
+      <AtRiskPanel />
     </div>
   );
 }

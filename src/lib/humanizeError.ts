@@ -49,6 +49,10 @@ export function humanizeError(error: unknown, locale: "fr" | "en" = "fr"): strin
     return t.checkConstraint;
   }
   if (raw.includes("Failed to fetch") || raw.includes("NetworkError")) return t.network;
+  // enforce_class_capacity() raises its own specific, already-readable
+  // message (e.g. "Class is at capacity (2/2)...") — worth showing as-is,
+  // same precedent as the score-vs-max-score message above.
+  if (raw.includes("is at capacity")) return raw;
 
   return t.generic;
 }

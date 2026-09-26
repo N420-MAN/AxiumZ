@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import SendAnnouncementModal from "./SendAnnouncementModal";
+import RosterImportModal from "./RosterImportModal";
 import { useLocale } from "../../i18n/LocaleContext";
 
 interface StudentRow {
@@ -13,13 +15,27 @@ interface StudentRow {
   email: string | null;
   phone: string | null;
   student_number: string | null;
+  date_of_birth: string | null;
+  address: string | null;
+  school_name: string | null;
+  grade_level: string | null;
   user_id: string | null;
   created_at: string;
   class_students: { classes: { name: string } | null }[];
 }
 
 type SortKey = "name" | "created_at";
-const EMPTY_FORM = { first_name: "", last_name: "", email: "", phone: "", student_number: "" };
+const EMPTY_FORM = {
+  first_name: "",
+  last_name: "",
+  email: "",
+  phone: "",
+  student_number: "",
+  date_of_birth: "",
+  address: "",
+  school_name: "",
+  grade_level: "",
+};
 
 const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
@@ -43,12 +59,13 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({});
   const { confirm, dialog } = useConfirmDialog();
   const [announcingTo, setAnnouncingTo] = useState<StudentRow | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   async function load() {
     setLoading(true);
     const { data, error: fetchError } = await supabase
       .from("students")
-      .select("id, first_name, last_name, email, phone, student_number, user_id, created_at, class_students(classes(name))")
+      .select("id, first_name, last_name, email, phone, student_number, date_of_birth, address, school_name, grade_level, user_id, created_at, class_students(classes(name))")
       .eq("organization_id", organizationId);
     if (fetchError) setError(humanizeError(fetchError));
     else setError(null);
@@ -97,6 +114,10 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
       email: s.email ?? "",
       phone: s.phone ?? "",
       student_number: s.student_number ?? "",
+      date_of_birth: s.date_of_birth ?? "",
+      address: s.address ?? "",
+      school_name: s.school_name ?? "",
+      grade_level: s.grade_level ?? "",
     });
     setShowForm(true);
   }
@@ -110,6 +131,10 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
       email: form.email || null,
       phone: form.phone || null,
       student_number: form.student_number || null,
+      date_of_birth: form.date_of_birth || null,
+      address: form.address || null,
+      school_name: form.school_name || null,
+      grade_level: form.grade_level || null,
     };
     const { error: saveError } = editingId
       ? await supabase.from("students").update(payload).eq("id", editingId)
@@ -182,6 +207,13 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
           />
           <button
             type="button"
+            onClick={() => setShowImport(true)}
+            className="rounded-md border border-gray-200 px-3.5 py-1.5 text-[0.82rem] font-medium text-gray-600 hover:bg-gray-50"
+          >
+            {t.monEspace.rosterImport.title}
+          </button>
+          <button
+            type="button"
             onClick={() => (showForm ? setShowForm(false) : openAddForm())}
             className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.82rem] font-medium text-paper"
           >
@@ -199,6 +231,18 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
           <input placeholder={m.studentNumber} value={form.student_number} onChange={(e) => setForm({ ...form, student_number: e.target.value })} className={inputClass} />
           <input type="email" placeholder={m.email} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
           <input placeholder={m.phone} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputClass} />
+          <label className="block">
+            <span className="text-[0.72rem] text-gray-500">{m.dateOfBirth}</span>
+            <input
+              type="date"
+              value={form.date_of_birth}
+              onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
+              className={`mt-0.5 ${inputClass}`}
+            />
+          </label>
+          <input placeholder={m.schoolName} value={form.school_name} onChange={(e) => setForm({ ...form, school_name: e.target.value })} className={inputClass} />
+          <input placeholder={m.gradeLevel} value={form.grade_level} onChange={(e) => setForm({ ...form, grade_level: e.target.value })} className={inputClass} />
+          <input placeholder={m.address} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={`sm:col-span-2 ${inputClass}`} />
           <button type="submit" disabled={saving} className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50">
             {saving ? c.saving : editingId ? c.saveEdits : c.save}
           </button>
@@ -228,7 +272,9 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
                 return (
                   <tr key={s.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                     <td className="px-5 py-2.5 font-medium text-gray-900">
-                      {s.first_name} {s.last_name}
+                      <Link to={`/${locale}/mon-espace/eleve/${s.id}`} className="hover:text-ink hover:underline">
+                        {s.first_name} {s.last_name}
+                      </Link>
                     </td>
                     <td className="px-3 py-2.5 text-gray-500">{s.email ?? s.phone ?? "—"}</td>
                     <td className="px-3 py-2.5 text-gray-600">{classNames.length > 0 ? classNames.join(", ") : "—"}</td>
@@ -281,6 +327,9 @@ export default function StudentsTable({ organizationId }: { organizationId: stri
           organizationId={organizationId}
           onClose={() => setAnnouncingTo(null)}
         />
+      )}
+      {showImport && (
+        <RosterImportModal organizationId={organizationId} onClose={() => setShowImport(false)} onImported={load} />
       )}
     </div>
   );

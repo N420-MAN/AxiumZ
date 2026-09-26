@@ -5,6 +5,8 @@ import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import SendAnnouncementModal from "./SendAnnouncementModal";
 import { useLocale } from "../../i18n/LocaleContext";
+import { uploadTeacherAvatar } from "../../lib/avatarUpload";
+import TeacherAvatar from "./TeacherAvatar";
 
 interface ExtraField {
   key: string;
@@ -27,6 +29,8 @@ interface Row {
   phone: string | null;
   user_id: string | null;
   status?: string;
+  avatar_url?: string | null;
+  bio?: string | null;
   [key: string]: unknown;
 }
 
@@ -37,6 +41,7 @@ export default function EntityManager({ table, organizationId, title, extraField
   const { t } = useLocale();
   const c = t.monEspace.gestion.common;
   const s = t.monEspace.gestion.students;
+  const tp = t.monEspace.teacherProfile;
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,6 +53,23 @@ export default function EntityManager({ table, organizationId, title, extraField
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({});
   const { confirm, dialog } = useConfirmDialog();
   const [announcingTo, setAnnouncingTo] = useState<Row | null>(null);
+  const [uploadingAvatarFor, setUploadingAvatarFor] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  async function handleAvatarChange(row: Row, file: File | undefined) {
+    if (!file) return;
+    setUploadingAvatarFor(row.id);
+    setAvatarError(null);
+    const result = await uploadTeacherAvatar(row.id, file);
+    setUploadingAvatarFor(null);
+    if ("error" in result) {
+      setAvatarError(
+        result.error === "too_large" ? tp.photoTooLarge : result.error === "invalid_type" ? tp.photoInvalidType : tp.uploadFailed,
+      );
+      return;
+    }
+    setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, avatar_url: result.url } : r)));
+  }
 
   async function load() {
     setLoading(true);
@@ -83,6 +105,7 @@ export default function EntityManager({ table, organizationId, title, extraField
       last_name: row.last_name ?? "",
       email: row.email ?? "",
       phone: row.phone ?? "",
+      ...(table === "teachers" ? { bio: row.bio ?? "" } : {}),
     };
     for (const f of extraFields) {
       const value = row[f.key];
@@ -165,6 +188,7 @@ export default function EntityManager({ table, organizationId, title, extraField
       </div>
 
       {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
+      {avatarError && <p className="mt-3 text-[0.82rem] text-red-600">{avatarError}</p>}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
@@ -205,6 +229,15 @@ export default function EntityManager({ table, organizationId, title, extraField
               className={inputClass}
             />
           ))}
+          {table === "teachers" && (
+            <textarea
+              placeholder={tp.bioPlaceholder}
+              value={form.bio ?? ""}
+              onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              rows={3}
+              className={`sm:col-span-2 ${inputClass}`}
+            />
+          )}
           <button
             type="submit"
             disabled={saving}
@@ -223,14 +256,28 @@ export default function EntityManager({ table, organizationId, title, extraField
         ) : (
           rows.map((row) => (
             <div key={row.id} className="rounded-md border border-gray-200 bg-gray-50 px-4 py-2.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[0.9rem] font-medium text-gray-900">
-                    {row.first_name} {row.last_name}
-                  </span>
-                  <span className="ml-2 text-[0.8rem] text-gray-500">{row.email ?? row.phone ?? ""}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  {table === "teachers" && <TeacherAvatar avatarUrl={row.avatar_url} name={`${row.first_name} ${row.last_name}`} size={32} />}
+                  <div className="min-w-0">
+                    <span className="text-[0.9rem] font-medium text-gray-900">
+                      {row.first_name} {row.last_name}
+                    </span>
+                    <span className="ml-2 text-[0.8rem] text-gray-500">{row.email ?? row.phone ?? ""}</span>
+                    {table === "teachers" && (
+                      <label className="ml-2 cursor-pointer text-[0.76rem] text-gray-500 hover:text-gray-900 hover:underline">
+                        {uploadingAvatarFor === row.id ? tp.uploading : tp.uploadPhoto}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={(e) => handleAvatarChange(row, e.target.files?.[0])}
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   {row.user_id ? (
                     <span className="text-[0.76rem] font-medium text-green-700">{c.activeAccount}</span>
                   ) : row.email ? (

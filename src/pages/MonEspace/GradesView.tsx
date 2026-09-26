@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../features/auth/AuthContext";
 import { humanizeError } from "../../lib/humanizeError";
@@ -8,6 +9,7 @@ import { useLocale } from "../../i18n/LocaleContext";
 interface ClassOption {
   id: string;
   name: string;
+  course_id: string;
   courses: { name: string } | null;
 }
 interface Assessment {
@@ -36,7 +38,7 @@ const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.85rem] text-gray-900 outline-none focus:border-gray-400";
 
 export default function GradesView() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const m = t.monEspace.gestion.grades;
   const c = t.monEspace.gestion.common;
   const TYPE_LABELS: Record<string, string> = { quiz: m.typeQuiz, test: m.typeTest, exam: m.typeExam, project: m.typeProject, oral: m.typeOral };
@@ -51,6 +53,7 @@ export default function GradesView() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [averages, setAverages] = useState<AverageRow[]>([]);
+  const [syllabusItems, setSyllabusItems] = useState<{ id: string; title: string; planned_sessions: number | null }[]>([]);
   const [activeAssessment, setActiveAssessment] = useState<string | null>(null);
   const [grades, setGrades] = useState<GradeRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,10 +61,11 @@ export default function GradesView() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ title: "", assessment_type: "test", max_score: "20", weight: "1", assessment_date: "" });
+  const [selectedChapterIds, setSelectedChapterIds] = useState<string[]>([]);
 
   async function loadClasses() {
     setLoading(true);
-    let query = supabase.from("classes").select("id, name, courses(name)");
+    let query = supabase.from("classes").select("id, name, course_id, courses(name)");
     if (isAdmin && orgId) query = query.eq("organization_id", orgId);
     // Non-admin (teacher): RLS already scopes this to only their own
     // classes — no explicit filter needed, same principle used throughout
@@ -78,18 +82,24 @@ export default function GradesView() {
   }, [orgId]);
 
   async function loadClassData(classId: string) {
-    const [{ data: assessmentData }, { data: enrollData }, { data: avgData }] = await Promise.all([
+    const currentCourseId = classes.find((c) => c.id === classId)?.course_id;
+    const [{ data: assessmentData }, { data: enrollData }, { data: avgData }, { data: syllabusData }] = await Promise.all([
       supabase.from("assessments").select("id, title, assessment_type, max_score, weight, assessment_date").eq("class_id", classId).order("assessment_date", { ascending: false }),
       supabase.from("class_students").select("student_id, students(first_name, last_name)").eq("class_id", classId),
       supabase.from("student_class_averages").select("student_id, average_out_of_20, grade_count").eq("class_id", classId),
+      currentCourseId
+        ? supabase.from("syllabus_items").select("id, title, planned_sessions").eq("course_id", currentCourseId).order("position")
+        : Promise.resolve({ data: [] }),
     ]);
     setAssessments(assessmentData ?? []);
     setEnrollments((enrollData as unknown as Enrollment[]) ?? []);
     setAverages(avgData ?? []);
+    setSyllabusItems(syllabusData ?? []);
   }
 
   useEffect(() => {
     if (selectedClass) loadClassData(selectedClass);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClass]);
 
   async function loadGrades(assessmentId: string) {
@@ -110,20 +120,29 @@ export default function GradesView() {
     e.preventDefault();
     if (!selectedClass) return;
     setSaving(true);
-    const { error: insertError } = await supabase.from("assessments").insert({
-      class_id: selectedClass,
-      title: form.title,
-      assessment_type: form.assessment_type,
-      max_score: Number(form.max_score),
-      weight: Number(form.weight),
-      assessment_date: form.assessment_date || null,
-    });
-    setSaving(false);
-    if (insertError) {
-      setError(humanizeError(insertError));
+    const { data: newAssessment, error: insertError } = await supabase
+      .from("assessments")
+      .insert({
+        class_id: selectedClass,
+        title: form.title,
+        assessment_type: form.assessment_type,
+        max_score: Number(form.max_score),
+        weight: Number(form.weight),
+        assessment_date: form.assessment_date || null,
+      })
+      .select("id")
+      .single();
+    if (insertError || !newAssessment) {
+      setSaving(false);
+      setError(insertError ? humanizeError(insertError) : t.monEspace.progress.empty);
       return;
     }
+    if (selectedChapterIds.length > 0) {
+      await supabase.from("assessment_syllabus_items").insert(selectedChapterIds.map((chapterId) => ({ assessment_id: newAssessment.id, syllabus_item_id: chapterId })));
+    }
+    setSaving(false);
     setForm({ title: "", assessment_type: "test", max_score: "20", weight: "1", assessment_date: "" });
+    setSelectedChapterIds([]);
     setShowForm(false);
     setError(null);
     loadClassData(selectedClass);
@@ -148,6 +167,13 @@ export default function GradesView() {
     if (gradeError) {
       setError(humanizeError(gradeError));
       return;
+    }
+    if (!existing) {
+      const assessmentTitle = assessments.find((a) => a.id === assessmentId)?.title ?? "";
+      supabase.functions.invoke("notify-grade-posted", { body: { studentId, title: assessmentTitle } }).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error("Grade notification failed:", err);
+      });
     }
     setError(null);
     loadGrades(assessmentId);
@@ -211,6 +237,30 @@ export default function GradesView() {
                 <span className="text-[0.72rem] text-gray-500">{m.weight}</span>
                 <input type="number" min="0.5" step="0.5" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className={`mt-0.5 ${inputClass}`} />
               </label>
+              {syllabusItems.length > 0 && (
+                <div className="col-span-2 sm:col-span-4">
+                  <span className="text-[0.72rem] text-gray-500">{t.monEspace.progress.linkedChaptersLabel}</span>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {syllabusItems.map((item) => {
+                      const checked = selectedChapterIds.includes(item.id);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() =>
+                            setSelectedChapterIds((prev) => (checked ? prev.filter((id) => id !== item.id) : [...prev, item.id]))
+                          }
+                          className={`rounded-full border px-2.5 py-1 text-[0.76rem] ${
+                            checked ? "border-ink bg-ink text-paper" : "border-gray-200 bg-white text-gray-600"
+                          }`}
+                        >
+                          {item.title}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <button type="submit" disabled={saving} className="col-span-2 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.82rem] font-medium text-paper disabled:opacity-50 sm:col-span-4">
                 {saving ? c.saving : m.createAssessment}
               </button>
@@ -270,7 +320,9 @@ export default function GradesView() {
                   const avg = averages.find((a) => a.student_id === e.student_id);
                   return (
                     <div key={e.student_id} className="flex items-center justify-between rounded-md bg-gray-50 px-3 py-1.5 text-[0.85rem]">
-                      <span className="text-gray-700">{e.students?.first_name} {e.students?.last_name}</span>
+                      <Link to={`/${locale}/mon-espace/eleve/${e.student_id}`} className="text-gray-700 hover:text-ink hover:underline">
+                        {e.students?.first_name} {e.students?.last_name}
+                      </Link>
                       <span className="font-medium text-gray-900">{avg ? `${avg.average_out_of_20}/20` : "—"}</span>
                     </div>
                   );

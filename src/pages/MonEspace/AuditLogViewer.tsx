@@ -103,7 +103,7 @@ export default function AuditLogViewer({ organizationId }: { organizationId: str
               .replace("{name}", recordName);
             return (
               <div key={log.id} className="flex items-center justify-between rounded-md bg-gray-50 border border-gray-200 px-4 py-2 text-[0.82rem]">
-                <span className="text-gray-800">{line}</span>
+                <span className="min-w-0 text-gray-800">{line}</span>
                 <span className="shrink-0 pl-3 text-gray-400">
                   {new Date(log.created_at).toLocaleString(dateLocale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                 </span>
