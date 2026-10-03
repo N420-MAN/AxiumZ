@@ -11,6 +11,7 @@ interface OrbitDef {
   sizePct: number; // ring diameter, % of container
   planetPct: number; // planet diameter, % of container
   duration: number; // seconds per full revolution
+  startOffset: number; // 0-1, how far into its own cycle this ring starts
   background: string;
   dashed?: boolean;
   ring?: { tilt: number; scaleY: number; color: string };
@@ -19,7 +20,7 @@ interface OrbitDef {
 const ORBITS: OrbitDef[] = [
   {
     // Mercury
-    sizePct: 12.8, planetPct: 0.95, duration: 19,
+    sizePct: 12.8, planetPct: 1.2, duration: 19, startOffset: 0.15,
     background: `
       radial-gradient(circle at 32% 28%, rgba(255,255,255,0.45), transparent 55%),
       radial-gradient(circle at 70% 65%, rgba(0,0,0,0.25), transparent 40%),
@@ -28,7 +29,7 @@ const ORBITS: OrbitDef[] = [
   },
   {
     // Venus
-    sizePct: 20.3, planetPct: 1.49, duration: 31,
+    sizePct: 20.3, planetPct: 1.9, duration: 31, startOffset: 0.62,
     background: `
       radial-gradient(circle at 32% 28%, rgba(255,255,255,0.4), transparent 55%),
       radial-gradient(circle at 55% 55%, rgba(170,130,70,0.35), transparent 50%),
@@ -36,7 +37,7 @@ const ORBITS: OrbitDef[] = [
   },
   {
     // Earth
-    sizePct: 29.1, planetPct: 1.49, duration: 45, dashed: true,
+    sizePct: 29.1, planetPct: 1.9, duration: 45, startOffset: 0.08, dashed: true,
     background: `
       radial-gradient(circle at 32% 28%, rgba(255,255,255,0.4), transparent 45%),
       radial-gradient(circle at 60% 70%, rgba(90,110,70,0.65) 0 18%, transparent 40%),
@@ -46,7 +47,7 @@ const ORBITS: OrbitDef[] = [
   },
   {
     // Mars
-    sizePct: 38.5, planetPct: 1.22, duration: 61,
+    sizePct: 38.5, planetPct: 1.6, duration: 61, startOffset: 0.45,
     background: `
       radial-gradient(circle at 32% 28%, rgba(255,255,255,0.35), transparent 50%),
       radial-gradient(circle at 60% 60%, rgba(90,40,25,0.4), transparent 40%),
@@ -54,7 +55,7 @@ const ORBITS: OrbitDef[] = [
   },
   {
     // Jupiter
-    sizePct: 49.3, planetPct: 2.57, duration: 82,
+    sizePct: 49.3, planetPct: 3.3, duration: 82, startOffset: 0.28,
     background: `
       radial-gradient(circle at 32% 28%, rgba(255,255,255,0.3), transparent 55%),
       repeating-linear-gradient(4deg,
@@ -64,7 +65,7 @@ const ORBITS: OrbitDef[] = [
   },
   {
     // Saturn
-    sizePct: 60.8, planetPct: 2.16, duration: 108,
+    sizePct: 60.8, planetPct: 2.8, duration: 108, startOffset: 0.71,
     ring: { tilt: -24, scaleY: 0.36, color: "rgba(216,180,106,0.7)" },
     background: `
       radial-gradient(circle at 32% 28%, rgba(255,255,255,0.35), transparent 50%),
@@ -73,7 +74,7 @@ const ORBITS: OrbitDef[] = [
   },
   {
     // Uranus — tilted almost vertical, matching its real ~98° axial tilt
-    sizePct: 72.3, planetPct: 1.76, duration: 136,
+    sizePct: 72.3, planetPct: 2.3, duration: 136, startOffset: 0.19,
     ring: { tilt: 82, scaleY: 0.4, color: "rgba(163,214,214,0.55)" },
     background: `
       radial-gradient(circle at 32% 28%, rgba(255,255,255,0.4), transparent 55%),
@@ -82,7 +83,7 @@ const ORBITS: OrbitDef[] = [
   },
   {
     // Neptune
-    sizePct: 83.1, planetPct: 1.76, duration: 165,
+    sizePct: 83.1, planetPct: 2.3, duration: 165, startOffset: 0.53,
     background: `
       radial-gradient(circle at 32% 28%, rgba(255,255,255,0.35), transparent 50%),
       radial-gradient(circle at 60% 65%, rgba(30,50,110,0.4), transparent 45%),
@@ -143,6 +144,7 @@ export default function SolarSystem({ className = "" }: { className?: string }) 
               marginLeft: pct(-o.sizePct / 2),
               marginTop: pct(-o.sizePct / 2),
               animation: `spin-slow ${o.duration}s linear infinite`,
+              animationDelay: `-${o.startOffset * o.duration}s`,
             }}
           >
             <div className="absolute left-full top-1/2">
