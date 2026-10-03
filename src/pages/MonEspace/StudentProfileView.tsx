@@ -4,6 +4,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "../../lib/supabaseClient";
 import { useLocale } from "../../i18n/LocaleContext";
+import { type ProgramCategory, isLanguageCategory } from "../../lib/programCategory";
+import LanguageProgressSection from "./LanguageProgressSection";
 
 interface StudentDetail {
   id: string;
@@ -24,7 +26,7 @@ interface ParentRow {
 }
 interface ClassRow {
   class_id: string;
-  classes: { name: string } | null;
+  classes: { name: string; category: ProgramCategory } | null;
 }
 interface AverageRow {
   class_id: string;
@@ -97,7 +99,7 @@ export default function StudentProfileView() {
       }
       setStudent(studentData);
 
-      const { data: classRows } = await supabase.from("class_students").select("class_id, classes(name)").eq("student_id", studentId);
+      const { data: classRows } = await supabase.from("class_students").select("class_id, classes(name, category)").eq("student_id", studentId);
       setClasses((classRows as unknown as ClassRow[]) ?? []);
 
       const [{ data: parentLinks }, { data: avgRows }, { data: attRows }, { data: commentRows }, { data: hwRows }] = await Promise.all([
@@ -260,6 +262,13 @@ export default function StudentProfileView() {
           )}
         </div>
       </div>
+
+      <LanguageProgressSection
+        studentId={student.id}
+        languageClasses={classes
+          .filter((c) => isLanguageCategory(c.classes?.category))
+          .map((c) => ({ classId: c.class_id, className: c.classes?.name ?? "—" }))}
+      />
 
       <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-[0.85rem] font-semibold text-gray-900">{m.attendanceHeading}</h2>

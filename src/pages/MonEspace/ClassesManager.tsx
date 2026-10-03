@@ -6,6 +6,8 @@ import ScheduleSessionsForm from "./ScheduleSessionsForm";
 import SyllabusProgressSection from "./SyllabusProgressSection";
 import MaterialsSection from "./MaterialsSection";
 import { useLocale } from "../../i18n/LocaleContext";
+import PlacementTestModal from "./PlacementTestModal";
+import { type ProgramCategory, isLanguageCategory } from "../../lib/programCategory";
 
 interface Course {
   id: string;
@@ -28,7 +30,7 @@ interface ClassRow {
   course_id: string;
   teacher_id: string | null;
   capacity: number | null;
-  courses: { name: string } | null;
+  courses: { name: string; category: ProgramCategory } | null;
   teachers: { first_name: string; last_name: string } | null;
   class_students: { count: number }[];
 }
@@ -59,6 +61,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
   const [form, setForm] = useState({ name: "", course_id: "", teacher_id: "", room: "", capacity: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [enrollStudentId, setEnrollStudentId] = useState("");
+  const [placementTarget, setPlacementTarget] = useState<{ studentId: string; studentName: string; classId: string } | null>(null);
 
   async function loadAll() {
     setLoading(true);
@@ -66,7 +69,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       await Promise.all([
         supabase
           .from("classes")
-          .select("id, name, room, course_id, teacher_id, capacity, courses(name), teachers(first_name, last_name), class_students(count)")
+          .select("id, name, room, course_id, teacher_id, capacity, courses(name, category), teachers(first_name, last_name), class_students(count)")
           .eq("organization_id", organizationId)
           .order("name"),
         supabase.from("courses").select("id, name").eq("organization_id", organizationId).order("name"),
@@ -158,6 +161,17 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       // eslint-disable-next-line no-console
       console.error("Enrollment notification failed:", err);
     });
+
+    const enrolledClass = classes.find((c) => c.id === classId);
+    const enrolledStudent = students.find((s) => s.id === enrollStudentId);
+    if (enrolledClass && isLanguageCategory(enrolledClass.courses?.category) && enrolledStudent) {
+      setPlacementTarget({
+        studentId: enrollStudentId,
+        studentName: `${enrolledStudent.first_name} ${enrolledStudent.last_name}`,
+        classId,
+      });
+    }
+
     setEnrollStudentId("");
     loadEnrollments(classId);
   }
@@ -337,6 +351,14 @@ export default function ClassesManager({ organizationId }: { organizationId: str
         )}
       </div>
       {dialog}
+      {placementTarget && (
+        <PlacementTestModal
+          studentId={placementTarget.studentId}
+          studentName={placementTarget.studentName}
+          classId={placementTarget.classId}
+          onClose={() => setPlacementTarget(null)}
+        />
+      )}
     </div>
   );
 }

@@ -4,12 +4,14 @@ import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import { useLocale } from "../../i18n/LocaleContext";
 import SyllabusModal from "./SyllabusModal";
+import { type ProgramCategory, CATEGORY_BADGE_STYLES } from "../../lib/programCategory";
 
 interface CourseRow {
   id: string;
   name: string;
   level: string | null;
   description: string | null;
+  category: ProgramCategory;
 }
 interface ClassAggRow {
   id: string;
@@ -27,6 +29,14 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
   const m = t.monEspace.gestion.courses;
   const c = t.monEspace.gestion.common;
 
+  const ls = t.monEspace.languageScoring;
+  const CATEGORY_LABELS: Record<ProgramCategory, string> = {
+    standard: ls.categoryStandard,
+    centre_langue: ls.categoryCentreLangue,
+    soutien_mission: ls.categoreSoutienMission,
+    soutien_bilingue: ls.categorySoutienBilingue,
+  };
+
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [classAgg, setClassAgg] = useState<Record<string, { classCount: number; studentCount: number }>>({});
   const [loading, setLoading] = useState(true);
@@ -36,7 +46,12 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", level: "", description: "" });
+  const [form, setForm] = useState<{ name: string; level: string; description: string; category: ProgramCategory }>({
+    name: "",
+    level: "",
+    description: "",
+    category: "standard",
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const { confirm, dialog } = useConfirmDialog();
   const [syllabusTarget, setSyllabusTarget] = useState<{ id: string; name: string } | null>(null);
@@ -44,7 +59,7 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
   async function load() {
     setLoading(true);
     const [{ data: courseData, error: courseError }, { data: classData }] = await Promise.all([
-      supabase.from("courses").select("id, name, level, description").eq("organization_id", organizationId),
+      supabase.from("courses").select("id, name, level, description, category").eq("organization_id", organizationId),
       supabase.from("classes").select("id, course_id, class_students(count)").eq("organization_id", organizationId),
     ]);
     if (courseError) setError(humanizeError(courseError));
@@ -89,20 +104,20 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
 
   function openAddForm() {
     setEditingId(null);
-    setForm({ name: "", level: "", description: "" });
+    setForm({ name: "", level: "", description: "", category: "standard" });
     setShowForm(true);
   }
 
   function openEditForm(c: CourseRow) {
     setEditingId(c.id);
-    setForm({ name: c.name, level: c.level ?? "", description: c.description ?? "" });
+    setForm({ name: c.name, level: c.level ?? "", description: c.description ?? "", category: c.category });
     setShowForm(true);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const payload = { name: form.name, level: form.level || null, description: form.description || null };
+    const payload = { name: form.name, level: form.level || null, description: form.description || null, category: form.category };
     const { error: saveError } = editingId
       ? await supabase.from("courses").update(payload).eq("id", editingId)
       : await supabase.from("courses").insert({ organization_id: organizationId, ...payload });
@@ -111,7 +126,7 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
       setError(humanizeError(saveError));
       return;
     }
-    setForm({ name: "", level: "", description: "" });
+    setForm({ name: "", level: "", description: "", category: "standard" });
     setEditingId(null);
     setShowForm(false);
     setError(null);
@@ -158,6 +173,19 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
           <input required placeholder={m.name} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
           <input placeholder={m.level} value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className={inputClass} />
           <input placeholder={m.description} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputClass} />
+          <label className="block sm:col-span-3">
+            <span className="text-[0.76rem] text-gray-500">{ls.categoryLabel}</span>
+            <select
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value as ProgramCategory })}
+              className={`mt-1 sm:max-w-xs ${inputClass}`}
+            >
+              <option value="standard">{ls.categoryStandard}</option>
+              <option value="centre_langue">{ls.categoryCentreLangue}</option>
+              <option value="soutien_mission">{ls.categoreSoutienMission}</option>
+              <option value="soutien_bilingue">{ls.categorySoutienBilingue}</option>
+            </select>
+          </label>
           <button type="submit" disabled={saving} className="sm:col-span-3 rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50">
             {saving ? c.saving : editingId ? c.saveEdits : c.save}
           </button>
@@ -174,6 +202,7 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="px-5 py-2.5"><SortHeader label={t.monEspace.gestion.students.colName} sortKeyValue="name" /></th>
+                <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">{ls.categoryLabel}</th>
                 <th className="px-3 py-2.5 text-[0.75rem] font-semibold uppercase tracking-wide text-gray-500">{m.colLevel}</th>
                 <th className="px-3 py-2.5"><SortHeader label={m.colActiveClasses} sortKeyValue="classes" /></th>
                 <th className="px-3 py-2.5"><SortHeader label={m.colTotalStudents} sortKeyValue="students" /></th>
@@ -186,6 +215,11 @@ export default function CoursesTable({ organizationId }: { organizationId: strin
                 return (
                   <tr key={c.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                     <td className="px-5 py-2.5 font-medium text-gray-900">{c.name}</td>
+                    <td className="px-3 py-2.5">
+                      <span className={`rounded-full px-2.5 py-0.5 text-[0.74rem] font-medium ${CATEGORY_BADGE_STYLES[c.category]}`}>
+                        {CATEGORY_LABELS[c.category]}
+                      </span>
+                    </td>
                     <td className="px-3 py-2.5 text-gray-500">{c.level ?? "—"}</td>
                     <td className="px-3 py-2.5 text-gray-700">{agg.classCount}</td>
                     <td className="px-3 py-2.5 text-gray-700">{agg.studentCount}</td>

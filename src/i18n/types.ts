@@ -300,6 +300,29 @@ export interface Dictionary {
       empty: string;
       dueOn: string;
     };
+    languageScoring: {
+      categoryLabel: string;
+      categoryStandard: string;
+      categoryCentreLangue: string;
+      categoreSoutienMission: string;
+      categorySoutienBilingue: string;
+      placementTitle: string;
+      placementIntro: string;
+      writing: string;
+      speaking: string;
+      listening: string;
+      reading: string;
+      totalLabel: string;
+      skipPlacement: string;
+      savePlacement: string;
+      placementSaved: string;
+      noPlacement: string;
+      progressHeading: string;
+      progressEmpty: string;
+      placementPoint: string;
+      examPoint: string;
+      viewDetail: string;
+    };
     studentProfile: {
       back: string;
       notFound: string;

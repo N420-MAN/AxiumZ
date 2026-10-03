@@ -6,6 +6,7 @@ import { BRAND } from "../../../data/brand";
 import { trackEvent } from "../../../lib/analytics";
 import Button from "../../../components/CTA/Button";
 import Marquee from "../../../components/Marquee/Marquee";
+import SolarSystem from "./SolarSystem";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -19,7 +20,6 @@ export default function Hero() {
     offset: ["start start", "end start"],
   });
   const parallaxY = useTransform(scrollYProgress, [0, 1], [0, 120]);
-  const parallaxRotate = useTransform(scrollYProgress, [0, 1], [0, 25]);
 
   const marqueeItems = [
     t.home.activites.items[0].title.join(" "),
@@ -48,18 +48,7 @@ export default function Hero() {
               animation: "float-slow 9s ease-in-out infinite",
             }}
           />
-          <motion.svg
-            viewBox="0 0 600 600"
-            className="absolute right-[-4%] top-[10%] h-[380px] w-[380px] opacity-80 sm:right-[6%] sm:h-[460px] sm:w-[460px]"
-            style={{ rotate: parallaxRotate }}
-          >
-            <circle cx="300" cy="300" r="220" fill="none" stroke="var(--color-line-dark)" strokeWidth="1" />
-            <circle cx="300" cy="300" r="160" fill="none" stroke="var(--color-accent-bright)" strokeWidth="1.5" strokeDasharray="4 10" />
-            <circle cx="300" cy="300" r="90" fill="none" stroke="var(--color-line-dark)" strokeWidth="1" />
-          </motion.svg>
-          <div className="absolute right-[10%] top-[26%] h-2.5 w-2.5 rounded-full bg-accent-bright sm:right-[16%]" style={{ animation: "float-slow 6s ease-in-out infinite" }} />
-          <div className="absolute right-[28%] top-[46%] h-1.5 w-1.5 rounded-full bg-paper/30" style={{ animation: "float-slow 7.5s ease-in-out infinite 1s" }} />
-          <div className="absolute left-[6%] bottom-[14%] h-1.5 w-1.5 rounded-full bg-paper/20 sm:left-[10%]" style={{ animation: "float-slow 8s ease-in-out infinite 0.5s" }} />
+          <SolarSystem className="absolute right-[-4%] top-[10%] h-[380px] w-[380px] opacity-80 sm:right-[6%] sm:h-[460px] sm:w-[460px]" />
         </motion.div>
 
         <div className="container-editorial relative !max-w-[1180px] !px-0">

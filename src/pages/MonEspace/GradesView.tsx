@@ -5,12 +5,14 @@ import { useAuth } from "../../features/auth/AuthContext";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import { useLocale } from "../../i18n/LocaleContext";
+import { type ProgramCategory, isLanguageCategory } from "../../lib/programCategory";
+import LanguageScoreRow from "./LanguageScoreRow";
 
 interface ClassOption {
   id: string;
   name: string;
   course_id: string;
-  courses: { name: string } | null;
+  courses: { name: string; category: ProgramCategory } | null;
 }
 interface Assessment {
   id: string;
@@ -27,6 +29,10 @@ interface Enrollment {
 interface GradeRow {
   student_id: string;
   score: number;
+  score_writing: number | null;
+  score_speaking: number | null;
+  score_listening: number | null;
+  score_reading: number | null;
 }
 interface AverageRow {
   student_id: string;
@@ -39,6 +45,7 @@ const inputClass =
 
 export default function GradesView() {
   const { t, locale } = useLocale();
+  const ls = t.monEspace.languageScoring;
   const m = t.monEspace.gestion.grades;
   const c = t.monEspace.gestion.common;
   const TYPE_LABELS: Record<string, string> = { quiz: m.typeQuiz, test: m.typeTest, exam: m.typeExam, project: m.typeProject, oral: m.typeOral };
@@ -65,7 +72,7 @@ export default function GradesView() {
 
   async function loadClasses() {
     setLoading(true);
-    let query = supabase.from("classes").select("id, name, course_id, courses(name)");
+    let query = supabase.from("classes").select("id, name, course_id, courses(name, category)");
     if (isAdmin && orgId) query = query.eq("organization_id", orgId);
     // Non-admin (teacher): RLS already scopes this to only their own
     // classes — no explicit filter needed, same principle used throughout
@@ -103,7 +110,10 @@ export default function GradesView() {
   }, [selectedClass]);
 
   async function loadGrades(assessmentId: string) {
-    const { data } = await supabase.from("grades").select("student_id, score").eq("assessment_id", assessmentId);
+    const { data } = await supabase
+      .from("grades")
+      .select("student_id, score, score_writing, score_speaking, score_listening, score_reading")
+      .eq("assessment_id", assessmentId);
     setGrades(data ?? []);
   }
 
@@ -126,7 +136,7 @@ export default function GradesView() {
         class_id: selectedClass,
         title: form.title,
         assessment_type: form.assessment_type,
-        max_score: Number(form.max_score),
+        max_score: isLanguageClass ? 100 : Number(form.max_score),
         weight: Number(form.weight),
         assessment_date: form.assessment_date || null,
       })
@@ -180,7 +190,33 @@ export default function GradesView() {
     if (selectedClass) loadClassData(selectedClass);
   }
 
+  async function setLanguageScore(
+    assessmentId: string,
+    studentId: string,
+    skills: { score_writing: number; score_speaking: number; score_listening: number; score_reading: number },
+  ) {
+    const existing = grades.find((g) => g.student_id === studentId);
+    const { error: gradeError } = existing
+      ? await supabase.from("grades").update(skills).eq("assessment_id", assessmentId).eq("student_id", studentId)
+      : await supabase.from("grades").insert({ assessment_id: assessmentId, student_id: studentId, ...skills });
+    if (gradeError) {
+      setError(humanizeError(gradeError));
+      return;
+    }
+    if (!existing) {
+      const assessmentTitle = assessments.find((a) => a.id === assessmentId)?.title ?? "";
+      supabase.functions.invoke("notify-grade-posted", { body: { studentId, title: assessmentTitle } }).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error("Grade notification failed:", err);
+      });
+    }
+    setError(null);
+    loadGrades(assessmentId);
+    if (selectedClass) loadClassData(selectedClass);
+  }
+
   const currentClass = classes.find((c) => c.id === selectedClass);
+  const isLanguageClass = isLanguageCategory(currentClass?.courses?.category);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8 sm:py-10">
@@ -231,7 +267,14 @@ export default function GradesView() {
               <input type="date" value={form.assessment_date} onChange={(e) => setForm({ ...form, assessment_date: e.target.value })} className={inputClass} />
               <label className="block">
                 <span className="text-[0.72rem] text-gray-500">{m.maxScore}</span>
-                <input type="number" min="1" value={form.max_score} onChange={(e) => setForm({ ...form, max_score: e.target.value })} className={`mt-0.5 ${inputClass}`} />
+                <input
+                  type="number"
+                  min="1"
+                  value={isLanguageClass ? "100" : form.max_score}
+                  disabled={isLanguageClass}
+                  onChange={(e) => setForm({ ...form, max_score: e.target.value })}
+                  className={`mt-0.5 ${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}
+                />
               </label>
               <label className="block">
                 <span className="text-[0.72rem] text-gray-500">{m.weight}</span>
@@ -283,6 +326,17 @@ export default function GradesView() {
                     <div className="space-y-1.5 border-t border-gray-100 px-4 py-3">
                       {enrollments.map((e) => {
                         const record = grades.find((g) => g.student_id === e.student_id);
+                        if (isLanguageClass) {
+                          return (
+                            <LanguageScoreRow
+                              key={e.student_id}
+                              studentName={`${e.students?.first_name} ${e.students?.last_name}`}
+                              record={record}
+                              labels={{ writing: ls.writing, speaking: ls.speaking, listening: ls.listening, reading: ls.reading, total: ls.totalLabel }}
+                              onSave={(skills) => setLanguageScore(a.id, e.student_id, skills)}
+                            />
+                          );
+                        }
                         return (
                           <div key={e.student_id} className="flex items-center justify-between text-[0.85rem]">
                             <span className="text-gray-800">{e.students?.first_name} {e.students?.last_name}</span>
