@@ -154,11 +154,11 @@ export default function StatisticsView() {
             <div className="mt-3 h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={gradeTrend} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eae7dd" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#9b9886" }} />
-                  <YAxis domain={[0, 20]} tick={{ fontSize: 12, fill: "#9b9886" }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--chart-tick)" }} />
+                  <YAxis domain={[0, 20]} tick={{ fontSize: 12, fill: "var(--chart-tick)" }} />
                   <Tooltip formatter={(value) => [`${value}/20`, m.gradeTrendTitle]} />
-                  <Line type="monotone" dataKey="average" stroke="#0f2a5c" strokeWidth={2.5} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="average" stroke="var(--chart-navy)" strokeWidth={2.5} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -169,9 +169,9 @@ export default function StatisticsView() {
             <div className="mt-3 h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={attendanceTrend} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eae7dd" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#9b9886" }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: "#9b9886" }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--chart-tick)" }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: "var(--chart-tick)" }} />
                   <Tooltip formatter={(value) => [`${value}%`, m.attendanceTrendTitle]} />
                   <Line type="monotone" dataKey="rate" stroke="#c8962f" strokeWidth={2.5} dot={{ r: 3 }} />
                 </LineChart>
@@ -187,11 +187,11 @@ export default function StatisticsView() {
               <div className="mt-3" style={{ height: Math.max(180, classComparison.length * 44) }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={classComparison} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#eae7dd" horizontal={false} />
-                    <XAxis type="number" domain={[0, 20]} tick={{ fontSize: 12, fill: "#9b9886" }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+                    <XAxis type="number" domain={[0, 20]} tick={{ fontSize: 12, fill: "var(--chart-tick)" }} />
                     <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 12, fill: "#33312b" }} />
                     <Tooltip formatter={(value) => [`${value}/20`, m.classComparisonTitle]} />
-                    <Bar dataKey="average" fill="#0f2a5c" radius={[0, 4, 4, 0]} barSize={20} />
+                    <Bar dataKey="average" fill="var(--chart-navy)" radius={[0, 4, 4, 0]} barSize={20} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -206,8 +206,8 @@ export default function StatisticsView() {
               <div className="mt-3" style={{ height: Math.max(180, satisfaction.length * 44) }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={satisfaction} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#eae7dd" horizontal={false} />
-                    <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 12, fill: "#9b9886" }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+                    <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 12, fill: "var(--chart-tick)" }} />
                     <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 12, fill: "#33312b" }} />
                     <Tooltip
                       formatter={(value, _name, props) => [

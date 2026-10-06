@@ -6,7 +6,7 @@ no screen, import or API call can get around a rule the database enforces.
 | File | What it checks | Checks |
 |---|---|---|
 | `rls_regression_suite.sql` | Who can see and change what: a student seeing a classmate's grade, an admin promoting themselves to super admin, a teacher grading another teacher's class, announcements staying in their class… | 11 |
-| `structure_rules_suite.sql` | The whole structure: programmes, niveaux, classes; élève vs stagiaire; parent and supervisor rules; the waiting list; programme audience; chapters; all-or-nothing registration | 62 |
+| `structure_rules_suite.sql` | The whole structure: programmes, niveaux, classes; élève vs stagiaire; parent and supervisor rules; the waiting list (including a request for a programme with no niveau yet); programme audience; chapters; all-or-nothing registration | 65 |
 | `contact_rules_suite.sql` | Mandatory fields per kind of person, and one email = one person | 23 |
 | `chapters_rules_suite.sql` | Who can read, edit and delete a class's chapters | 4 |
 | `rooms_rules_suite.sql` | Rooms, the privacy-acceptance record, and who can see which invitations were accepted | 25 |

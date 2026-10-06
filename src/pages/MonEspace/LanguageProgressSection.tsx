@@ -111,9 +111,9 @@ export default function LanguageProgressSection({ studentId, languageClasses }: 
               <div className="mt-2" style={{ height: 180 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 8, right: 12, left: -18, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#eae7dd" />
-                    <XAxis dataKey="dateLabel" tick={{ fontSize: 11, fill: "#9b9886" }} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#9b9886" }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                    <XAxis dataKey="dateLabel" tick={{ fontSize: 11, fill: "var(--chart-tick)" }} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "var(--chart-tick)" }} />
                     <Tooltip
                       formatter={(value) => [`${value}/100`, ls.totalLabel]}
                       labelFormatter={(_label, payload) => {

@@ -422,6 +422,8 @@ export interface Dictionary {
       noPrograms: string;
       noClasses: string;
       wishOption: string;
+      wishProgrammeOnly: string;
+      noNiveauYet: string;
       wishNote: string;
       full: string;
       enrolledWord: string;
@@ -446,8 +448,6 @@ export interface Dictionary {
       school: string;
       gradeLevel: string;
       mustChoose: string;
-      duplicateHint: string;
-      openRecord: string;
       exportCsv: string;
       searchPlaceholder: string;
       filterProgramme: string;
@@ -474,6 +474,14 @@ export interface Dictionary {
       accountColumn: string;
       wishChip: string;
       waitingProfileHeading: string;
+    };
+    suggest: {
+      alreadyRegistered: string;
+      alreadyRegisteredOpen: string;
+      usedBy: string;
+      exists: string;
+      existsHeading: string;
+      roles: { eleve: string; stagiaire: string; parent: string; superviseur: string; enseignant: string };
     };
     guardian: {
       parents: string;
@@ -845,6 +853,10 @@ export interface Dictionary {
         roleSuperAdmin: string;
         roleCenterAdmin: string;
         unnamed: string;
+        edit: string;
+        saved: string;
+        nameRequired: string;
+        noPhone: string;
       };
     };
   };

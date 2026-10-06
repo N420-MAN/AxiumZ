@@ -29,19 +29,21 @@ export default function GuardianPicker({ kind, required, linked, guardians, choi
   const selected = choice.mode === "existing" ? guardians.find((g) => g.id === choice.id) : undefined;
 
   // Suggestions appear while a new guardian is being typed: by name (any
-  // order, accents ignored) or by phone number.
+  // order, accents ignored), by phone number or by e-mail.
   let suggestions: GuardianOption[] = [];
   let phoneMatch: GuardianOption | undefined;
   if (choice.mode === "new") {
     const { draft } = choice;
     const nameQuery = `${draft.last_name} ${draft.first_name}`.trim();
     const phoneDigits = digitsOnly(draft.phone);
+    const emailQuery = draft.email.trim().toLowerCase();
     suggestions = guardians
       .filter((g) => !linkedIds.has(g.id))
       .filter(
         (g) =>
           (nameQuery.length >= 2 && matchesWords(`${g.first_name} ${g.last_name}`, nameQuery)) ||
-          (phoneDigits.length >= 4 && digitsOnly(g.phone).includes(phoneDigits)),
+          (phoneDigits.length >= 4 && digitsOnly(g.phone).includes(phoneDigits)) ||
+          (emailQuery.length >= 3 && (g.email ?? "").toLowerCase().includes(emailQuery)),
       )
       .slice(0, 5);
     phoneMatch = draft.phone.trim() ? guardians.find((g) => !linkedIds.has(g.id) && samePhone(g.phone, draft.phone)) : undefined;

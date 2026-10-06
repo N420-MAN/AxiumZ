@@ -1,3 +1,4 @@
+import NameInput from "./NameInput";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
@@ -134,7 +135,7 @@ export default function RoomsManager({ organizationId }: { organizationId: strin
       <p className="mt-0.5 max-w-2xl text-[0.8rem] text-gray-500">{rm.description}</p>
 
       <form onSubmit={handleAdd} className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:grid-cols-3">
-        <input required placeholder={`${rm.namePlaceholder} *`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
+        <NameInput required placeholder={`${rm.namePlaceholder} *`} value={form.name} onChange={(v) => setForm({ ...form, name: v })} items={rooms.map((r) => ({ id: r.id, name: r.name }))} inputClassName={inputClass} />
         <input
           type="number"
           min="1"
@@ -159,7 +160,7 @@ export default function RoomsManager({ organizationId }: { organizationId: strin
           rooms.map((room) =>
             editingId === room.id ? (
               <div key={room.id} className="grid grid-cols-1 items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-3 sm:grid-cols-[1fr_9rem_auto]">
-                <input required value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className={inputClass} />
+                <NameInput required value={editForm.name} onChange={(v) => setEditForm({ ...editForm, name: v })} items={rooms.map((r) => ({ id: r.id, name: r.name }))} excludeId={room.id} inputClassName={inputClass} />
                 <input
                   type="number"
                   min="1"

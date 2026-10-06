@@ -29,13 +29,13 @@ export default function SettingsView() {
     if (target === theme || themeSaving) return;
     setThemeSaving(true);
     setThemeError(false);
-    applyTheme(target); // instant, then saved to the account
+    applyTheme(target, true); // instant, then saved to the account
     const { data: userData } = await supabase.auth.getUser();
     const { error } = userData.user
       ? await supabase.from("profiles").update({ preferred_theme: target }).eq("id", userData.user.id)
       : { error: new Error("no user") };
     if (error) {
-      applyTheme(theme);
+      applyTheme(theme, true);
       setThemeError(true);
     } else {
       await refresh();

@@ -11,8 +11,13 @@ export function readCachedTheme(): Theme {
   }
 }
 
-export function applyTheme(theme: Theme): void {
-  document.documentElement.dataset.theme = theme;
+export function applyTheme(theme: Theme, animate = false): void {
+  const root = document.documentElement;
+  if (animate) {
+    root.classList.add("theme-switching");
+    window.setTimeout(() => root.classList.remove("theme-switching"), 400);
+  }
+  root.dataset.theme = theme;
   try {
     localStorage.setItem(CACHE_KEY, theme);
   } catch {

@@ -8,9 +8,12 @@ import { SCHOOL_NONE } from "../../lib/schoolOptions";
 import { type InvitableTable, accountState, sendInvitation } from "../../lib/invitations";
 import { downloadCsv } from "../../lib/exportCsv";
 import { type GuardianChoice, type GuardianOption, EMPTY_DRAFT, NO_GUARDIAN } from "../../lib/guardianChoice";
-import { type PersonKind, classLabel, guardianKindFor, isLanguageProgram, matchesWords } from "../../lib/programs";
+import { type PersonKind, classLabel, guardianKindFor, isLanguageProgram, matchesWords, completeFrom } from "../../lib/programs";
 import { useStructure } from "../../features/structure/useStructure";
 import { useAcceptedAccounts } from "../../features/accounts/useAcceptedAccounts";
+import DirectoryField from "./DirectoryField";
+import SuggestInput from "./SuggestInput";
+import { useOrgDirectory } from "../../features/directory/useOrgDirectory";
 import ClassPicker, { type ExistingPlacement, type PlacementChoice } from "./ClassPicker";
 import GuardianPicker from "./GuardianPicker";
 import AccountStatus from "./AccountStatus";
@@ -30,7 +33,7 @@ interface PersonRow {
   user_id: string | null;
   created_at: string;
   class_students: { id: string; class_id: string }[];
-  class_wishes: { id: string; program_id: string; level_id: string; note: string | null; fulfilled_at: string | null }[];
+  class_wishes: { id: string; program_id: string; level_id: string | null; note: string | null; fulfilled_at: string | null }[];
 }
 
 interface PersonForm {
@@ -95,6 +98,8 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   const { programs, levels, classes } = structure;
   const reloadStructure = structure.reload;
   const { accepted, known: acceptanceKnown, reload: reloadAccepted } = useAcceptedAccounts(organizationId);
+  const directory = useOrgDirectory(organizationId);
+  const reloadDirectory = directory.reload;
 
   const [people, setPeople] = useState<PersonRow[]>([]);
   const [guardians, setGuardians] = useState<GuardianOption[]>([]);
@@ -133,6 +138,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
     setLinks(result.links);
     setError(result.error ? humanizeError(result.error) : null);
     setLoading(false);
+    reloadDirectory();
   }, [organizationId, kind]);
 
   useEffect(() => {
@@ -158,8 +164,8 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
     const cl = classById.get(classId);
     return cl ? classLabel({ name: cl.name, programs: programById.get(cl.program_id), levels: levelById.get(cl.level_id) }) : "—";
   };
-  const wishLabel = (w: { program_id: string; level_id: string; note: string | null }) => {
-    const base = classLabel({ name: "", programs: programById.get(w.program_id), levels: levelById.get(w.level_id) });
+  const wishLabel = (w: { program_id: string; level_id: string | null; note: string | null }) => {
+    const base = classLabel({ name: "", programs: programById.get(w.program_id), levels: w.level_id ? levelById.get(w.level_id) : undefined });
     return w.note ? `${base} · ${w.note}` : base;
   };
 
@@ -199,10 +205,10 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
 
   // Demand summary: how many people wait for each programme + niveau.
   const demand = useMemo(() => {
-    const counts = new Map<string, { program_id: string; level_id: string; n: number }>();
+    const counts = new Map<string, { program_id: string; level_id: string | null; n: number }>();
     for (const p of people) {
       for (const w of p.class_wishes.filter((x) => !x.fulfilled_at)) {
-        const key = `${w.program_id}|${w.level_id}`;
+        const key = `${w.program_id}|${w.level_id ?? ""}`;
         const entry = counts.get(key) ?? { program_id: w.program_id, level_id: w.level_id, n: 0 };
         entry.n += 1;
         counts.set(key, entry);
@@ -257,12 +263,6 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   const emailChanged = editingId ? form.email.trim().toLowerCase() !== originalEmail.trim().toLowerCase() : false;
   const newGuardianEmail = guardianChoice.mode === "new" ? guardianChoice.draft.email.trim() : "";
   const recipients = [...(!editingId || (emailChanged && !emailLocked) ? [form.email.trim()] : []), ...(newGuardianEmail ? [newGuardianEmail] : [])].filter(Boolean);
-
-  // Typing someone who is already registered: offer their record instead of a duplicate.
-  const duplicates =
-    !editingId && form.first_name.trim().length >= 2 && form.last_name.trim().length >= 2
-      ? people.filter((p) => matchesWords(`${p.first_name} ${p.last_name}`, `${form.first_name} ${form.last_name}`)).slice(0, 3)
-      : [];
 
   function resetForm() {
     setForm(EMPTY_FORM);
@@ -509,77 +509,90 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
 
       {showForm && (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 border-b border-gray-100 p-5 sm:grid-cols-2">
-          <input required autoComplete="off" placeholder={`${pp.lastName} *`} value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className={inputClass} />
-          <input required autoComplete="off" placeholder={`${pp.firstName} *`} value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className={inputClass} />
-
-          {duplicates.length > 0 && (
-            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[0.78rem] text-amber-800 sm:col-span-2">
-              {duplicates.map((d) => (
-                <div key={d.id} className="flex flex-wrap items-center gap-x-3">
-                  <span>{pp.duplicateHint.replace("{name}", `${d.first_name} ${d.last_name}`)}</span>
-                  <button type="button" onClick={() => openEditForm(d)} className="font-semibold underline">
-                    {pp.openRecord}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          <DirectoryField
+            field="last_name"
+            required
+            placeholder={`${pp.lastName} *`}
+            value={form.last_name}
+            onChange={(v) => setForm({ ...form, last_name: v })}
+            otherName={form.first_name}
+            entries={directory.entries}
+            excludeId={editingId ?? undefined}
+            canOpen={(e) => e.table === "students" && e.role === kind}
+            onOpen={(e) => {
+              const person = people.find((p) => p.id === e.id);
+              if (person) openEditForm(person);
+            }}
+            inputClassName={inputClass}
+          />
+          <DirectoryField
+            field="first_name"
+            required
+            placeholder={`${pp.firstName} *`}
+            value={form.first_name}
+            onChange={(v) => setForm({ ...form, first_name: v })}
+            otherName={form.last_name}
+            entries={directory.entries}
+            excludeId={editingId ?? undefined}
+            canOpen={(e) => e.table === "students" && e.role === kind}
+            onOpen={(e) => {
+              const person = people.find((p) => p.id === e.id);
+              if (person) openEditForm(person);
+            }}
+            inputClassName={inputClass}
+          />
 
           {isEleve ? (
             <>
               <div>
-                <input
+                <SuggestInput
                   required
-                  list="school-suggestions"
                   disabled={form.school_name === SCHOOL_NONE}
                   placeholder={`${pp.school} *`}
                   value={form.school_name}
-                  onChange={(e) => setForm({ ...form, school_name: e.target.value })}
-                  className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}
+                  onChange={(v) => setForm({ ...form, school_name: v })}
+                  suggestions={completeFrom(schools.filter((x) => x !== SCHOOL_NONE), form.school_name)}
+                  inputClassName={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}
                 />
                 <label className="mt-1 flex items-center gap-1.5 text-[0.74rem] text-gray-500">
                   <input type="checkbox" checked={form.school_name === SCHOOL_NONE} onChange={(e) => setForm({ ...form, school_name: e.target.checked ? SCHOOL_NONE : "" })} />
                   {m.schoolNone}
                 </label>
               </div>
-              <input required list="grade-suggestions" placeholder={`${pp.gradeLevel} *`} value={form.grade_level} onChange={(e) => setForm({ ...form, grade_level: e.target.value })} className={inputClass} />
+              <SuggestInput required placeholder={`${pp.gradeLevel} *`} value={form.grade_level} onChange={(v) => setForm({ ...form, grade_level: v })} suggestions={completeFrom(grades, form.grade_level)} inputClassName={inputClass} />
             </>
           ) : (
             <>
-              <input list="school-suggestions" placeholder={pp.school} value={form.school_name} onChange={(e) => setForm({ ...form, school_name: e.target.value })} className={inputClass} />
+              <SuggestInput placeholder={pp.school} value={form.school_name} onChange={(v) => setForm({ ...form, school_name: v })} suggestions={completeFrom(schools.filter((x) => x !== SCHOOL_NONE), form.school_name)} inputClassName={inputClass} />
               <input placeholder={pp.address} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={inputClass} />
             </>
           )}
-          <datalist id="school-suggestions">
-            {schools.filter((s) => s !== SCHOOL_NONE).map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
-          <datalist id="grade-suggestions">
-            {grades.map((g) => (
-              <option key={g} value={g} />
-            ))}
-          </datalist>
 
           <div>
-            <input
+            <DirectoryField
+              field="email"
               required
               type="email"
               disabled={emailLocked}
               placeholder={`${pp.email} *`}
               value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}
+              onChange={(v) => setForm({ ...form, email: v })}
+              entries={directory.entries}
+              excludeId={editingId ?? undefined}
+              inputClassName={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}
             />
             {emailLocked && <p className="mt-1 text-[0.72rem] text-gray-500">{inv.activeEmailLocked}</p>}
           </div>
-          <input
+          <DirectoryField
+            field="phone"
             required={!isEleve}
             type="tel"
             placeholder={isEleve ? pp.phone : `${pp.phone} *`}
             value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className={inputClass}
+            onChange={(v) => setForm({ ...form, phone: v })}
+            entries={directory.entries}
+            excludeId={editingId ?? undefined}
+            inputClassName={inputClass}
           />
 
           <ClassPicker
@@ -698,17 +711,17 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
             <span className="text-gray-500">{pp.demandTitle}</span>
             {demand.map((d) => (
               <button
-                key={`${d.program_id}|${d.level_id}`}
+                key={`${d.program_id}|${d.level_id ?? ""}`}
                 type="button"
                 onClick={() => {
                   setWaitingOnly(true);
                   setProgramFilter(d.program_id);
-                  setLevelFilter(d.level_id);
+                  setLevelFilter(d.level_id ?? "");
                   setClassFilter("");
                 }}
                 className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 font-medium text-amber-800 hover:bg-amber-100"
               >
-                {classLabel({ name: "", programs: programById.get(d.program_id), levels: levelById.get(d.level_id) })}: {d.n}
+                {classLabel({ name: "", programs: programById.get(d.program_id), levels: d.level_id ? levelById.get(d.level_id) : undefined })}: {d.n}
               </button>
             ))}
           </div>

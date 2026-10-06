@@ -21,7 +21,7 @@ export interface WaitingWish {
   id: string;
   student_id: string;
   program_id: string;
-  level_id: string;
+  level_id: string | null;
   note: string | null;
   students: { first_name: string; last_name: string; phone: string | null; kind: "eleve" | "stagiaire" } | null;
 }

@@ -164,26 +164,39 @@
 
 
 /* ---- Mon espace dark mode ----
-   The signed-in app is styled with Tailwind's gray scale, white and the
-   amber/green/red/blue tints. Inverting those variables while
-   <html data-theme="dark"> is set restyles every screen at once, so no
-   component needs per-class dark: variants. The public site never gets
-   the attribute. */
+   A YouTube-style neutral near-black theme. The signed-in app is built from
+   Tailwind's gray scale, white and the status tints, so remapping those
+   variables restyles every screen at once; the few brand-specific classes
+   (navy buttons, the cream page background) are handled below. The public
+   site never receives the attribute. */
+:root {
+  --chart-grid: #eae7dd;
+  --chart-tick: #9b9886;
+  --chart-navy: #0f2a5c;
+}
+
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-white: #111a2e;
-  --color-gray-50: #0b1220;
-  --color-gray-100: #17223a;
-  --color-gray-200: #25324d;
-  --color-gray-300: #34425f;
-  --color-gray-400: #7886a3;
-  --color-gray-500: #8f9bb5;
-  --color-gray-600: #a9b3c9;
-  --color-gray-700: #bec7d9;
-  --color-gray-800: #d5dbe8;
-  --color-gray-900: #eef1f7;
+  --chart-grid: #303030;
+  --chart-tick: #909090;
+  --chart-navy: #7db2f2;
 
-  --color-amber-50: #2a2210;
+  /* surfaces: page #0f0f0f, cards #181818, raised/hover #212121 */
+  --color-white: #181818;
+  --color-gray-50: #212121;
+  --color-gray-100: #272727;
+  --color-gray-200: #303030;
+  --color-gray-300: #3f3f3f;
+  --color-gray-400: #717171;
+  --color-gray-500: #aaaaaa;
+  --color-gray-600: #b8b8b8;
+  --color-gray-700: #cfcfcf;
+  --color-gray-800: #e5e5e5;
+  --color-gray-900: #f1f1f1;
+
+  --color-accent-soft: #3a2e12;
+
+  --color-amber-50: #2a2310;
   --color-amber-100: #3a2e12;
   --color-amber-200: #5c4718;
   --color-amber-300: #7d6220;
@@ -213,15 +226,88 @@
   --color-blue-700: #7db2f2;
   --color-blue-800: #9cc5f7;
 }
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .bg-paper {
+  background-color: #0f0f0f;
+}
+:root[data-theme="dark"] aside {
+  background-color: #0f0f0f;
+  border-color: #272727;
+}
+
+/* Navy gradients become raised dark surfaces (sidebar card, active tab, banners)... */
+:root[data-theme="dark"] .from-ink {
+  background-image: none;
+  background-color: #272727;
+}
+/* ...and navy buttons become light pills, like YouTube's primary / selected chips. */
+:root[data-theme="dark"] :is(button, label).bg-gradient-to-br.from-ink,
+:root[data-theme="dark"] button.bg-ink {
+  background-color: #f1f1f1;
+  color: #0f0f0f;
+}
+:root[data-theme="dark"] :is(button, label).bg-gradient-to-br.from-ink:hover:not(:disabled) {
+  background-color: #d9d9d9;
+}
+:root[data-theme="dark"] .text-ink,
+:root[data-theme="dark"] .hover\:text-ink:hover {
+  color: #f1f1f1;
+}
+:root[data-theme="dark"] .border-ink {
+  border-color: #f1f1f1;
+}
+/* Navy text stays navy where it sits on the gold accent. */
+:root[data-theme="dark"] :is(.bg-accent, .from-accent).text-ink,
+:root[data-theme="dark"] :is(.bg-accent, .from-accent) .text-ink\/70 {
+  color: #0f2a5c;
+}
+
 /* Modal backdrops use gray-900 with opacity: keep them dark, not light. */
 :root[data-theme="dark"] .bg-gray-900\/40,
 :root[data-theme="dark"] .bg-gray-900\/50 {
-  background-color: rgb(0 0 0 / 0.6);
+  background-color: rgb(0 0 0 / 0.7);
 }
-/* Elements that sit on a photo or a coloured badge keep real white. */
 :root[data-theme="dark"] .text-white {
   color: #fff;
 }
 :root[data-theme="dark"] .border-white {
   border-color: #fff;
+}
+
+/* Charts */
+:root[data-theme="dark"] .recharts-default-tooltip {
+  background-color: #212121 !important;
+  border-color: #303030 !important;
+}
+:root[data-theme="dark"] .recharts-tooltip-label {
+  color: #f1f1f1;
+}
+
+/* Polish */
+:root[data-theme="dark"] ::selection {
+  background: rgb(62 166 255 / 0.35);
+}
+:root[data-theme="dark"] ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #3f3f3f;
+  border: 3px solid #0f0f0f;
+  border-radius: 9999px;
+}
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #717171;
+}
+:root[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Smooth cross-fade when the person flips the switch (not on every load). */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease !important;
 }

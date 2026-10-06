@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
+import NameInput from "./NameInput";
 import { useStructure } from "../../features/structure/useStructure";
 import type { Audience, ProgramKind, ProgramRow } from "../../lib/programs";
 import { useConfirmDialog } from "./useConfirmDialog";
@@ -112,7 +113,7 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
           <option value="scolaire">{pg.kindScolaire}</option>
           <option value="langues">{pg.kindLangues}</option>
         </select>
-        <input required placeholder={`${pg.namePlaceholder} *`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
+        <NameInput required placeholder={`${pg.namePlaceholder} *`} value={form.name} onChange={(v) => setForm({ ...form, name: v })} items={programs.map((p) => ({ id: p.id, name: p.name }))} inputClassName={inputClass} />
         <select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value as Audience })} className={inputClass} aria-label={pg.audienceLabel}>
           <option value="eleves">{pg.audienceEleves}</option>
           <option value="stagiaires">{pg.audienceStagiaires}</option>
@@ -156,7 +157,7 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
                     </select>
                     {classCount > 0 && <p className="mt-0.5 text-[0.68rem] text-gray-400">{pg.typeLocked}</p>}
                   </div>
-                  <input required value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className={inputClass} />
+                  <NameInput required value={editForm.name} onChange={(v) => setEditForm({ ...editForm, name: v })} items={programs.map((p) => ({ id: p.id, name: p.name }))} excludeId={program.id} inputClassName={inputClass} />
                   <select value={editForm.audience} onChange={(e) => setEditForm({ ...editForm, audience: e.target.value as Audience })} className={inputClass} aria-label={pg.audienceLabel}>
                     <option value="eleves">{pg.audienceEleves}</option>
                     <option value="stagiaires">{pg.audienceStagiaires}</option>

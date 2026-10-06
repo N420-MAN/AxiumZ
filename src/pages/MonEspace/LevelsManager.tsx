@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
+import NameInput from "./NameInput";
 import { useStructure } from "../../features/structure/useStructure";
 import type { LevelRow } from "../../lib/programs";
 import { useConfirmDialog } from "./useConfirmDialog";
@@ -127,7 +128,7 @@ export default function LevelsManager({ organizationId }: { organizationId: stri
       </div>
 
       <form onSubmit={handleAdd} className="mt-3 grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:grid-cols-[1fr_auto]">
-        <input required placeholder={`${lv.namePlaceholder} *`} value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+        <NameInput required placeholder={`${lv.namePlaceholder} *`} value={name} onChange={setName} items={programLevels.map((l) => ({ id: l.id, name: l.name }))} inputClassName={inputClass} />
         <button type="submit" disabled={busy} className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50">
           {lv.add}
         </button>
@@ -163,7 +164,7 @@ export default function LevelsManager({ organizationId }: { organizationId: stri
               <div key={level.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5">
                 {editingId === level.id ? (
                   <div className="flex flex-1 flex-wrap items-center gap-2">
-                    <input required value={editName} onChange={(e) => setEditName(e.target.value)} className={`${inputClass} sm:max-w-xs`} />
+                    <NameInput required value={editName} onChange={setEditName} items={programLevels.map((l) => ({ id: l.id, name: l.name }))} excludeId={level.id} inputClassName={`${inputClass} sm:max-w-xs`} />
                     <button type="button" disabled={busy || !editName.trim()} onClick={() => handleSaveEdit(level)} className={`${linkClass} font-medium`}>
                       {c.save}
                     </button>

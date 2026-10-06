@@ -15,7 +15,7 @@ import {
 // doesn't exist yet (or is full). Wishes form the waiting list.
 export type PlacementChoice =
   | { type: "class"; classId: string }
-  | { type: "wish"; programId: string; levelId: string; note: string };
+  | { type: "wish"; programId: string; levelId: string | null; note: string };
 
 /** A placement the person already has (when editing), shown as a chip. */
 export interface ExistingPlacement {
@@ -67,8 +67,9 @@ export default function ClassPicker({
   const programById = new Map(programs.map((p) => [p.id, p]));
   const levelById = new Map(levels.map((l) => [l.id, l]));
 
-  // Only programmes open to this kind of person, and that have niveaux to pick.
-  const openPrograms = programs.filter((p) => p.is_active && audienceAllows(p.audience, personKind) && levels.some((l) => l.program_id === p.id));
+  // Only programmes open to this kind of person. A programme with no niveau yet
+  // can still receive a waiting-list request.
+  const openPrograms = programs.filter((p) => p.is_active && audienceAllows(p.audience, personKind));
   const programLevels = levels.filter((l) => l.program_id === programId).sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
   const selectedClassIds = new Set(selection.filter((s) => s.type === "class").map((s) => (s as { classId: string }).classId));
   const levelClasses = classes
@@ -81,7 +82,7 @@ export default function ClassPicker({
   function handleAdd() {
     if (!option) return;
     if (option === WISH) {
-      onChange([...selection, { type: "wish", programId, levelId, note: note.trim() }]);
+      onChange([...selection, { type: "wish", programId, levelId: levelId || null, note: note.trim() }]);
     } else {
       onChange([...selection, { type: "class", classId: option }]);
     }
@@ -94,7 +95,7 @@ export default function ClassPicker({
       const cl = classes.find((x) => x.id === choice.classId);
       return cl ? labelFor(cl) : "—";
     }
-    const base = classLabel({ name: "", programs: programById.get(choice.programId), levels: levelById.get(choice.levelId) });
+    const base = classLabel({ name: "", programs: programById.get(choice.programId), levels: choice.levelId ? levelById.get(choice.levelId) : undefined });
     return cp.wishChip.replace("{label}", choice.note ? `${base} · ${choice.note}` : base);
   }
 
@@ -166,7 +167,7 @@ export default function ClassPicker({
               className={`${selectClass} disabled:bg-gray-100 disabled:text-gray-400`}
               aria-label={cp.niveau}
             >
-              <option value="">{cp.chooseNiveau}</option>
+              <option value="">{programLevels.length > 0 ? cp.chooseNiveau : cp.noNiveauYet}</option>
               {programLevels.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
@@ -175,9 +176,9 @@ export default function ClassPicker({
             </select>
           </div>
 
-          {levelId && (
+          {programId && (
             <div className="mt-2 space-y-1">
-              {levelClasses.map((cl) => {
+              {levelId && levelClasses.map((cl) => {
                 const full = isFull(cl);
                 return (
                   <label
@@ -199,14 +200,14 @@ export default function ClassPicker({
                   </label>
                 );
               })}
-              {levelClasses.length === 0 && <p className="text-[0.76rem] text-gray-500">{cp.noClasses}</p>}
+              {levelId && levelClasses.length === 0 && <p className="text-[0.76rem] text-gray-500">{cp.noClasses}</p>}
 
               <label
                 className={`block rounded-md border border-dashed px-3 py-2 text-[0.84rem] ${option === WISH ? "border-ink bg-white" : "border-gray-300 bg-white hover:border-gray-400"}`}
               >
                 <span className="flex items-center gap-2">
                   <input type="radio" name="class-option" checked={option === WISH} onChange={() => setOption(WISH)} />
-                  <span className="font-medium text-gray-700">{cp.wishOption}</span>
+                  <span className="font-medium text-gray-700">{levelId ? cp.wishOption : cp.wishProgrammeOnly}</span>
                 </span>
                 {option === WISH && (
                   <input
@@ -228,7 +229,7 @@ export default function ClassPicker({
           >
             + {cp.add}
           </button>
-          {!levelId && selection.length === 0 && existing.length === 0 && <p className="mt-2 text-[0.74rem] text-gray-500">{cp.hint}</p>}
+          {!programId && selection.length === 0 && existing.length === 0 && <p className="mt-2 text-[0.74rem] text-gray-500">{cp.hint}</p>}
         </>
       )}
     </div>

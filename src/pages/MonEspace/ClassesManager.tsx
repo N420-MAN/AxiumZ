@@ -4,6 +4,7 @@ import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useStructure } from "../../features/structure/useStructure";
 import { type StructureClass, classLabel, enrolledCount, seatText } from "../../lib/programs";
+import NameInput from "./NameInput";
 import ClassPanel, { type PersonOption, type WaitingWish } from "./ClassPanel";
 import { useConfirmDialog } from "./useConfirmDialog";
 
@@ -215,7 +216,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
               </option>
             ))}
           </select>
-          <input required placeholder={`${st.classNamePlaceholder} *`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
+          <NameInput required placeholder={`${st.classNamePlaceholder} *`} value={form.name} onChange={(v) => setForm({ ...form, name: v })} items={classes.filter((cl) => cl.level_id === form.level_id).map((cl) => ({ id: cl.id, name: cl.name }))} excludeId={editingId ?? undefined} inputClassName={inputClass} />
           <select value={form.teacher_id} onChange={(e) => setForm({ ...form, teacher_id: e.target.value })} className={inputClass} aria-label={m.pickTeacherOptional}>
             <option value="">{m.pickTeacherOptional}</option>
             {ref.teachers.map((tc) => (
@@ -290,7 +291,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
           !noStructure && <p className="text-[0.85rem] text-gray-400">{m.empty}</p>
         ) : (
           visibleClasses.map((cl) => {
-            const waiting = ref.wishes.filter((w) => w.program_id === cl.program_id && w.level_id === cl.level_id);
+            const waiting = ref.wishes.filter((w) => w.program_id === cl.program_id && (w.level_id === null || w.level_id === cl.level_id));
             const full = cl.capacity !== null && enrolledCount(cl) >= cl.capacity;
             return (
               <div key={cl.id} className="overflow-hidden rounded-lg border border-gray-200 bg-white">

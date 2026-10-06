@@ -6,6 +6,8 @@ import { useLocale } from "../../i18n/LocaleContext";
 import { accountState, sendInvitation } from "../../lib/invitations";
 import { type GuardianKind, matchesWords } from "../../lib/programs";
 import { useAcceptedAccounts } from "../../features/accounts/useAcceptedAccounts";
+import { useOrgDirectory } from "../../features/directory/useOrgDirectory";
+import DirectoryField from "./DirectoryField";
 import AccountStatus from "./AccountStatus";
 import PersonalDataNotice from "./PersonalDataNotice";
 import { useConfirmDialog } from "./useConfirmDialog";
@@ -69,6 +71,8 @@ export default function GuardiansTable({ kind, organizationId }: { kind: Guardia
   const inv = t.monEspace.invitations;
   const { confirm, dialog } = useConfirmDialog();
   const { accepted, known: acceptanceKnown, reload: reloadAccepted } = useAcceptedAccounts(organizationId);
+  const directory = useOrgDirectory(organizationId);
+  const reloadDirectory = directory.reload;
 
   const [guardians, setGuardians] = useState<GuardianRow[]>([]);
   const [people, setPeople] = useState<PersonOption[]>([]);
@@ -92,7 +96,8 @@ export default function GuardiansTable({ kind, organizationId }: { kind: Guardia
     setPeople(result.people);
     setError(result.error ? humanizeError(result.error) : null);
     setLoading(false);
-  }, [organizationId, kind]);
+    reloadDirectory();
+  }, [organizationId, kind, reloadDirectory]);
 
   useEffect(() => {
     let cancelled = false;
@@ -260,21 +265,54 @@ export default function GuardiansTable({ kind, organizationId }: { kind: Guardia
 
       {showForm && (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 border-b border-gray-100 p-5 sm:grid-cols-2">
-          <input required autoComplete="off" placeholder={`${gd.lastName} *`} value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className={inputClass} />
-          <input required autoComplete="off" placeholder={`${gd.firstName} *`} value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className={inputClass} />
+          <DirectoryField
+            field="last_name"
+            required
+            placeholder={`${gd.lastName} *`}
+            value={form.last_name}
+            onChange={(v) => setForm({ ...form, last_name: v })}
+            otherName={form.first_name}
+            entries={directory.entries}
+            excludeId={editingId ?? undefined}
+            canOpen={(e) => e.table === "parents" && e.role === kind}
+            onOpen={(e) => {
+              const g = guardians.find((x) => x.id === e.id);
+              if (g) openEditForm(g);
+            }}
+            inputClassName={inputClass}
+          />
+          <DirectoryField
+            field="first_name"
+            required
+            placeholder={`${gd.firstName} *`}
+            value={form.first_name}
+            onChange={(v) => setForm({ ...form, first_name: v })}
+            otherName={form.last_name}
+            entries={directory.entries}
+            excludeId={editingId ?? undefined}
+            canOpen={(e) => e.table === "parents" && e.role === kind}
+            onOpen={(e) => {
+              const g = guardians.find((x) => x.id === e.id);
+              if (g) openEditForm(g);
+            }}
+            inputClassName={inputClass}
+          />
           <div>
-            <input
+            <DirectoryField
+              field="email"
               required
               type="email"
               disabled={emailLocked}
               placeholder={`${gd.email} *`}
               value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}
+              onChange={(v) => setForm({ ...form, email: v })}
+              entries={directory.entries}
+              excludeId={editingId ?? undefined}
+              inputClassName={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}
             />
             {emailLocked && <p className="mt-1 text-[0.72rem] text-gray-500">{inv.activeEmailLocked}</p>}
           </div>
-          <input required type="tel" placeholder={`${gd.phone} *`} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputClass} />
+          <DirectoryField field="phone" required type="tel" placeholder={`${gd.phone} *`} value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} entries={directory.entries} excludeId={editingId ?? undefined} inputClassName={inputClass} />
           <input required={!isSupervisor} placeholder={isSupervisor ? gd.address : `${gd.address} *`} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={inputClass} />
           {isSupervisor && <input placeholder={gd.company} value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} className={inputClass} />}
           {!editingId && (

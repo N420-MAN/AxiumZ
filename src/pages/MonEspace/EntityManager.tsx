@@ -11,6 +11,10 @@ import { accountState, sendInvitation } from "../../lib/invitations";
 import { useAcceptedAccounts } from "../../features/accounts/useAcceptedAccounts";
 import AccountStatus from "./AccountStatus";
 import PersonalDataNotice from "./PersonalDataNotice";
+import DirectoryField from "./DirectoryField";
+import SuggestInput from "./SuggestInput";
+import { useOrgDirectory } from "../../features/directory/useOrgDirectory";
+import { completeFrom } from "../../lib/programs";
 
 interface ExtraField {
   key: string;
@@ -58,6 +62,8 @@ export default function EntityManager({ table, organizationId, title, extraField
   const [form, setForm] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const { accepted, known: acceptanceKnown, reload: reloadAccepted } = useAcceptedAccounts(organizationId);
+  const directory = useOrgDirectory(organizationId);
+  const reloadDirectory = directory.reload;
   const [notice, setNotice] = useState<{ kind: "ok" | "warn"; text: string } | null>(null);
   const [inviting, setInviting] = useState<string | null>(null);
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({});
@@ -92,6 +98,7 @@ export default function EntityManager({ table, organizationId, title, extraField
 
   async function load() {
     setLoading(true);
+    reloadDirectory();
     const { data, error: fetchError } = await supabase
       .from(table)
       .select("*")
@@ -267,39 +274,63 @@ export default function EntityManager({ table, organizationId, title, extraField
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
-          <input
+          <DirectoryField
+            field="first_name"
             required
             placeholder={`${s.firstName} *`}
             value={form.first_name ?? ""}
-            onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-            className={inputClass}
+            onChange={(v) => setForm({ ...form, first_name: v })}
+            otherName={form.last_name ?? ""}
+            entries={directory.entries}
+            excludeId={editingId ?? undefined}
+            canOpen={(e) => e.table === table}
+            onOpen={(e) => {
+              const row = rows.find((r) => r.id === e.id);
+              if (row) openEditForm(row);
+            }}
+            inputClassName={inputClass}
           />
-          <input
+          <DirectoryField
+            field="last_name"
             required
             placeholder={`${s.lastName} *`}
             value={form.last_name ?? ""}
-            onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-            className={inputClass}
+            onChange={(v) => setForm({ ...form, last_name: v })}
+            otherName={form.first_name ?? ""}
+            entries={directory.entries}
+            excludeId={editingId ?? undefined}
+            canOpen={(e) => e.table === table}
+            onOpen={(e) => {
+              const row = rows.find((r) => r.id === e.id);
+              if (row) openEditForm(row);
+            }}
+            inputClassName={inputClass}
           />
           <div>
-            <input
+            <DirectoryField
+              field="email"
               type="email"
               disabled={emailLocked}
               required={table === "teachers"}
               placeholder={`${s.email}${reqMark}`}
               value={form.email ?? ""}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}
+              onChange={(v) => setForm({ ...form, email: v })}
+              entries={directory.entries}
+              excludeId={editingId ?? undefined}
+              inputClassName={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}
             />
             {emailLocked && <p className="mt-1 text-[0.72rem] text-gray-500">{inv.activeEmailLocked}</p>}
           </div>
-          <input
+          <DirectoryField
+            field="phone"
             type="tel"
             required={table === "teachers"}
             placeholder={`${s.phone}${reqMark}`}
             value={form.phone ?? ""}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className={inputClass}
+            onChange={(v) => setForm({ ...form, phone: v })}
+            entries={directory.entries}
+            excludeId={editingId ?? undefined}
+            inputClassName={inputClass}
           />
           {extraFields.map((f) => (
             <input
@@ -330,18 +361,13 @@ export default function EntityManager({ table, organizationId, title, extraField
                 {employmentType === "establishment" && (
                   <label className="block">
                     <span className="text-[0.76rem] text-gray-500">{ta.establishmentName} *</span>
-                    <input
+                    <SuggestInput
                       required
-                      list="establishment-suggestions"
                       value={establishmentName}
-                      onChange={(e) => setEstablishmentName(e.target.value)}
-                      className={`mt-1 ${inputClass}`}
+                      onChange={setEstablishmentName}
+                      suggestions={completeFrom(establishmentSuggestions, establishmentName)}
+                      inputClassName={`mt-1 ${inputClass}`}
                     />
-                    <datalist id="establishment-suggestions">
-                      {establishmentSuggestions.map((name) => (
-                        <option key={name} value={name} />
-                      ))}
-                    </datalist>
                   </label>
                 )}
               </div>

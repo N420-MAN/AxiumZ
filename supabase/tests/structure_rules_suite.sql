@@ -34,7 +34,7 @@ declare
   p1 uuid; p2 uuid; p3 uuid; p4 uuid; p_other uuid;
   l1a uuid; l1b uuid; l1x uuid; l2a1 uuid; l3a1 uuid;
   c1 uuid; c2 uuid; c3 uuid; c5 uuid; c6 uuid; v_teacher_row uuid;
-  r jsonb; e1 uuid; par1 uuid; e3 uuid; e4 uuid; s1 uuid; sup1 uuid; e5 uuid;
+  r jsonb; e1 uuid; par1 uuid; e3 uuid; e4 uuid; s1 uuid; sup1 uuid; e5 uuid; e6 uuid;
   v_count int; v_msg text; v_ok boolean; v_placed int;
   eleve_json text := '{"kind":"eleve","first_name":"E","last_name":"ST","school_name":"Lycee X","grade_level":"6eme annee","email":"%s"}';
   stag_json text := '{"kind":"stagiaire","first_name":"S","last_name":"ST","phone":"0600000050","email":"%s"}';
@@ -210,6 +210,18 @@ begin
   v_placed := public.place_students_in_class(c5, array[e5]);
   insert into st_results(test,outcome) values ('batch placement places everyone and fulfils their wishes',
     case when v_placed = 1 and (select fulfilled_at from class_wishes where student_id=e5) is not null then 'PASS' else 'FAIL' end);
+  -- A wish can name just a programme (no niveau exists yet for it).
+  r := public.create_student_with_family(v_org, format(eleve_json,'st-e6@example.com')::jsonb, '{}'::uuid[],
+        format('[{"program_id":"%s","note":"chinois"}]', p1)::jsonb, par1);
+  e6 := (r->>'student_id')::uuid;
+  insert into st_results(test,outcome) values ('a waiting-list request can name a programme with no niveau',
+    case when (select count(*) from class_wishes where student_id=e6 and level_id is null and fulfilled_at is null)=1 then 'PASS' else 'FAIL' end);
+  begin insert into class_wishes (organization_id,student_id,program_id,level_id,note) values (v_org,e6,p1,null,' Chinois ');
+    insert into st_results(test,outcome) values ('the same programme-only request twice is refused','FAIL (accepted)');
+  exception when unique_violation then insert into st_results(test,outcome) values ('the same programme-only request twice is refused','PASS'); end;
+  insert into class_students (class_id,student_id) values (c5,e6);
+  insert into st_results(test,outcome) values ('joining any class of the programme fulfils a programme-only request',
+    case when (select fulfilled_at from class_wishes where student_id=e6 and level_id is null) is not null then 'PASS' else 'FAIL' end);
   begin perform public.place_students_in_class(c1, array[e4]);
     insert into st_results(test,outcome) values ('a batch that would overflow a class is refused as a whole','FAIL (accepted)');
   exception when others then insert into st_results(test,outcome) values ('a batch that would overflow a class is refused as a whole', case when sqlerrm like '%at capacity%' and not exists (select 1 from class_students where class_id=c1 and student_id=e4) then 'PASS' else 'FAIL: '||sqlerrm end); end;

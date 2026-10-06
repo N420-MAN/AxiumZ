@@ -60,7 +60,7 @@ SCHEMA = {
 "parents":"address,company,created_at,email,first_name,id,kind,last_name,organization_id,phone,updated_at,user_id",
 "payments":"amount,created_at,currency,id,invoice_id,notes,organization_id,paid_at,payment_method,reference",
 "placement_tests":"class_id,created_at,id,score_listening,score_reading,score_speaking,score_total,score_writing,student_id,tested_at",
-"profiles":"avatar_url,created_at,full_name,id,phone,preferred_locale,privacy_accepted_at,privacy_version,updated_at",
+"profiles":"avatar_url,created_at,full_name,id,phone,preferred_locale,preferred_theme,privacy_accepted_at,privacy_version,updated_at",
 "programs":"audience,created_at,id,is_active,kind,name,organization_id",
 "rate_limit_events":"created_at,id,rate_key",
 "roles":"id,name",
@@ -99,6 +99,7 @@ RPC_SCHEMA = {
 "place_students_in_class":"p_class_id,p_student_ids",
 "program_accepts":"p_program_id,p_student_id",
 "role_is_super_admin":"p_role_id",
+"update_admin_profile":"p_organization_id,p_user_id,p_full_name,p_phone",
 }
 RPC_SCHEMA = {f: set(x for x in c.split(",") if x) for f, c in RPC_SCHEMA.items()}
 

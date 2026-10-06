@@ -80,6 +80,20 @@ export function searchable(value: string | null | undefined): string {
   return (value ?? "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
 }
 
+/** Existing values that contain what is being typed (never the exact value already typed). */
+export function completeFrom(values: string[], query: string, max = 6): { key: string; value: string; title: string }[] {
+  const q = searchable(query);
+  if (!q) return [];
+  return values
+    .filter((v) => {
+      const s = searchable(v);
+      return s.includes(q) && s !== q;
+    })
+    .sort((a, b) => Number(searchable(b).startsWith(q)) - Number(searchable(a).startsWith(q)))
+    .slice(0, max)
+    .map((v) => ({ key: v, value: v, title: v }));
+}
+
 /** Every word typed must appear somewhere in the text (any order). */
 export function matchesWords(text: string | null | undefined, query: string): boolean {
   const haystack = searchable(text);
