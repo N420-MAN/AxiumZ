@@ -10,7 +10,7 @@ interface SessionRow {
   ends_at: string;
   room: string | null;
   status: string;
-  classes: { name: string; courses: { name: string } | null } | null;
+  classes: { name: string; programs: { name: string } | null; levels: { name: string } | null } | null;
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -47,7 +47,7 @@ export default function TodayView() {
       const [{ data: todaySessions }, { count: weekSessionCount }, { count: students }] = await Promise.all([
         supabase
           .from("class_sessions")
-          .select("id, starts_at, ends_at, room, status, classes(name, courses(name))")
+          .select("id, starts_at, ends_at, room, status, classes(name, programs(name), levels(name))")
           .gte("starts_at", todayStart)
           .lt("starts_at", todayEnd)
           .order("starts_at"),
@@ -109,7 +109,7 @@ export default function TodayView() {
                     {s.classes?.name}
                   </p>
                   <p className="mt-0.5 text-[0.8rem] text-gray-500">
-                    {s.classes?.courses?.name}
+                    {[s.classes?.programs?.name, s.classes?.levels?.name].filter(Boolean).join(" · ")}
                     {s.room ? ` · ${s.room}` : ""}
                   </p>
                 </div>

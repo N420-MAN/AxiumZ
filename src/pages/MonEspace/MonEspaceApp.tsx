@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, lazy, Suspense } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useParams, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "../../features/auth/AuthContext";
 import { usePageMeta } from "../../hooks/usePageMeta";
 import { useLocale, LocaleProvider } from "../../i18n/LocaleContext";
 import { isSupabaseConfigured } from "../../lib/supabaseClient";
 import { capturedAuthFlowType } from "../../lib/authFlowCapture";
+import { applyTheme, clearTheme, readCachedTheme } from "../../lib/theme";
 import Login from "./Login";
 import SetPassword from "./SetPassword";
 import MonEspaceLayout from "./MonEspaceLayout";
@@ -17,6 +18,8 @@ const StudentProfileView = lazy(() => import("./StudentProfileView"));
 import SettingsView from "./SettingsView";
 import AnnouncementsView from "./AnnouncementsView";
 import GestionLayout from "./GestionLayout";
+import PrivacyGate from "./PrivacyGate";
+import { LEGAL_VERSION } from "../../data/legal";
 
 function NotConfigured() {
   // Shown instead of silently crashing when VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
@@ -59,6 +62,17 @@ function AuthenticatedApp() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.preferred_locale]);
+
+  // Dark mode applies to the signed-in app only (the public site has none).
+  // The device's last choice paints first; the saved profile value then wins.
+  const savedTheme = profile?.preferred_theme;
+  useLayoutEffect(() => {
+    applyTheme(savedTheme ?? readCachedTheme());
+  }, [savedTheme]);
+  useLayoutEffect(() => clearTheme, []);
+
+  // Everyone accepts the personal-data notice once (again if its version changes).
+  if (profile && profile.privacy_version !== LEGAL_VERSION) return <PrivacyGate />;
 
   return (
     <Routes>

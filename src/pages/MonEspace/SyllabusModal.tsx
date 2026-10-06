@@ -14,14 +14,14 @@ interface SyllabusItem {
 }
 
 interface SyllabusModalProps {
-  courseId: string;
-  courseName: string;
+  classId: string;
+  classLabel: string;
   onClose: () => void;
 }
 
 const detailInputClass = "w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-[0.8rem] outline-none focus:border-gray-400";
 
-export default function SyllabusModal({ courseId, courseName, onClose }: SyllabusModalProps) {
+export default function SyllabusModal({ classId, classLabel, onClose }: SyllabusModalProps) {
   const { t } = useLocale();
   const m = t.monEspace.syllabus;
   const [items, setItems] = useState<SyllabusItem[]>([]);
@@ -38,7 +38,7 @@ export default function SyllabusModal({ courseId, courseName, onClose }: Syllabu
     const { data } = await supabase
       .from("syllabus_items")
       .select("id, title, position, start_date, end_date, objectives, planned_sessions")
-      .eq("course_id", courseId)
+      .eq("class_id", classId)
       .order("position");
     setItems(data ?? []);
     setLoading(false);
@@ -47,14 +47,14 @@ export default function SyllabusModal({ courseId, courseName, onClose }: Syllabu
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseId]);
+  }, [classId]);
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
     const nextPosition = items.length > 0 ? Math.max(...items.map((i) => i.position)) + 1 : 1;
-    const { error: insertError } = await supabase.from("syllabus_items").insert({ course_id: courseId, title: newTitle, position: nextPosition });
+    const { error: insertError } = await supabase.from("syllabus_items").insert({ class_id: classId, title: newTitle, position: nextPosition });
     setSaving(false);
     if (insertError) {
       setError(humanizeError(insertError));
@@ -115,7 +115,7 @@ export default function SyllabusModal({ courseId, courseName, onClose }: Syllabu
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-900/40 px-4">
       <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-          <h2 className="text-[1rem] font-semibold text-gray-900">{m.title.replace("{name}", courseName)}</h2>
+          <h2 className="text-[1rem] font-semibold text-gray-900">{m.title.replace("{name}", classLabel)}</h2>
           <button type="button" onClick={onClose} className="text-[0.85rem] text-gray-400 hover:text-gray-700">
             {t.monEspace.gestion.classes.close}
           </button>

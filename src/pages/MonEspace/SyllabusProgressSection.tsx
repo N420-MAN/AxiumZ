@@ -8,7 +8,7 @@ interface SyllabusItemRow {
   planned_sessions: number | null;
 }
 
-export default function SyllabusProgressSection({ classId, courseId }: { classId: string; courseId: string }) {
+export default function SyllabusProgressSection({ classId }: { classId: string }) {
   const { t } = useLocale();
   const m = t.monEspace.progress;
   const [items, setItems] = useState<SyllabusItemRow[]>([]);
@@ -19,7 +19,7 @@ export default function SyllabusProgressSection({ classId, courseId }: { classId
   async function load() {
     setLoading(true);
     const [{ data: syllabusData }, { data: progressData }, { data: sessionData }] = await Promise.all([
-      supabase.from("syllabus_items").select("id, title, planned_sessions").eq("course_id", courseId).order("position"),
+      supabase.from("syllabus_items").select("id, title, planned_sessions").eq("class_id", classId).order("position"),
       supabase.from("class_syllabus_progress").select("syllabus_item_id").eq("class_id", classId),
       supabase.from("class_sessions").select("syllabus_item_id").eq("class_id", classId).not("syllabus_item_id", "is", null).lte("starts_at", new Date().toISOString()),
     ]);
@@ -36,7 +36,7 @@ export default function SyllabusProgressSection({ classId, courseId }: { classId
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classId, courseId]);
+  }, [classId]);
 
   async function toggleItem(itemId: string) {
     const isDone = completedIds.has(itemId);

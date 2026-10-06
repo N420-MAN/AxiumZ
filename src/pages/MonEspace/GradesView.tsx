@@ -5,14 +5,12 @@ import { useAuth } from "../../features/auth/AuthContext";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import { useLocale } from "../../i18n/LocaleContext";
-import { type ProgramCategory, isLanguageCategory } from "../../lib/programCategory";
+import { CLASS_LABEL_SELECT, type ClassLabelParts, type ProgramKind, classLabel, isLanguageProgram } from "../../lib/programs";
 import LanguageScoreRow from "./LanguageScoreRow";
 
-interface ClassOption {
+interface ClassOption extends ClassLabelParts {
   id: string;
-  name: string;
-  course_id: string;
-  courses: { name: string; category: ProgramCategory } | null;
+  programs: { name: string; kind: ProgramKind } | null;
 }
 interface Assessment {
   id: string;
@@ -56,7 +54,7 @@ export default function GradesView() {
   const { confirm, dialog } = useConfirmDialog();
 
   const [classes, setClasses] = useState<ClassOption[]>([]);
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [pickedClass, setSelectedClass] = useState<string | null>(null);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [averages, setAverages] = useState<AverageRow[]>([]);
@@ -67,12 +65,14 @@ export default function GradesView() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Derived, not stored: a reload can never leave a class selected that is no longer in the list.
+  const selectedClass = classes.some((cl) => cl.id === pickedClass) ? pickedClass : (classes[0]?.id ?? null);
   const [form, setForm] = useState({ title: "", assessment_type: "test", max_score: "20", weight: "1", assessment_date: "" });
   const [selectedChapterIds, setSelectedChapterIds] = useState<string[]>([]);
 
   async function loadClasses() {
     setLoading(true);
-    let query = supabase.from("classes").select("id, name, course_id, courses(name, category)");
+    let query = supabase.from("classes").select(`id, ${CLASS_LABEL_SELECT}`);
     if (isAdmin && orgId) query = query.eq("organization_id", orgId);
     // Non-admin (teacher): RLS already scopes this to only their own
     // classes — no explicit filter needed, same principle used throughout
@@ -80,7 +80,6 @@ export default function GradesView() {
     const { data } = await query.order("name");
     setClasses((data as unknown as ClassOption[]) ?? []);
     setLoading(false);
-    if (data && data.length > 0 && !selectedClass) setSelectedClass(data[0].id);
   }
 
   useEffect(() => {
@@ -89,14 +88,11 @@ export default function GradesView() {
   }, [orgId]);
 
   async function loadClassData(classId: string) {
-    const currentCourseId = classes.find((c) => c.id === classId)?.course_id;
     const [{ data: assessmentData }, { data: enrollData }, { data: avgData }, { data: syllabusData }] = await Promise.all([
       supabase.from("assessments").select("id, title, assessment_type, max_score, weight, assessment_date").eq("class_id", classId).order("assessment_date", { ascending: false }),
       supabase.from("class_students").select("student_id, students(first_name, last_name)").eq("class_id", classId),
       supabase.from("student_class_averages").select("student_id, average_out_of_20, grade_count").eq("class_id", classId),
-      currentCourseId
-        ? supabase.from("syllabus_items").select("id, title, planned_sessions").eq("course_id", currentCourseId).order("position")
-        : Promise.resolve({ data: [] }),
+      supabase.from("syllabus_items").select("id, title, planned_sessions").eq("class_id", classId).order("position"),
     ]);
     setAssessments(assessmentData ?? []);
     setEnrollments((enrollData as unknown as Enrollment[]) ?? []);
@@ -216,7 +212,7 @@ export default function GradesView() {
   }
 
   const currentClass = classes.find((c) => c.id === selectedClass);
-  const isLanguageClass = isLanguageCategory(currentClass?.courses?.category);
+  const isLanguageClass = isLanguageProgram(currentClass?.programs?.kind);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8 sm:py-10">
@@ -238,7 +234,7 @@ export default function GradesView() {
                   selectedClass === c.id ? "bg-gradient-to-br from-ink to-ink-soft text-paper" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                {c.name}
+                {classLabel(c)}
               </button>
             ))}
           </div>
@@ -246,7 +242,7 @@ export default function GradesView() {
           {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
 
           <div className="mt-5 flex items-center justify-between">
-            <h2 className="text-[0.95rem] font-semibold text-gray-900">{currentClass?.courses?.name}</h2>
+            <h2 className="text-[0.95rem] font-semibold text-gray-900">{currentClass ? classLabel(currentClass) : ""}</h2>
             <button
               type="button"
               onClick={() => setShowForm((v) => !v)}

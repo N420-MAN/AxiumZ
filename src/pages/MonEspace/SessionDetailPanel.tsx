@@ -53,7 +53,7 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
 
   async function load() {
     setLoading(true);
-    const { data: session } = await supabase.from("class_sessions").select("class_id, notes, syllabus_item_id, classes(course_id)").eq("id", sessionId).single();
+    const { data: session } = await supabase.from("class_sessions").select("class_id, notes, syllabus_item_id").eq("id", sessionId).single();
 
     if (session) {
       setNotes(session.notes ?? "");
@@ -61,11 +61,8 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
       setClassId(session.class_id);
       setSelectedChapter(session.syllabus_item_id ?? "");
 
-      const courseId = (session as unknown as { classes: { course_id: string } | null }).classes?.course_id;
-      if (courseId) {
-        const { data: chapters } = await supabase.from("syllabus_items").select("id, title").eq("course_id", courseId).order("position");
-        setSyllabusItems(chapters ?? []);
-      }
+      const { data: chapters } = await supabase.from("syllabus_items").select("id, title").eq("class_id", session.class_id).order("position");
+      setSyllabusItems(chapters ?? []);
 
       const [{ data: enrollData }, { data: attData }] = await Promise.all([
         supabase.from("class_students").select("student_id, students(first_name, last_name)").eq("class_id", session.class_id),

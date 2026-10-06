@@ -4,7 +4,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "../../lib/supabaseClient";
 import { useLocale } from "../../i18n/LocaleContext";
-import { type ProgramCategory, isLanguageCategory } from "../../lib/programCategory";
+import { type ProgramKind, classLabel, isLanguageProgram } from "../../lib/programs";
 import LanguageProgressSection from "./LanguageProgressSection";
 
 interface StudentDetail {
@@ -17,6 +17,7 @@ interface StudentDetail {
   address: string | null;
   school_name: string | null;
   grade_level: string | null;
+  kind: "eleve" | "stagiaire";
 }
 interface ParentRow {
   first_name: string;
@@ -24,9 +25,15 @@ interface ParentRow {
   phone: string | null;
   email: string | null;
 }
+interface WaitingLine {
+  id: string;
+  note: string | null;
+  programs: { name: string } | null;
+  levels: { name: string } | null;
+}
 interface ClassRow {
   class_id: string;
-  classes: { name: string; category: ProgramCategory } | null;
+  classes: { name: string; programs: { name: string; kind: ProgramKind } | null; levels: { name: string } | null } | null;
 }
 interface AverageRow {
   class_id: string;
@@ -70,6 +77,7 @@ export default function StudentProfileView() {
   const navigate = useNavigate();
   const { t, locale } = useLocale();
   const m = t.monEspace.studentProfile;
+  const pp = t.monEspace.people;
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
 
   const [student, setStudent] = useState<StudentDetail | null>(null);
@@ -79,6 +87,7 @@ export default function StudentProfileView() {
   const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [homework, setHomework] = useState<HomeworkRow[]>([]);
+  const [waiting, setWaiting] = useState<WaitingLine[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -88,7 +97,7 @@ export default function StudentProfileView() {
       setLoading(true);
       const { data: studentData } = await supabase
         .from("students")
-        .select("id, first_name, last_name, email, phone, date_of_birth, address, school_name, grade_level")
+        .select("id, first_name, last_name, email, phone, date_of_birth, address, school_name, grade_level, kind")
         .eq("id", studentId)
         .maybeSingle();
 
@@ -99,10 +108,10 @@ export default function StudentProfileView() {
       }
       setStudent(studentData);
 
-      const { data: classRows } = await supabase.from("class_students").select("class_id, classes(name, category)").eq("student_id", studentId);
+      const { data: classRows } = await supabase.from("class_students").select("class_id, classes(name, programs(name, kind), levels(name))").eq("student_id", studentId);
       setClasses((classRows as unknown as ClassRow[]) ?? []);
 
-      const [{ data: parentLinks }, { data: avgRows }, { data: attRows }, { data: commentRows }, { data: hwRows }] = await Promise.all([
+      const [{ data: parentLinks }, { data: avgRows }, { data: attRows }, { data: commentRows }, { data: hwRows }, { data: waitingRows }] = await Promise.all([
         supabase.from("parent_students").select("parents(first_name, last_name, phone, email)").eq("student_id", studentId),
         supabase.from("student_class_averages").select("class_id, average_out_of_20").eq("student_id", studentId),
         supabase
@@ -115,6 +124,7 @@ export default function StudentProfileView() {
         (classRows ?? []).length > 0
           ? supabase.from("homework").select("id, title, due_date, classes(name)").in("class_id", (classRows ?? []).map((c) => c.class_id))
           : Promise.resolve({ data: [] }),
+        supabase.from("class_wishes").select("id, note, programs(name), levels(name)").eq("student_id", studentId).is("fulfilled_at", null),
       ]);
 
       setParents(((parentLinks as unknown as { parents: ParentRow | null }[]) ?? []).map((p) => p.parents).filter((p): p is ParentRow => p !== null));
@@ -122,6 +132,7 @@ export default function StudentProfileView() {
       setAttendance((attRows as unknown as AttendanceRow[]) ?? []);
       setComments(commentRows ?? []);
       setHomework((hwRows as unknown as HomeworkRow[]) ?? []);
+      setWaiting((waitingRows as unknown as WaitingLine[]) ?? []);
       setLoading(false);
     }
     load();
@@ -140,6 +151,8 @@ export default function StudentProfileView() {
 
   const fullName = `${student.first_name} ${student.last_name}`;
   const age = computeAge(student.date_of_birth);
+  // The année scolaire only exists for élèves (a stagiaire has no school grade).
+  const gradeLevel = student.kind === "eleve" ? student.grade_level : null;
 
   function generateReportCard() {
     if (!student) return;
@@ -157,7 +170,7 @@ export default function StudentProfileView() {
     doc.setTextColor(30, 30, 30);
     doc.text(`${m.reportCardStudent}: ${fullName}`, 14, 42);
     if (age !== null) doc.text(`${m.reportCardAge}: ${age}`, 14, 49);
-    if (student.grade_level) doc.text(`${m.reportCardGrade}: ${student.grade_level}`, 14, 56);
+    if (gradeLevel) doc.text(`${m.reportCardGrade}: ${gradeLevel}`, 14, 56);
     if (student.school_name) doc.text(`${m.reportCardSchool}: ${student.school_name}`, 14, 63);
 
     autoTable(doc, {
@@ -165,7 +178,7 @@ export default function StudentProfileView() {
       head: [[m.reportCardClassColumn, m.reportCardAverageColumn]],
       body: classes.map((c) => {
         const avg = averages.find((a) => a.class_id === c.class_id);
-        return [c.classes?.name ?? "—", avg ? `${avg.average_out_of_20}/20` : "—"];
+        return [c.classes ? classLabel(c.classes) : "—", avg ? `${avg.average_out_of_20}/20` : "—"];
       }),
       headStyles: { fillColor: [15, 42, 92] },
       styles: { fontSize: 10 },
@@ -213,7 +226,7 @@ export default function StudentProfileView() {
         <div className="min-w-0">
           <h1 className="font-display text-[1.3rem] font-bold text-gray-900">{fullName}</h1>
           <p className="mt-0.5 text-[0.82rem] text-gray-500">
-            {[age !== null ? m.ageValue.replace("{age}", String(age)) : null, student.grade_level, student.school_name].filter(Boolean).join(" · ")}
+            {[student.kind === "stagiaire" ? pp.stagiaire : null, age !== null ? m.ageValue.replace("{age}", String(age)) : null, gradeLevel, student.school_name].filter(Boolean).join(" · ")}
           </p>
         </div>
       </div>
@@ -229,10 +242,10 @@ export default function StudentProfileView() {
           </div>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <h2 className="text-[0.85rem] font-semibold text-gray-900">{m.parentsHeading}</h2>
+          <h2 className="text-[0.85rem] font-semibold text-gray-900">{student.kind === "stagiaire" ? m.supervisorsHeading : m.parentsHeading}</h2>
           <div className="mt-2 space-y-1.5 text-[0.85rem] text-gray-700">
             {parents.length === 0 ? (
-              <p className="text-gray-400">{m.noParents}</p>
+              <p className="text-gray-400">{student.kind === "stagiaire" ? m.noSupervisors : m.noParents}</p>
             ) : (
               parents.map((p, i) => (
                 <p key={i}>
@@ -244,6 +257,19 @@ export default function StudentProfileView() {
         </div>
       </div>
 
+      {waiting.length > 0 && (
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <h2 className="text-[0.85rem] font-semibold text-amber-900">{pp.waitingProfileHeading}</h2>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {waiting.map((w) => (
+              <span key={w.id} className="rounded-full border border-dashed border-amber-300 bg-white px-2.5 py-0.5 text-[0.78rem] text-amber-900">
+                {[w.programs?.name, w.levels?.name, w.note].filter(Boolean).join(" · ")}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-[0.85rem] font-semibold text-gray-900">{m.classesHeading}</h2>
         <div className="mt-2 space-y-1.5">
@@ -254,7 +280,9 @@ export default function StudentProfileView() {
               const avg = averages.find((a) => a.class_id === c.class_id);
               return (
                 <div key={c.class_id} className="flex items-center justify-between text-[0.85rem]">
-                  <span className="text-gray-800">{c.classes?.name}</span>
+                  <span className="text-gray-800">
+                    {c.classes ? classLabel(c.classes) : "—"}
+                  </span>
                   {avg && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[0.76rem] font-medium text-gray-700">{avg.average_out_of_20}/20</span>}
                 </div>
               );
@@ -266,8 +294,8 @@ export default function StudentProfileView() {
       <LanguageProgressSection
         studentId={student.id}
         languageClasses={classes
-          .filter((c) => isLanguageCategory(c.classes?.category))
-          .map((c) => ({ classId: c.class_id, className: c.classes?.name ?? "—" }))}
+          .filter((c) => isLanguageProgram(c.classes?.programs?.kind))
+          .map((c) => ({ classId: c.class_id, className: c.classes ? classLabel(c.classes) : "—" }))}
       />
 
       <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">

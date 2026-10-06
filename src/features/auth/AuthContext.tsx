@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   useCallback,
   type ReactNode,
 } from "react";
@@ -15,6 +16,9 @@ export interface Profile {
   phone: string | null;
   avatar_url: string | null;
   preferred_locale: "fr" | "en" | null;
+  preferred_theme: "light" | "dark";
+  privacy_version: string | null;
+  privacy_accepted_at: string | null;
 }
 
 export type RoleName = "super_admin" | "center_admin" | "teacher" | "student" | "parent";
@@ -34,7 +38,7 @@ interface AuthContextValue {
   isSuperAdmin: boolean;
   /** True while the initial session/profile/memberships are being resolved. */
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: { code: string } | null }>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -51,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfileAndMemberships = useCallback(async (userId: string) => {
     const [{ data: profileData, error: profileError }, { data: memberData, error: memberError }] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, phone, avatar_url, preferred_locale").eq("id", userId).maybeSingle(),
+      supabase.from("profiles").select("id, full_name, phone, avatar_url, preferred_locale, preferred_theme, privacy_version, privacy_accepted_at").eq("id", userId).maybeSingle(),
       supabase
         .from("organization_members")
         .select("organization_id, role_id, organizations(name), roles(name)")
@@ -99,6 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadProfileAndMemberships]);
 
+  // Which user's memberships are currently loaded, so a sign-in as a new user
+  // can hold the "loading" state until their memberships have arrived.
+  const loadedUserId = useRef<string | null>(null);
+
   useEffect(() => {
     let mounted = true;
 
@@ -111,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(initialSession);
       if (initialSession?.user) {
         await loadProfileAndMemberships(initialSession.user.id);
+        loadedUserId.current = initialSession.user.id;
       }
       if (mounted) setLoading(false);
     });
@@ -119,10 +128,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       if (!mounted) return;
-      setSession(newSession);
       if (newSession?.user) {
+        // A password sign-in arrives here with a session but no memberships
+        // yet. Without this, the app briefly saw "signed in, zero memberships"
+        // and rejected the person as not invited (Google sign-in doesn't hit
+        // this because the page reloads with loading already held).
+        const isNewUser = loadedUserId.current !== newSession.user.id;
+        if (isNewUser) setLoading(true);
+        setSession(newSession);
         await loadProfileAndMemberships(newSession.user.id);
+        loadedUserId.current = newSession.user.id;
+        if (mounted && isNewUser) setLoading(false);
       } else {
+        loadedUserId.current = null;
+        setSession(null);
         setProfile(null);
         setMemberships([]);
       }
@@ -136,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    return { error: error ? { code: error.code ?? "unknown" } : null };
   }, []);
 
   const signOut = useCallback(async () => {

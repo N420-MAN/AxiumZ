@@ -44,11 +44,18 @@ export default function Login() {
     setStatus("loading");
     setErrorMessage("");
 
-    const result = await signIn(email, password);
+    // Mobile keyboards often add a trailing space or a capital letter.
+    const result = await signIn(email.trim().toLowerCase(), password);
 
     if (result.error) {
       setStatus("error");
-      setErrorMessage(result.error);
+      setErrorMessage(
+        result.error.code === "invalid_credentials"
+          ? a.invalidCredentials
+          : result.error.code === "email_not_confirmed"
+            ? a.emailNotConfirmed
+            : a.signInFailed,
+      );
       return;
     }
     // On success, AuthContext's onAuthStateChange listener updates the

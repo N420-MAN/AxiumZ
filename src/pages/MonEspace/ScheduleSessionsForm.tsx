@@ -32,17 +32,18 @@ function datesForWeekday(startDate: string, endDate: string, weekday: number): D
 
 export default function ScheduleSessionsForm({
   classId,
-  defaultRoom,
+  defaultRoomId,
   teacherId,
   organizationId,
 }: {
   classId: string;
-  defaultRoom: string | null;
+  defaultRoomId: string | null;
   teacherId: string | null;
   organizationId: string;
 }) {
   const { t, locale } = useLocale();
   const m = t.monEspace.gestion.scheduler;
+  const rm = t.monEspace.rooms;
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const DAY_OPTIONS = [
     { value: 1, label: m.days.mon },
@@ -55,6 +56,7 @@ export default function ScheduleSessionsForm({
   ];
 
   const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [rooms, setRooms] = useState<{ id: string; name: string; is_active: boolean }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,18 +66,20 @@ export default function ScheduleSessionsForm({
     weekday: 1,
     startTime: "14:00",
     endTime: "16:00",
-    room: defaultRoom ?? "",
+    roomId: defaultRoomId ?? "",
     startDate: "",
     endDate: "",
   });
 
   async function load() {
     setLoading(true);
-    const [{ data: sessionData }, { data: termData }] = await Promise.all([
+    const [{ data: sessionData }, { data: termData }, { data: roomData }] = await Promise.all([
       supabase.from("class_sessions").select("id, starts_at, ends_at, room").eq("class_id", classId).order("starts_at"),
       supabase.from("academic_terms").select("start_date, end_date").eq("organization_id", organizationId).eq("is_current", true).maybeSingle(),
+      supabase.from("rooms").select("id, name, is_active").eq("organization_id", organizationId).order("name"),
     ]);
     setSessions(sessionData ?? []);
+    setRooms(roomData ?? []);
     if (termData) {
       setForm((f) => ({ ...f, startDate: f.startDate || termData.start_date, endDate: f.endDate || termData.end_date }));
     }
@@ -99,17 +103,17 @@ export default function ScheduleSessionsForm({
   // dialog, so the admin decides with full information rather than finding
   // out from an empty room later.
   async function checkConflicts(dates: Date[]): Promise<string[]> {
-    if (!form.room && !teacherId) return [];
+    if (!form.roomId && !teacherId) return [];
 
     const { data } = await supabase
       .from("class_sessions")
-      .select("starts_at, ends_at, room, classes(name, teacher_id)")
+      .select("starts_at, ends_at, room_id, classes(name, teacher_id)")
       .neq("class_id", classId)
       .gte("starts_at", new Date(`${form.startDate}T00:00:00`).toISOString())
       .lte("starts_at", new Date(`${form.endDate}T23:59:59`).toISOString());
 
     const candidates =
-      (data as unknown as { starts_at: string; ends_at: string; room: string | null; classes: { name: string; teacher_id: string | null } | null }[]) ?? [];
+      (data as unknown as { starts_at: string; ends_at: string; room_id: string | null; classes: { name: string; teacher_id: string | null } | null }[]) ?? [];
 
     const conflicts: string[] = [];
     for (const d of dates) {
@@ -121,7 +125,7 @@ export default function ScheduleSessionsForm({
         const overlaps = proposedStart < new Date(c.ends_at) && new Date(c.starts_at) < proposedEnd;
         if (!overlaps) continue;
 
-        const sameRoom = Boolean(form.room) && c.room === form.room;
+        const sameRoom = Boolean(form.roomId) && c.room_id === form.roomId;
         const sameTeacher = Boolean(teacherId) && c.classes?.teacher_id === teacherId;
         if (sameRoom || sameTeacher) {
           const reason = sameTeacher && sameRoom ? m.conflictReasonBoth : sameTeacher ? m.conflictReasonTeacher : m.conflictReasonRoom;
@@ -147,7 +151,7 @@ export default function ScheduleSessionsForm({
         class_id: classId,
         starts_at: new Date(`${dateStr}T${form.startTime}:00`).toISOString(),
         ends_at: new Date(`${dateStr}T${form.endTime}:00`).toISOString(),
-        room: form.room || null,
+        room_id: form.roomId || null,
       };
     });
     const { error: insertError } = await supabase.from("class_sessions").insert(rows);
@@ -218,7 +222,17 @@ export default function ScheduleSessionsForm({
           </select>
           <input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} className={inputClass} />
           <input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} className={inputClass} />
-          <input placeholder={m.room} value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} className={inputClass} />
+          <select value={form.roomId} onChange={(e) => setForm({ ...form, roomId: e.target.value })} className={inputClass}>
+            <option value="">{rm.noRoom}</option>
+            {rooms
+              .filter((r) => r.is_active || r.id === form.roomId)
+              .map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                  {r.is_active ? "" : ` ${rm.inactiveSuffix}`}
+                </option>
+              ))}
+          </select>
           <label className="col-span-1">
             <span className="text-[0.72rem] text-gray-500">{m.from}</span>
             <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className={`mt-0.5 ${inputClass}`} />

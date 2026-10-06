@@ -5,6 +5,8 @@ import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
 import { uploadTeacherAvatar } from "../../lib/avatarUpload";
 import TeacherAvatar from "./TeacherAvatar";
+import { useAuth } from "../../features/auth/AuthContext";
+import { applyTheme, readCachedTheme, type Theme } from "../../lib/theme";
 
 const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
@@ -17,6 +19,29 @@ export default function SettingsView() {
   const location = useLocation();
   const navigate = useNavigate();
   const [localeSaving, setLocaleSaving] = useState(false);
+
+  const { profile, refresh } = useAuth();
+  const theme: Theme = profile?.preferred_theme ?? readCachedTheme();
+  const [themeSaving, setThemeSaving] = useState(false);
+  const [themeError, setThemeError] = useState(false);
+
+  async function switchTheme(target: Theme) {
+    if (target === theme || themeSaving) return;
+    setThemeSaving(true);
+    setThemeError(false);
+    applyTheme(target); // instant, then saved to the account
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = userData.user
+      ? await supabase.from("profiles").update({ preferred_theme: target }).eq("id", userData.user.id)
+      : { error: new Error("no user") };
+    if (error) {
+      applyTheme(theme);
+      setThemeError(true);
+    } else {
+      await refresh();
+    }
+    setThemeSaving(false);
+  }
 
   async function switchLocale(target: "fr" | "en") {
     if (target === locale || localeSaving) return;
@@ -169,6 +194,27 @@ export default function SettingsView() {
             English
           </button>
         </div>
+      </div>
+
+      <div className="mt-5 rounded-lg border border-gray-200 bg-white p-5">
+        <h2 className="text-[1rem] font-semibold text-gray-900">{m.themeTitle}</h2>
+        <p className="mt-0.5 text-[0.8rem] text-gray-500">{m.themeDescription}</p>
+        <div className="mt-3 flex gap-2" role="radiogroup" aria-label={m.themeTitle}>
+          {(["light", "dark"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={theme === option}
+              disabled={themeSaving}
+              onClick={() => switchTheme(option)}
+              className={`rounded-md px-4 py-2 text-[0.85rem] font-medium disabled:opacity-60 ${theme === option ? "bg-gradient-to-br from-ink to-ink-soft text-paper ring-1 ring-accent" : "border border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+            >
+              {option === "light" ? m.themeLight : m.themeDark}
+            </button>
+          ))}
+        </div>
+        {themeError && <p className="mt-2 text-[0.8rem] text-red-600">{m.themeSaveFailed}</p>}
       </div>
 
       <div className="mt-5 rounded-lg border border-gray-200 bg-white p-5">

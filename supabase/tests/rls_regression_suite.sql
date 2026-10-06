@@ -32,7 +32,9 @@ declare
   v_student_a_row uuid;
   v_student_b_row uuid;
   v_parent_a_row uuid;
-  v_course_id uuid;
+  v_parent_b_row uuid;
+  v_prog_id uuid;
+  v_level_id uuid;
   v_class_a_id uuid;
   v_class_b_id uuid;
   v_assessment_id uuid;
@@ -65,28 +67,38 @@ begin
     (v_org_id, v_student_b_id, 4),
     (v_org_id, v_parent_a_id, 5);
 
-  insert into public.teachers (id, organization_id, user_id, first_name, last_name) values
-    (gen_random_uuid(), v_org_id, v_teacher_a_id, 'RLSTest', 'TeacherA') returning id into v_teacher_a_row;
-  insert into public.teachers (id, organization_id, user_id, first_name, last_name) values
-    (gen_random_uuid(), v_org_id, v_teacher_b_id, 'RLSTest', 'TeacherB') returning id into v_teacher_b_row;
+  -- Fixtures satisfy the mandatory-contact rules (teacher email+phone, an
+  -- eleve's email + school + annee scolaire, a parent's email + phone +
+  -- address) and reuse each person's own login email, which the
+  -- duplicate-email check must allow.
+  insert into public.teachers (id, organization_id, user_id, first_name, last_name, email, phone) values
+    (gen_random_uuid(), v_org_id, v_teacher_a_id, 'RLSTest', 'TeacherA', 'rlstest_teacherA@example.com', '0600000001') returning id into v_teacher_a_row;
+  insert into public.teachers (id, organization_id, user_id, first_name, last_name, email, phone) values
+    (gen_random_uuid(), v_org_id, v_teacher_b_id, 'RLSTest', 'TeacherB', 'rlstest_teacherB@example.com', '0600000002') returning id into v_teacher_b_row;
 
-  insert into public.students (id, organization_id, user_id, first_name, last_name) values
-    (gen_random_uuid(), v_org_id, v_student_a_id, 'RLSTest', 'StudentA') returning id into v_student_a_row;
-  insert into public.students (id, organization_id, user_id, first_name, last_name) values
-    (gen_random_uuid(), v_org_id, v_student_b_id, 'RLSTest', 'StudentB') returning id into v_student_b_row;
+  insert into public.students (id, organization_id, user_id, first_name, last_name, email, school_name, grade_level) values
+    (gen_random_uuid(), v_org_id, v_student_a_id, 'RLSTest', 'StudentA', 'rlstest_studentA@example.com', 'RLSTest School', 'RLSTest 6') returning id into v_student_a_row;
+  insert into public.students (id, organization_id, user_id, first_name, last_name, email, school_name, grade_level) values
+    (gen_random_uuid(), v_org_id, v_student_b_id, 'RLSTest', 'StudentB', 'rlstest_studentB@example.com', 'RLSTest School', 'RLSTest 6') returning id into v_student_b_row;
 
-  -- Only Student A gets a parent — Student B deliberately stays parent-less
-  -- to exercise the "adult student, no error" path.
-  insert into public.parents (id, organization_id, user_id, first_name, last_name) values
-    (gen_random_uuid(), v_org_id, v_parent_a_id, 'RLSTest', 'ParentA') returning id into v_parent_a_row;
+  -- An eleve always has a parent. Parent A has a login (and can see only
+  -- Student A); Parent B only has to exist, for Student B.
+  insert into public.parents (id, organization_id, user_id, first_name, last_name, phone, email, address) values
+    (gen_random_uuid(), v_org_id, v_parent_a_id, 'RLSTest', 'ParentA', '0600000003', 'rlstest_parentA@example.com', 'RLSTest Address') returning id into v_parent_a_row;
   insert into public.parent_students (parent_id, student_id) values (v_parent_a_row, v_student_a_row);
+  insert into public.parents (organization_id, first_name, last_name, phone, email, address)
+    values (v_org_id, 'RLSTest', 'ParentB', '0600000004', 'rlstest_parentB@example.com', 'RLSTest Address') returning id into v_parent_b_row;
+  insert into public.parent_students (parent_id, student_id) values (v_parent_b_row, v_student_b_row);
 
-  insert into public.courses (id, organization_id, name) values (gen_random_uuid(), v_org_id, 'RLSTest Course') returning id into v_course_id;
+  insert into public.programs (organization_id, name, kind, audience)
+    values (v_org_id, 'RLSTest Programme', 'scolaire', 'both') returning id into v_prog_id;
+  insert into public.levels (organization_id, program_id, name)
+    values (v_org_id, v_prog_id, 'RLSTest Niveau') returning id into v_level_id;
 
-  insert into public.classes (id, organization_id, course_id, teacher_id, name) values
-    (gen_random_uuid(), v_org_id, v_course_id, v_teacher_a_row, 'RLSTest Class A') returning id into v_class_a_id;
-  insert into public.classes (id, organization_id, course_id, teacher_id, name) values
-    (gen_random_uuid(), v_org_id, v_course_id, v_teacher_b_row, 'RLSTest Class B') returning id into v_class_b_id;
+  insert into public.classes (id, organization_id, program_id, level_id, teacher_id, name) values
+    (gen_random_uuid(), v_org_id, v_prog_id, v_level_id, v_teacher_a_row, 'RLSTest Class A') returning id into v_class_a_id;
+  insert into public.classes (id, organization_id, program_id, level_id, teacher_id, name) values
+    (gen_random_uuid(), v_org_id, v_prog_id, v_level_id, v_teacher_b_row, 'RLSTest Class B') returning id into v_class_b_id;
 
   insert into public.class_students (class_id, student_id) values (v_class_a_id, v_student_a_row), (v_class_a_id, v_student_b_row);
 
@@ -234,10 +246,11 @@ begin
   delete from public.assessments where id = v_assessment_id;
   delete from public.class_students where class_id in (v_class_a_id, v_class_b_id);
   delete from public.classes where id in (v_class_a_id, v_class_b_id);
-  delete from public.courses where id = v_course_id;
-  delete from public.parent_students where parent_id = v_parent_a_row;
-  delete from public.parents where id = v_parent_a_row;
+  delete from public.programs where id = v_prog_id;  -- its niveau goes with it
+  -- Students first (their parent links go with them): the only parent of an
+  -- eleve can't be removed before that student.
   delete from public.students where id in (v_student_a_row, v_student_b_row);
+  delete from public.parents where id in (v_parent_a_row, v_parent_b_row);
   delete from public.teachers where id in (v_teacher_a_row, v_teacher_b_row);
   delete from public.organization_members where organization_id = v_org_id;
   delete from auth.users where id in (v_admin_id, v_teacher_a_id, v_teacher_b_id, v_student_a_id, v_student_b_id, v_parent_a_id, v_outsider_id);
@@ -249,6 +262,11 @@ exception when others then
   -- behind in a real database.
   perform set_config('role', 'postgres', true);
   delete from auth.users where email like 'rlstest_%@example.com';
+  delete from public.class_students where class_id in (select id from public.classes where name like 'RLSTest %');
+  delete from public.classes where name like 'RLSTest %';
+  delete from public.students where first_name = 'RLSTest';
+  delete from public.parents where first_name = 'RLSTest';
+  delete from public.programs where name = 'RLSTest Programme';
   delete from public.organizations where name = 'RLS Test Org';
   raise;
 end $$;

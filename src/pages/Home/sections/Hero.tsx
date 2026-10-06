@@ -31,7 +31,10 @@ export default function Hero() {
 
   return (
     <>
-      <section ref={sectionRef} className="grain-texture relative overflow-hidden bg-ink px-4 pt-36 pb-16 text-paper sm:px-6 sm:pt-44 sm:pb-20 xl:pt-48">
+      <section
+        ref={sectionRef}
+        className="grain-texture relative min-h-dvh overflow-hidden bg-ink px-4 pt-36 pb-[calc(4.75rem+env(safe-area-inset-bottom)+2rem)] text-paper sm:min-h-0 sm:px-6 sm:pt-44 sm:pb-20 xl:pt-48"
+      >
         {/* Fine architectural grid — fills negative space without photography */}
         <div className="pattern-grid-dark pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" />
 

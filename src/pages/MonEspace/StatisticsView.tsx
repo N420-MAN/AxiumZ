@@ -2,15 +2,16 @@ import { useEffect, useState } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "../../lib/supabaseClient";
 import { useLocale } from "../../i18n/LocaleContext";
+import { CLASS_LABEL_SELECT, classLabel } from "../../lib/programs";
 
 interface GradeRow {
   score: number;
   graded_at: string;
-  assessments: { max_score: number } | null;
+  assessments: { max_score: number; class_id: string } | null;
 }
 interface AttendanceRow {
   status: string;
-  class_sessions: { starts_at: string } | null;
+  class_sessions: { starts_at: string; class_id: string } | null;
 }
 interface AverageRow {
   class_id: string;
@@ -37,27 +38,39 @@ export default function StatisticsView() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const sinceDate = new Date();
+
+      // Teachers only get their own classes back; admins get them all.
+      const { data: classRows } = await supabase.from("classes").select(`id, ${CLASS_LABEL_SELECT}`);
+      const classNameById: Record<string, string> = {};
+      const classIdSet = new Set<string>();
+      for (const cl of (classRows as unknown as (Parameters<typeof classLabel>[0] & { id: string })[]) ?? []) {
+        classIdSet.add(cl.id);
+        classNameById[cl.id] = classLabel(cl);
+      }
+
+      // The six-month window ends today.
+      const windowEnd = new Date();
+      const sinceDate = new Date(windowEnd);
       sinceDate.setMonth(sinceDate.getMonth() - MONTHS_BACK);
       const sinceISO = sinceDate.toISOString();
 
       const monthBuckets: { key: string; label: string }[] = [];
       for (let i = MONTHS_BACK - 1; i >= 0; i--) {
-        const d = new Date();
+        const d = new Date(windowEnd);
         d.setMonth(d.getMonth() - i);
         monthBuckets.push({ key: monthKey(d), label: d.toLocaleDateString(dateLocale, { month: "short" }) });
       }
 
       const [{ data: grades }, { data: attendance }, { data: averages }] = await Promise.all([
-        supabase.from("grades").select("score, graded_at, assessments(max_score)").gte("graded_at", sinceISO),
-        supabase.from("attendance").select("status, class_sessions(starts_at)"),
+        supabase.from("grades").select("score, graded_at, assessments(max_score, class_id)").gte("graded_at", sinceISO),
+        supabase.from("attendance").select("status, class_sessions(starts_at, class_id)"),
         supabase.from("student_class_averages").select("class_id, average_out_of_20"),
       ]);
 
       const gradeBuckets: Record<string, { sum: number; count: number }> = {};
       for (const g of (grades as unknown as GradeRow[]) ?? []) {
         const maxScore = g.assessments?.max_score;
-        if (!maxScore) continue;
+        if (!maxScore || !g.assessments || !classIdSet.has(g.assessments.class_id)) continue;
         const key = monthKey(new Date(g.graded_at));
         if (!gradeBuckets[key]) gradeBuckets[key] = { sum: 0, count: 0 };
         gradeBuckets[key].sum += (g.score / maxScore) * 20;
@@ -73,7 +86,7 @@ export default function StatisticsView() {
       const attBuckets: Record<string, { present: number; total: number }> = {};
       for (const a of (attendance as unknown as AttendanceRow[]) ?? []) {
         const startsAt = a.class_sessions?.starts_at;
-        if (!startsAt || new Date(startsAt) < sinceDate) continue;
+        if (!startsAt || !a.class_sessions || !classIdSet.has(a.class_sessions.class_id) || new Date(startsAt) < sinceDate) continue;
         const key = monthKey(new Date(startsAt));
         if (!attBuckets[key]) attBuckets[key] = { present: 0, total: 0 };
         attBuckets[key].total += 1;
@@ -88,15 +101,14 @@ export default function StatisticsView() {
 
       const classBuckets: Record<string, { sum: number; count: number }> = {};
       for (const a of (averages as unknown as AverageRow[]) ?? []) {
+        if (!classIdSet.has(a.class_id)) continue;
         if (!classBuckets[a.class_id]) classBuckets[a.class_id] = { sum: 0, count: 0 };
         classBuckets[a.class_id].sum += a.average_out_of_20;
         classBuckets[a.class_id].count += 1;
       }
       const classIds = Object.keys(classBuckets);
       if (classIds.length > 0) {
-        const { data: classes } = await supabase.from("classes").select("id, name").in("id", classIds);
-        const classNames: Record<string, string> = {};
-        for (const c of classes ?? []) classNames[c.id] = c.name;
+        const classNames = classNameById;
         setClassComparison(
           classIds
             .map((id) => ({ name: classNames[id] ?? "—", average: Math.round((classBuckets[id].sum / classBuckets[id].count) * 10) / 10 }))
@@ -126,8 +138,7 @@ export default function StatisticsView() {
       setLoading(false);
     }
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dateLocale]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8 sm:py-10">

@@ -4,6 +4,7 @@ import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import { useLocale } from "../../i18n/LocaleContext";
+import PersonalDataNotice from "./PersonalDataNotice";
 
 interface AdminRow {
   user_id: string;
@@ -24,7 +25,7 @@ export default function AdminsManager({ organizationId }: { organizationId: stri
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ fullName: "", email: "" });
+  const [form, setForm] = useState({ fullName: "", email: "", phone: "" });
   const { confirm, dialog } = useConfirmDialog();
 
   async function load() {
@@ -51,7 +52,7 @@ export default function AdminsManager({ organizationId }: { organizationId: stri
     setError(null);
 
     const { data, error: inviteError } = await supabase.functions.invoke("invite-admin", {
-      body: { organizationId, email: form.email, fullName: form.fullName },
+      body: { organizationId, email: form.email.trim(), fullName: form.fullName.trim(), phone: form.phone.trim() },
     });
 
     setSaving(false);
@@ -60,7 +61,7 @@ export default function AdminsManager({ organizationId }: { organizationId: stri
       setError(message);
       return;
     }
-    setForm({ fullName: "", email: "" });
+    setForm({ fullName: "", email: "", phone: "" });
     setShowForm(false);
     load();
   }
@@ -93,7 +94,7 @@ export default function AdminsManager({ organizationId }: { organizationId: stri
         <form onSubmit={handleInvite} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
           <input
             required
-            placeholder={m.fullNamePlaceholder}
+            placeholder={`${m.fullNamePlaceholder} *`}
             value={form.fullName}
             onChange={(e) => setForm({ ...form, fullName: e.target.value })}
             className={inputClass}
@@ -101,11 +102,20 @@ export default function AdminsManager({ organizationId }: { organizationId: stri
           <input
             required
             type="email"
-            placeholder={m.email}
+            placeholder={`${m.email} *`}
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             className={inputClass}
           />
+          <input
+            required
+            type="tel"
+            placeholder={`${m.phone} *`}
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            className={inputClass}
+          />
+          <PersonalDataNotice className="sm:col-span-2" />
           <button
             type="submit"
             disabled={saving}
