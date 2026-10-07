@@ -217,6 +217,11 @@ export interface Dictionary {
       myAccount: string;
       settingsNav: string;
       signOut: string;
+      tutorialNav: string;
+      tutorialTitle: string;
+      tutorialBody: string;
+      tutorialOpen: string;
+      tutorialLater: string;
     };
     setPassword: {
       title: string;

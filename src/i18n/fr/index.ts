@@ -404,6 +404,11 @@ const fr: Dictionary = {
       myAccount: "Mon compte",
       settingsNav: "Paramètres",
       signOut: "Se déconnecter",
+      tutorialNav: "Tutoriel",
+      tutorialTitle: "Un tutoriel est disponible",
+      tutorialBody: "Un guide en PDF, adapté à votre profil, vous explique pas à pas comment utiliser Mon Espace. Vous le retrouverez à tout moment avec le bouton « Tutoriel », au-dessus de « Paramètres ».",
+      tutorialOpen: "Ouvrir le tutoriel",
+      tutorialLater: "Plus tard",
     },
     setPassword: {
       title: "Bienvenue sur Mon espace",

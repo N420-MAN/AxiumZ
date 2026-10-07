@@ -19,6 +19,7 @@ export interface Profile {
   preferred_theme: "light" | "dark";
   privacy_version: string | null;
   privacy_accepted_at: string | null;
+  tutorial_seen_at: string | null;
 }
 
 export type RoleName = "super_admin" | "center_admin" | "teacher" | "student" | "parent";
@@ -55,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfileAndMemberships = useCallback(async (userId: string) => {
     const [{ data: profileData, error: profileError }, { data: memberData, error: memberError }] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, phone, avatar_url, preferred_locale, preferred_theme, privacy_version, privacy_accepted_at").eq("id", userId).maybeSingle(),
+      supabase.from("profiles").select("id, full_name, phone, avatar_url, preferred_locale, preferred_theme, privacy_version, privacy_accepted_at, tutorial_seen_at").eq("id", userId).maybeSingle(),
       supabase
         .from("organization_members")
         .select("organization_id, role_id, organizations(name), roles(name)")

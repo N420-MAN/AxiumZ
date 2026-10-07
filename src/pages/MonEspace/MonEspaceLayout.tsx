@@ -6,6 +6,8 @@ import { useLocale } from "../../i18n/LocaleContext";
 import NotificationBell from "./NotificationBell";
 import MonEspaceErrorBoundary from "./MonEspaceErrorBoundary";
 import axiumzLogo from "../../assets/images/axiumz-logo.png";
+import { supabase } from "../../lib/supabaseClient";
+import { useTutorialFile, tutorialUrl } from "../../features/tutorial/useTutorial";
 
 interface NavItem {
   to: string;
@@ -35,13 +37,25 @@ function initialsFrom(name: string): string {
 }
 
 export default function MonEspaceLayout() {
-  const { profile, memberships, isSuperAdmin, signOut } = useAuth();
+  const { profile, memberships, isSuperAdmin, signOut, refresh } = useAuth();
   const { t } = useLocale();
   const location = useLocation();
   const { lang } = useParams();
   const base = `/${lang ?? "fr"}/mon-espace`;
   const m = t.monEspace.layout;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // One-time "a tutorial is available" prompt. Closing it either way records
+  // that it was shown; the sidebar button stays available permanently.
+  const tutorialFile = useTutorialFile();
+  const [promptClosed, setPromptClosed] = useState(false);
+  const showTutorialPrompt = !!profile && !profile.tutorial_seen_at && !!tutorialFile && !promptClosed;
+  async function closeTutorialPrompt() {
+    setPromptClosed(true);
+    if (!profile) return;
+    await supabase.from("profiles").update({ tutorial_seen_at: new Date().toISOString() }).eq("id", profile.id);
+    void refresh();
+  }
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -102,6 +116,19 @@ export default function MonEspaceLayout() {
       </nav>
 
       <div className="mt-auto border-t border-gray-200 pt-3">
+        {tutorialFile && (
+          <a
+            href={tutorialUrl(tutorialFile)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-0.5 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[0.8rem] font-medium text-ink transition-colors hover:bg-accent-soft/40 md:py-1.5"
+          >
+            <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 3h7l3 3v11H5V3Zm7 0v3h3M8 10h4M8 13h4" />
+            </svg>
+            {m.tutorialNav}
+          </a>
+        )}
         <NavLink
           to={`${base}/parametres`}
           className="block w-full rounded-md px-2.5 py-2 text-left text-[0.8rem] text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-700 md:py-1.5"
@@ -157,6 +184,40 @@ export default function MonEspaceLayout() {
           <Outlet />
         </MonEspaceErrorBoundary>
       </main>
+
+      {showTutorialPrompt && tutorialFile && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-900/50 px-4" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+          <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-accent">
+              <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 3h7l3 3v11H5V3Zm7 0v3h3M8 10h4M8 13h4" />
+              </svg>
+            </div>
+            <h2 id="tutorial-title" className="mt-4 text-[1.05rem] font-semibold text-gray-900">
+              {m.tutorialTitle}
+            </h2>
+            <p className="mt-2 text-[0.88rem] leading-relaxed text-gray-500">{m.tutorialBody}</p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
+              <a
+                href={tutorialUrl(tutorialFile)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => void closeTutorialPrompt()}
+                className="rounded-lg bg-accent px-4 py-2.5 text-center text-[0.85rem] font-semibold text-ink transition-opacity hover:opacity-90"
+              >
+                {m.tutorialOpen}
+              </a>
+              <button
+                type="button"
+                onClick={() => void closeTutorialPrompt()}
+                className="rounded-lg px-4 py-2.5 text-[0.85rem] font-medium text-gray-500 hover:bg-gray-50"
+              >
+                {m.tutorialLater}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -404,6 +404,11 @@ const en: Dictionary = {
       myAccount: "My account",
       settingsNav: "Settings",
       signOut: "Sign out",
+      tutorialNav: "Tutorial",
+      tutorialTitle: "A tutorial is available",
+      tutorialBody: "A PDF guide made for your profile explains step by step how to use Mon Espace (in French). You can open it any time with the \"Tutorial\" button above \"Settings\".",
+      tutorialOpen: "Open the tutorial",
+      tutorialLater: "Later",
     },
     setPassword: {
       title: "Welcome to My Space",

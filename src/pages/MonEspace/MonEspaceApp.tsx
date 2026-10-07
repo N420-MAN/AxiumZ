@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useParams, useLocation, useNavigate } from "re
 import { AuthProvider, useAuth } from "../../features/auth/AuthContext";
 import { usePageMeta } from "../../hooks/usePageMeta";
 import { useLocale, LocaleProvider } from "../../i18n/LocaleContext";
-import { isSupabaseConfigured } from "../../lib/supabaseClient";
+import { isSupabaseConfigured, supabase } from "../../lib/supabaseClient";
 import { capturedAuthFlowType } from "../../lib/authFlowCapture";
 import { applyTheme, clearTheme, readCachedTheme } from "../../lib/theme";
 import Login from "./Login";
@@ -108,6 +108,32 @@ function AuthenticatedApp() {
   );
 }
 
+/**
+ * Everyone ends up with a password, even people who first opened the app
+ * with Google instead of the invitation link: Google then stays a
+ * convenience on top, and password sign-in can never be missing later.
+ * If the check itself fails we let the person in rather than lock them out.
+ */
+function PasswordGuard() {
+  const { user } = useAuth();
+  const [state, setState] = useState<"checking" | "needed" | "ok">("checking");
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.rpc("has_password").then(({ data, error }) => {
+      if (cancelled) return;
+      setState(!error && data === false ? "needed" : "ok");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  if (state === "checking") return <div className="min-h-screen bg-ink" />;
+  if (state === "needed") return <SetPassword onDone={() => setState("ok")} />;
+  return <AuthenticatedApp />;
+}
+
 function NotInvited() {
   const { t } = useLocale();
   const a = t.auth;
@@ -168,7 +194,7 @@ function MonEspaceGate() {
     return <div className="min-h-screen bg-ink" />;
   }
 
-  return session ? <AuthenticatedApp /> : <Login />;
+  return session ? <PasswordGuard /> : <Login />;
 }
 
 export default function MonEspaceApp() {
