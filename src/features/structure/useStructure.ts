@@ -15,7 +15,7 @@ async function fetchStructure(organizationId: string): Promise<Structure> {
     supabase.from("levels").select("id, program_id, name, position").eq("organization_id", organizationId).order("position"),
     supabase
       .from("classes")
-      .select("id, name, program_id, level_id, teacher_id, capacity, room_id, teachers(first_name, last_name), class_students(count)")
+      .select("id, name, program_id, level_id, teacher_id, capacity, room_id, created_at, teachers(first_name, last_name), class_students(count)")
       .eq("organization_id", organizationId)
       .order("name"),
   ]);

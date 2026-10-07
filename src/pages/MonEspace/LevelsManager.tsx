@@ -4,7 +4,8 @@ import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
 import NameInput from "./NameInput";
 import { useStructure } from "../../features/structure/useStructure";
-import type { LevelRow } from "../../lib/programs";
+import { searchable, type LevelRow } from "../../lib/programs";
+import FilterBar from "./FilterBar";
 import { useConfirmDialog } from "./useConfirmDialog";
 
 const inputClass =
@@ -27,11 +28,34 @@ export default function LevelsManager({ organizationId }: { organizationId: stri
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  // The programme being worked on: the picked one, else the first.
-  const program = programs.find((p) => p.id === pickedProgramId) ?? programs[0] ?? null;
+  // Search, filters and sort (reset every time the page is opened).
+  const f = t.monEspace.filters;
+  const [search, setSearch] = useState("");
+  const [unusedOnly, setUnusedOnly] = useState("");
+  const [sortBy, setSortBy] = useState("order");
+
+  // The programme being worked on: the picked one, else the first. "all" shows
+  // every programme's niveaux at once (adding / copying need one programme).
+  const showAll = pickedProgramId === "all";
+  const program = showAll ? null : (programs.find((p) => p.id === pickedProgramId) ?? programs[0] ?? null);
   const programLevels = program
     ? levels.filter((l) => l.program_id === program.id).sort((a, b) => a.position - b.position || a.name.localeCompare(b.name))
     : [];
+  const usedCount = (id: string) => classes.filter((cl) => cl.level_id === id).length;
+  const query = searchable(search);
+  const filtering = query !== "" || unusedOnly !== "";
+  const byOrder = (a: LevelRow, b: LevelRow) => a.position - b.position || a.name.localeCompare(b.name);
+  const groups = (showAll ? [...programs].sort((a, b) => a.name.localeCompare(b.name)) : program ? [program] : [])
+    .map((p) => {
+      const ordered = levels.filter((l) => l.program_id === p.id).sort(byOrder);
+      const items = ordered
+        .filter((l) => (!query || searchable(l.name).includes(query)) && (unusedOnly === "" || usedCount(l.id) === 0))
+        .sort((a, b) => (sortBy === "classes" ? usedCount(b.id) - usedCount(a.id) || byOrder(a, b) : byOrder(a, b)));
+      return { program: p, ordered, items };
+    })
+    .filter((g) => !showAll || g.items.length > 0);
+  const shownLevels = groups.reduce((n, g) => n + g.items.length, 0);
+  const totalLevels = showAll ? levels.length : programLevels.length;
   const otherPrograms = programs.filter((p) => p.id !== program?.id && levels.some((l) => l.program_id === p.id));
 
   // Runs one change, then refreshes. Keeps the error / info lines in sync.
@@ -105,7 +129,7 @@ export default function LevelsManager({ organizationId }: { organizationId: stri
         </label>
         <select
           id="levels-program"
-          value={program?.id ?? ""}
+          value={showAll ? "all" : (program?.id ?? "")}
           onChange={(e) => {
             setPickedProgramId(e.target.value);
             setEditingId(null);
@@ -114,6 +138,7 @@ export default function LevelsManager({ organizationId }: { organizationId: stri
           }}
           className={`${inputClass} sm:max-w-xs`}
         >
+          <option value="all">{f.allPrograms}</option>
           {programs.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -127,14 +152,16 @@ export default function LevelsManager({ organizationId }: { organizationId: stri
         )}
       </div>
 
+      {!showAll && (
       <form onSubmit={handleAdd} className="mt-3 grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:grid-cols-[1fr_auto]">
         <NameInput required placeholder={`${lv.namePlaceholder} *`} value={name} onChange={setName} items={programLevels.map((l) => ({ id: l.id, name: l.name }))} inputClassName={inputClass} />
         <button type="submit" disabled={busy} className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50">
           {lv.add}
         </button>
       </form>
+      )}
 
-      {otherPrograms.length > 0 && (
+      {!showAll && otherPrograms.length > 0 && (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[0.8rem] text-gray-500">
           <span>{lv.copyFrom}</span>
           <select value={copyFrom} onChange={(e) => setCopyFrom(e.target.value)} className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[0.8rem] text-gray-700">
@@ -154,56 +181,89 @@ export default function LevelsManager({ organizationId }: { organizationId: stri
       {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
       {info && <p className="mt-3 text-[0.82rem] text-green-700">{info}</p>}
 
-      <div className="mt-4 space-y-1.5">
-        {programLevels.length === 0 ? (
+      {totalLevels > 0 && (
+        <FilterBar
+          search={search}
+          onSearch={setSearch}
+          placeholder={f.searchLevels}
+          selects={[{ key: "unused", label: f.levelUnused, value: unusedOnly, onChange: setUnusedOnly, options: [{ value: "", label: f.allLevels }, { value: "unused", label: f.levelUnused }] }]}
+          sort={{
+            value: sortBy,
+            onChange: setSortBy,
+            options: [
+              { value: "order", label: f.sortProgrammeOrder },
+              { value: "classes", label: f.sortMostClasses },
+            ],
+          }}
+          shown={shownLevels}
+          total={totalLevels}
+          onClear={() => {
+            setSearch("");
+            setUnusedOnly("");
+          }}
+        />
+      )}
+
+      <div className="mt-4 space-y-4">
+        {totalLevels === 0 ? (
           <p className="text-[0.85rem] text-gray-400">{lv.empty}</p>
+        ) : shownLevels === 0 ? (
+          <p className="text-[0.85rem] text-gray-400">{f.noMatch}</p>
         ) : (
-          programLevels.map((level, index) => {
-            const used = classes.filter((cl) => cl.level_id === level.id).length;
-            return (
-              <div key={level.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5">
-                {editingId === level.id ? (
-                  <div className="flex flex-1 flex-wrap items-center gap-2">
-                    <NameInput required value={editName} onChange={setEditName} items={programLevels.map((l) => ({ id: l.id, name: l.name }))} excludeId={level.id} inputClassName={`${inputClass} sm:max-w-xs`} />
-                    <button type="button" disabled={busy || !editName.trim()} onClick={() => handleSaveEdit(level)} className={`${linkClass} font-medium`}>
-                      {c.save}
-                    </button>
-                    <button type="button" onClick={() => setEditingId(null)} className={linkClass}>
-                      {c.cancel}
-                    </button>
+          groups.map((group) => (
+            <div key={group.program.id} className="space-y-1.5">
+              {showAll && <h3 className="text-[0.8rem] font-semibold uppercase tracking-wide text-gray-500">{group.program.name}</h3>}
+              {group.items.map((level) => {
+                const index = group.ordered.findIndex((l) => l.id === level.id);
+                const used = usedCount(level.id);
+                // Moving only makes sense on the full, unfiltered programme order.
+                const reorderLocked = filtering || sortBy !== "order";
+                return (
+                  <div key={level.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5">
+                    {editingId === level.id ? (
+                      <div className="flex flex-1 flex-wrap items-center gap-2">
+                        <NameInput required value={editName} onChange={setEditName} items={group.ordered.map((l) => ({ id: l.id, name: l.name }))} excludeId={level.id} inputClassName={`${inputClass} sm:max-w-xs`} />
+                        <button type="button" disabled={busy || !editName.trim()} onClick={() => handleSaveEdit(level)} className={`${linkClass} font-medium`}>
+                          {c.save}
+                        </button>
+                        <button type="button" onClick={() => setEditingId(null)} className={linkClass}>
+                          {c.cancel}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="min-w-0">
+                        <span className="text-[0.9rem] font-medium text-gray-900">{level.name}</span>
+                        {used > 0 && <span className="ml-2 text-[0.76rem] text-gray-400">{lv.usedBy.replace("{n}", String(used))}</span>}
+                      </div>
+                    )}
+                    {editingId !== level.id && (
+                      <div className="flex items-center gap-3">
+                        <button type="button" disabled={busy || reorderLocked || index === 0} onClick={() => handleMove(level, -1)} className={linkClass} aria-label={lv.moveUp}>
+                          ▲
+                        </button>
+                        <button type="button" disabled={busy || reorderLocked || index === group.ordered.length - 1} onClick={() => handleMove(level, 1)} className={linkClass} aria-label={lv.moveDown}>
+                          ▼
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(level.id);
+                            setEditName(level.name);
+                          }}
+                          className={linkClass}
+                        >
+                          {c.edit}
+                        </button>
+                        <button type="button" disabled={busy} onClick={() => handleDelete(level)} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-50">
+                          {c.delete}
+                        </button>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="min-w-0">
-                    <span className="text-[0.9rem] font-medium text-gray-900">{level.name}</span>
-                    {used > 0 && <span className="ml-2 text-[0.76rem] text-gray-400">{lv.usedBy.replace("{n}", String(used))}</span>}
-                  </div>
-                )}
-                {editingId !== level.id && (
-                  <div className="flex items-center gap-3">
-                    <button type="button" disabled={busy || index === 0} onClick={() => handleMove(level, -1)} className={linkClass} aria-label={lv.moveUp}>
-                      ▲
-                    </button>
-                    <button type="button" disabled={busy || index === programLevels.length - 1} onClick={() => handleMove(level, 1)} className={linkClass} aria-label={lv.moveDown}>
-                      ▼
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingId(level.id);
-                        setEditName(level.name);
-                      }}
-                      className={linkClass}
-                    >
-                      {c.edit}
-                    </button>
-                    <button type="button" disabled={busy} onClick={() => handleDelete(level)} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-50">
-                      {c.delete}
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })
+                );
+              })}
+            </div>
+          ))
         )}
       </div>
       {dialog}

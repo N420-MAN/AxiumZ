@@ -29,6 +29,7 @@ export interface StructureClass {
   teacher_id: string | null;
   capacity: number | null;
   room_id: string | null;
+  created_at: string;
   teachers: { first_name: string; last_name: string } | null;
   class_students: { count: number }[];
 }

@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
 import NameInput from "./NameInput";
 import { useStructure } from "../../features/structure/useStructure";
-import type { Audience, ProgramKind, ProgramRow } from "../../lib/programs";
+import { enrolledCount, searchable, type Audience, type ProgramKind, type ProgramRow } from "../../lib/programs";
+import FilterBar from "./FilterBar";
 import { useConfirmDialog } from "./useConfirmDialog";
 
 const inputClass =
@@ -29,6 +30,34 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{ name: string; kind: ProgramKind; audience: Audience }>({ name: "", kind: "scolaire", audience: "both" });
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Search, filters and sort (reset every time the page is opened).
+  const f = t.monEspace.filters;
+  const [search, setSearch] = useState("");
+  const [kindFilter, setKindFilter] = useState("");
+  const [audienceFilter, setAudienceFilter] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
+  const [sortBy, setSortBy] = useState("name");
+
+  // Open waiting-list requests per programme, for the "with waiting list" filter.
+  const [waitingByProgram, setWaitingByProgram] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("class_wishes")
+      .select("program_id")
+      .eq("organization_id", organizationId)
+      .is("fulfilled_at", null)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const counts: Record<string, number> = {};
+        for (const row of (data as { program_id: string }[] | null) ?? []) counts[row.program_id] = (counts[row.program_id] ?? 0) + 1;
+        setWaitingByProgram(counts);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
 
   const kindLabel: Record<ProgramKind, string> = { scolaire: pg.kindScolaire, langues: pg.kindLangues };
   const audienceLabel: Record<Audience, string> = { eleves: pg.audienceEleves, stagiaires: pg.audienceStagiaires, both: pg.audienceBoth };
@@ -103,6 +132,27 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
     });
   }
 
+  const classCountOf = (id: string) => classes.filter((cl) => cl.program_id === id).length;
+  const enrolmentsOf = (id: string) => classes.filter((cl) => cl.program_id === id).reduce((sum, cl) => sum + enrolledCount(cl), 0);
+  const query = searchable(search);
+  const visiblePrograms = programs
+    .filter(
+      (p) =>
+        (!query || searchable(p.name).includes(query)) &&
+        (!kindFilter || p.kind === kindFilter) &&
+        (!audienceFilter || p.audience === audienceFilter) &&
+        (!stateFilter ||
+          (stateFilter === "active" && p.is_active) ||
+          (stateFilter === "inactive" && !p.is_active) ||
+          (stateFilter === "waiting" && (waitingByProgram[p.id] ?? 0) > 0)),
+    )
+    .sort((a, b) => {
+      if (sortBy === "classes") return classCountOf(b.id) - classCountOf(a.id) || a.name.localeCompare(b.name);
+      if (sortBy === "enrolments") return enrolmentsOf(b.id) - enrolmentsOf(a.id) || a.name.localeCompare(b.name);
+      if (sortBy === "waiting") return (waitingByProgram[b.id] ?? 0) - (waitingByProgram[a.id] ?? 0) || a.name.localeCompare(b.name);
+      return a.name.localeCompare(b.name);
+    });
+
   return (
     <div>
       <h2 className="text-[1rem] font-semibold text-gray-900">{pg.title}</h2>
@@ -132,13 +182,46 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
 
       {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
 
+      {programs.length > 0 && (
+        <FilterBar
+          search={search}
+          onSearch={setSearch}
+          placeholder={f.searchPrograms}
+          selects={[
+            { key: "kind", label: pg.kindLabel, value: kindFilter, onChange: setKindFilter, options: [{ value: "", label: f.allTypes }, { value: "scolaire", label: pg.kindScolaire }, { value: "langues", label: pg.kindLangues }] },
+            { key: "audience", label: pg.audienceLabel, value: audienceFilter, onChange: setAudienceFilter, options: [{ value: "", label: f.allAudiences }, { value: "eleves", label: pg.audienceEleves }, { value: "stagiaires", label: pg.audienceStagiaires }, { value: "both", label: pg.audienceBoth }] },
+            { key: "state", label: f.allStates, value: stateFilter, onChange: setStateFilter, options: [{ value: "", label: f.allStates }, { value: "active", label: f.stateActive }, { value: "inactive", label: f.stateInactive }, { value: "waiting", label: f.stateWaiting }] },
+          ]}
+          sort={{
+            value: sortBy,
+            onChange: setSortBy,
+            options: [
+              { value: "name", label: f.sortName },
+              { value: "classes", label: f.sortMostClasses },
+              { value: "enrolments", label: f.sortMostEnrolments },
+              { value: "waiting", label: f.sortMostWaiting },
+            ],
+          }}
+          shown={visiblePrograms.length}
+          total={programs.length}
+          onClear={() => {
+            setSearch("");
+            setKindFilter("");
+            setAudienceFilter("");
+            setStateFilter("");
+          }}
+        />
+      )}
+
       <div className="mt-4 space-y-2">
         {loading ? (
           <p className="text-[0.85rem] text-gray-400">{c.loading}</p>
         ) : programs.length === 0 ? (
           <p className="text-[0.85rem] text-gray-400">{pg.empty}</p>
+        ) : visiblePrograms.length === 0 ? (
+          <p className="text-[0.85rem] text-gray-400">{f.noMatch}</p>
         ) : (
-          programs.map((program) => {
+          visiblePrograms.map((program) => {
             const classCount = classes.filter((cl) => cl.program_id === program.id).length;
             const levelCount = levels.filter((lv) => lv.program_id === program.id).length;
             if (editingId === program.id) {

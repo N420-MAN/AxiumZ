@@ -3,7 +3,8 @@ import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useStructure } from "../../features/structure/useStructure";
-import { type StructureClass, classLabel, enrolledCount, seatText } from "../../lib/programs";
+import { type StructureClass, classLabel, enrolledCount, searchable, seatText } from "../../lib/programs";
+import FilterBar from "./FilterBar";
 import NameInput from "./NameInput";
 import ClassPanel, { type PersonOption, type WaitingWish } from "./ClassPanel";
 import { useConfirmDialog } from "./useConfirmDialog";
@@ -74,6 +75,12 @@ export default function ClassesManager({ organizationId }: { organizationId: str
   const [expanded, setExpanded] = useState<string | null>(null);
   const [programFilter, setProgramFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("");
+  const f = t.monEspace.filters;
+  const [search, setSearch] = useState("");
+  const [teacherFilter, setTeacherFilter] = useState("");
+  const [roomFilter, setRoomFilter] = useState("");
+  const [seatFilter, setSeatFilter] = useState("");
+  const [sortBy, setSortBy] = useState("name");
 
   useEffect(() => {
     let cancelled = false;
@@ -105,9 +112,34 @@ export default function ClassesManager({ organizationId }: { organizationId: str
   const selectedRoom = ref.rooms.find((r) => r.id === form.room_id);
   const roomTooSmall = Boolean(selectedRoom?.capacity && form.capacity && Number(form.capacity) > selectedRoom.capacity);
 
+  const waitingFor = (cl: StructureClass) => ref.wishes.filter((w) => w.program_id === cl.program_id && (w.level_id === null || w.level_id === cl.level_id)).length;
+  const isFullClass = (cl: StructureClass) => cl.capacity !== null && enrolledCount(cl) >= cl.capacity;
+  const seatsLeft = (cl: StructureClass) => (cl.capacity === null ? Number.POSITIVE_INFINITY : cl.capacity - enrolledCount(cl));
+  const fillRatio = (cl: StructureClass) => (cl.capacity ? enrolledCount(cl) / cl.capacity : -1);
+  const query = searchable(search);
   const visibleClasses = classes
-    .filter((cl) => (!programFilter || cl.program_id === programFilter) && (!levelFilter || cl.level_id === levelFilter))
-    .sort((a, b) => labelFor(a).localeCompare(labelFor(b)));
+    .filter((cl) => {
+      const teacherName = cl.teachers ? `${cl.teachers.first_name} ${cl.teachers.last_name}` : "";
+      return (
+        (!programFilter || cl.program_id === programFilter) &&
+        (!levelFilter || cl.level_id === levelFilter) &&
+        (!query || searchable(`${labelFor(cl)} ${teacherName}`).includes(query)) &&
+        (!teacherFilter || (teacherFilter === "none" ? cl.teacher_id === null : cl.teacher_id === teacherFilter)) &&
+        (!roomFilter || (roomFilter === "none" ? cl.room_id === null : cl.room_id === roomFilter)) &&
+        (!seatFilter ||
+          (seatFilter === "full" && isFullClass(cl)) ||
+          (seatFilter === "open" && !isFullClass(cl)) ||
+          (seatFilter === "waiting" && waitingFor(cl) > 0))
+      );
+    })
+    .sort((a, b) => {
+      const byName = labelFor(a).localeCompare(labelFor(b));
+      if (sortBy === "fullest") return fillRatio(b) - fillRatio(a) || byName;
+      if (sortBy === "fewest") return seatsLeft(a) - seatsLeft(b) || byName;
+      if (sortBy === "waiting") return waitingFor(b) - waitingFor(a) || byName;
+      if (sortBy === "newest") return b.created_at.localeCompare(a.created_at) || byName;
+      return byName;
+    });
 
   function openAddForm() {
     setEditingId(null);
@@ -250,45 +282,46 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
 
       {!noStructure && (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <select
-            value={programFilter}
-            onChange={(e) => {
-              setProgramFilter(e.target.value);
-              setLevelFilter("");
-            }}
-            className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[0.82rem] text-gray-700"
-            aria-label={st.programmeLabel}
-          >
-            <option value="">{st.allProgrammes}</option>
-            {programs.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={levelFilter}
-            disabled={!programFilter}
-            onChange={(e) => setLevelFilter(e.target.value)}
-            className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[0.82rem] text-gray-700 disabled:opacity-50"
-            aria-label={st.niveauLabel}
-          >
-            <option value="">{st.allNiveaux}</option>
-            {filterLevels.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterBar
+          search={search}
+          onSearch={setSearch}
+          placeholder={f.searchClasses}
+          selects={[
+            { key: "program", label: st.programmeLabel, value: programFilter, onChange: (v) => { setProgramFilter(v); setLevelFilter(""); }, options: [{ value: "", label: st.allProgrammes }, ...programs.map((p) => ({ value: p.id, label: p.name }))] },
+            { key: "level", label: st.niveauLabel, value: levelFilter, onChange: setLevelFilter, disabled: !programFilter, options: [{ value: "", label: st.allNiveaux }, ...filterLevels.map((l) => ({ value: l.id, label: l.name }))] },
+            { key: "teacher", label: f.allTeachers, value: teacherFilter, onChange: setTeacherFilter, options: [{ value: "", label: f.allTeachers }, { value: "none", label: f.noTeacher }, ...ref.teachers.map((tc) => ({ value: tc.id, label: `${tc.first_name} ${tc.last_name}` }))] },
+            { key: "room", label: f.allRooms, value: roomFilter, onChange: setRoomFilter, options: [{ value: "", label: f.allRooms }, { value: "none", label: f.noRoom }, ...ref.rooms.map((r) => ({ value: r.id, label: r.name }))] },
+            { key: "seats", label: f.allSeats, value: seatFilter, onChange: setSeatFilter, options: [{ value: "", label: f.allSeats }, { value: "full", label: f.seatsFull }, { value: "open", label: f.seatsOpen }, { value: "waiting", label: f.stateWaiting }] },
+          ]}
+          sort={{
+            value: sortBy,
+            onChange: setSortBy,
+            options: [
+              { value: "name", label: f.sortName },
+              { value: "fullest", label: f.sortMostFull },
+              { value: "fewest", label: f.sortFewestSeats },
+              { value: "waiting", label: f.sortMostWaiting },
+              { value: "newest", label: f.sortNewest },
+            ],
+          }}
+          shown={visibleClasses.length}
+          total={classes.length}
+          onClear={() => {
+            setSearch("");
+            setProgramFilter("");
+            setLevelFilter("");
+            setTeacherFilter("");
+            setRoomFilter("");
+            setSeatFilter("");
+          }}
+        />
       )}
 
       <div className="mt-3 space-y-2">
         {loading ? (
           <p className="text-[0.85rem] text-gray-400">{c.loading}</p>
         ) : visibleClasses.length === 0 ? (
-          !noStructure && <p className="text-[0.85rem] text-gray-400">{m.empty}</p>
+          !noStructure && <p className="text-[0.85rem] text-gray-400">{classes.length > 0 ? f.noMatch : m.empty}</p>
         ) : (
           visibleClasses.map((cl) => {
             const waiting = ref.wishes.filter((w) => w.program_id === cl.program_id && (w.level_id === null || w.level_id === cl.level_id));
@@ -307,6 +340,14 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                       )}
                       <span className="text-gray-400">{cl.teachers ? `${cl.teachers.first_name} ${cl.teachers.last_name}` : m.noTeacher}</span>
                     </span>
+                    {cl.capacity !== null && (
+                      <span className="mt-1.5 block h-1.5 w-full max-w-[14rem] overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
+                        <span
+                          className={`block h-full rounded-full ${full ? "bg-red-500" : fillRatio(cl) >= 0.8 ? "bg-amber-500" : "bg-accent"}`}
+                          style={{ width: `${Math.min(100, Math.round(fillRatio(cl) * 100))}%` }}
+                        />
+                      </span>
+                    )}
                   </button>
                   <div className="flex items-center gap-3">
                     <button type="button" onClick={() => openEditForm(cl)} className="text-[0.78rem] text-gray-600 hover:underline">
