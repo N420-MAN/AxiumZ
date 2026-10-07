@@ -687,6 +687,10 @@ export interface Dictionary {
       noStudentsInClasses: string;
       chooseAtLeastOneStudent: string;
       sentBy: string;
+      deleteButton: string;
+      deleteConfirm: string;
+      deleteFailed: string;
+      autoDeleteNote: string;
     };
     notifications: {
       title: string;
@@ -789,6 +793,8 @@ export interface Dictionary {
         fullNamePlaceholder: string;
         phonePlaceholder: string;
         profileUpdated: string;
+        emailLabel: string;
+        emailNote: string;
         passwordTitle: string;
         passwordDescription: string;
         newPasswordPlaceholder: string;

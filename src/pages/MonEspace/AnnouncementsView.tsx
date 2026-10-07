@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useLocale } from "../../i18n/LocaleContext";
 import { humanizeError } from "../../lib/humanizeError";
+import { useConfirmDialog } from "./useConfirmDialog";
 
 interface Announcement {
   id: string;
@@ -14,6 +15,7 @@ interface Announcement {
   target_teacher_id: string | null;
   target_parent_id: string | null;
   created_at: string;
+  created_by: string | null;
   created_by_name: string | null;
   created_by_role: string | null;
   classes: { name: string } | null;
@@ -31,7 +33,8 @@ interface StudentOption {
 type Scope = "org" | "class" | "students";
 
 export default function AnnouncementsView() {
-  const { isSuperAdmin, memberships } = useAuth();
+  const { isSuperAdmin, memberships, user } = useAuth();
+  const { confirm, dialog } = useConfirmDialog();
   const { locale, t } = useLocale();
   const m = t.monEspace.announcements;
   const ROLE_OPTIONS = [
@@ -58,11 +61,27 @@ export default function AnnouncementsView() {
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
 
+  // Admins can delete any announcement; a teacher only their own class announcements
+  // (the database enforces the same rule).
+  function canDelete(a: Announcement) {
+    return isAdmin || (isTeacher && !!a.class_id && !!user && a.created_by === user.id);
+  }
+
+  async function removeAnnouncement(a: Announcement) {
+    const { error: delError } = await supabase.from("announcements").delete().eq("id", a.id);
+    if (delError) {
+      setError(m.deleteFailed);
+      return;
+    }
+    setError(null);
+    setAnnouncements((list) => list.filter((x) => x.id !== a.id));
+  }
+
   async function load() {
     setLoading(true);
     const { data, error: fetchError } = await supabase
       .from("announcements")
-      .select("id, title, content, class_id, target_roles, target_student_id, target_teacher_id, target_parent_id, created_at, created_by_name, created_by_role, classes(name)")
+      .select("id, title, content, class_id, target_roles, target_student_id, target_teacher_id, target_parent_id, created_at, created_by, created_by_name, created_by_role, classes(name)")
       .order("created_at", { ascending: false });
 
     if (fetchError) {
@@ -302,7 +321,8 @@ export default function AnnouncementsView() {
         </form>
       )}
 
-      <div className="mt-6 space-y-3">
+      <p className="mt-4 text-[0.78rem] text-gray-400">{m.autoDeleteNote}</p>
+      <div className="mt-3 space-y-3">
         {error && !showForm && <p className="text-[0.85rem] text-red-600">{error}</p>}
         {loading ? (
           <p className="text-[0.88rem] text-gray-400">{m.loading}</p>
@@ -311,7 +331,7 @@ export default function AnnouncementsView() {
         ) : (
           announcements.map((a) => (
             <div key={a.id} className="rounded-lg border border-gray-200 bg-white p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <h3 className="text-[0.92rem] font-semibold text-gray-900">{a.title}</h3>
                 <span className="text-[0.75rem] text-gray-400">{describeTarget(a)}</span>
               </div>
@@ -319,11 +339,24 @@ export default function AnnouncementsView() {
               <p className="mt-2 text-[0.72rem] text-gray-400">
                 {a.created_by_name && `${m.sentBy.replace("{name}", a.created_by_name).replace("{role}", roleLabel(a.created_by_role))} · `}
                 {new Date(a.created_at).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}
+                {canDelete(a) && (
+                  <>
+                    {" · "}
+                    <button
+                      type="button"
+                      onClick={() => confirm(m.deleteConfirm.replace("{title}", a.title), () => void removeAnnouncement(a), m.deleteButton)}
+                      className="text-red-600 hover:underline"
+                    >
+                      {m.deleteButton}
+                    </button>
+                  </>
+                )}
               </p>
             </div>
           ))
         )}
       </div>
+      {dialog}
     </div>
   );
 }

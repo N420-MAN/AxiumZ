@@ -20,7 +20,7 @@ export default function SettingsView() {
   const navigate = useNavigate();
   const [localeSaving, setLocaleSaving] = useState(false);
 
-  const { profile, refresh } = useAuth();
+  const { profile, refresh, user } = useAuth();
   const theme: Theme = profile?.preferred_theme ?? readCachedTheme();
   const [themeSaving, setThemeSaving] = useState(false);
   const [themeError, setThemeError] = useState(false);
@@ -239,6 +239,21 @@ export default function SettingsView() {
               </div>
             )}
             {avatarError && <p className="mt-2 text-[0.8rem] text-red-600">{avatarError}</p>}
+
+            <div className="mt-3">
+              <label className="text-[0.78rem] font-medium text-gray-500" htmlFor="settings-email">
+                {m.emailLabel}
+              </label>
+              <input
+                id="settings-email"
+                type="email"
+                readOnly
+                disabled
+                value={user?.email ?? ""}
+                className={`${inputClass} mt-1 cursor-not-allowed bg-gray-50 text-gray-500`}
+              />
+              <p className="mt-1 text-[0.75rem] text-gray-400">{m.emailNote}</p>
+            </div>
 
             <form onSubmit={handleSavePhone} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
               <input
