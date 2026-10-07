@@ -164,11 +164,12 @@
 
 
 /* ---- Mon espace dark mode ----
-   A YouTube-style neutral near-black theme. The signed-in app is built from
-   Tailwind's gray scale, white and the status tints, so remapping those
-   variables restyles every screen at once; the few brand-specific classes
-   (navy buttons, the cream page background) are handled below. The public
-   site never receives the attribute. */
+   AxiumZ's own identity in the dark: deep navy surfaces (from the logo navy),
+   cream text (the paper colour), gold for everything that is selected or
+   primary. The signed-in app is built from Tailwind's gray scale, white and
+   the status tints, so remapping those variables restyles every screen at
+   once; the few brand classes (navy buttons, the cream page) are handled
+   below. The public site never receives the attribute. */
 :root {
   --chart-grid: #eae7dd;
   --chart-tick: #9b9886;
@@ -177,96 +178,107 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --chart-grid: #303030;
-  --chart-tick: #909090;
-  --chart-navy: #7db2f2;
+  --chart-grid: #23417a;
+  --chart-tick: #8196b8;
+  --chart-navy: #6aa6ee;
 
-  /* surfaces: page #0f0f0f, cards #181818, raised/hover #212121 */
-  --color-white: #181818;
-  --color-gray-50: #212121;
-  --color-gray-100: #272727;
-  --color-gray-200: #303030;
-  --color-gray-300: #3f3f3f;
-  --color-gray-400: #717171;
-  --color-gray-500: #aaaaaa;
-  --color-gray-600: #b8b8b8;
-  --color-gray-700: #cfcfcf;
-  --color-gray-800: #e5e5e5;
-  --color-gray-900: #f1f1f1;
+  /* surfaces: page #081329, cards #0f2449, raised / hover #163058 */
+  --color-white: #0f2449;
+  --color-gray-50: #163058;
+  --color-gray-100: #1b3a6b;
+  --color-gray-200: #234279;
+  --color-gray-300: #31558f;
+  --color-gray-400: #7f93b5;
+  --color-gray-500: #a9bbd6;
+  --color-gray-600: #bcc8dc;
+  --color-gray-700: #d3d9e4;
+  --color-gray-800: #ece8dd;
+  --color-gray-900: #fbf8f2;
 
-  --color-accent-soft: #3a2e12;
+  --color-accent-soft: #3a3014;
 
-  --color-amber-50: #2a2310;
-  --color-amber-100: #3a2e12;
-  --color-amber-200: #5c4718;
-  --color-amber-300: #7d6220;
+  --color-amber-50: #2d2812;
+  --color-amber-100: #3d3315;
+  --color-amber-200: #5e4b19;
+  --color-amber-300: #7f6421;
   --color-amber-600: #e0a93a;
   --color-amber-700: #e8b858;
   --color-amber-800: #f0c978;
   --color-amber-900: #f6d99a;
 
-  --color-green-50: #0f2a1d;
-  --color-green-200: #1d5a3a;
-  --color-green-300: #25784b;
-  --color-green-700: #5fd18f;
-  --color-green-800: #86e0ac;
+  --color-green-50: #0f2d27;
+  --color-green-200: #1d5a47;
+  --color-green-300: #25785d;
+  --color-green-700: #5fd1a3;
+  --color-green-800: #86e0bd;
 
-  --color-red-50: #2e1416;
-  --color-red-100: #431a1d;
-  --color-red-200: #6b2a2e;
-  --color-red-600: #f07b7b;
-  --color-red-700: #f48f8f;
-  --color-red-800: #f7a9a9;
+  --color-red-50: #34172a;
+  --color-red-100: #4a1c33;
+  --color-red-200: #70304a;
+  --color-red-600: #f08a8a;
+  --color-red-700: #f49d9d;
+  --color-red-800: #f7b4b4;
 
-  --color-rose-50: #2e1420;
-  --color-rose-800: #f5a3c0;
+  --color-rose-50: #34172f;
+  --color-rose-800: #f5a3c8;
 
-  --color-blue-50: #11233f;
-  --color-blue-200: #234a82;
-  --color-blue-700: #7db2f2;
-  --color-blue-800: #9cc5f7;
+  --color-blue-50: #12305c;
+  --color-blue-200: #285592;
+  --color-blue-700: #86b8f4;
+  --color-blue-800: #a4c9f7;
 }
 
 :root[data-theme="dark"] body,
 :root[data-theme="dark"] .bg-paper {
-  background-color: #0f0f0f;
+  background-color: #081329;
 }
 :root[data-theme="dark"] aside {
-  background-color: #0f0f0f;
-  border-color: #272727;
+  background-color: #0a1a38;
+  border-color: #1b3567;
 }
 
-/* Navy gradients become raised dark surfaces (sidebar card, active tab, banners)... */
-:root[data-theme="dark"] .from-ink {
-  background-image: none;
-  background-color: #272727;
+/* Cards that were navy gradients (sidebar identity, banners) keep the brand
+   gradient, with a fine gold edge so they read as raised. */
+:root[data-theme="dark"] div.from-ink {
+  background-image: linear-gradient(135deg, #163a74, #0f2a5c);
+  box-shadow: inset 0 0 0 1px rgb(200 150 47 / 0.28);
 }
-/* ...and navy buttons become light pills, like YouTube's primary / selected chips. */
+/* The active menu or tab entry: navy-soft with a gold marker on the left. */
+:root[data-theme="dark"] a.bg-gradient-to-r.from-ink {
+  background-image: none;
+  background-color: #163a74;
+  box-shadow: inset 3px 0 0 #c8962f;
+}
+/* Navy buttons and selected chips become gold with navy text. */
 :root[data-theme="dark"] :is(button, label).bg-gradient-to-br.from-ink,
 :root[data-theme="dark"] button.bg-ink {
-  background-color: #f1f1f1;
-  color: #0f0f0f;
+  background-image: none;
+  background-color: #c8962f;
+  color: #0f2a5c;
 }
 :root[data-theme="dark"] :is(button, label).bg-gradient-to-br.from-ink:hover:not(:disabled) {
-  background-color: #d9d9d9;
+  background-color: #e7bf5a;
 }
 :root[data-theme="dark"] .text-ink,
 :root[data-theme="dark"] .hover\:text-ink:hover {
-  color: #f1f1f1;
+  color: #fbf8f2;
 }
 :root[data-theme="dark"] .border-ink {
-  border-color: #f1f1f1;
+  border-color: #e7bf5a;
 }
-/* Navy text stays navy where it sits on the gold accent. */
+/* Navy text stays navy where it sits on gold (buttons, avatars, accent cards). */
 :root[data-theme="dark"] :is(.bg-accent, .from-accent).text-ink,
 :root[data-theme="dark"] :is(.bg-accent, .from-accent) .text-ink\/70 {
   color: #0f2a5c;
+}
+:root[data-theme="dark"] .ring-accent {
+  --tw-ring-color: #f0d28a;
 }
 
 /* Modal backdrops use gray-900 with opacity: keep them dark, not light. */
 :root[data-theme="dark"] .bg-gray-900\/40,
 :root[data-theme="dark"] .bg-gray-900\/50 {
-  background-color: rgb(0 0 0 / 0.7);
+  background-color: rgb(3 9 22 / 0.72);
 }
 :root[data-theme="dark"] .text-white {
   color: #fff;
@@ -277,28 +289,28 @@
 
 /* Charts */
 :root[data-theme="dark"] .recharts-default-tooltip {
-  background-color: #212121 !important;
-  border-color: #303030 !important;
+  background-color: #0f2449 !important;
+  border-color: #234279 !important;
 }
 :root[data-theme="dark"] .recharts-tooltip-label {
-  color: #f1f1f1;
+  color: #fbf8f2;
 }
 
 /* Polish */
 :root[data-theme="dark"] ::selection {
-  background: rgb(62 166 255 / 0.35);
+  background: rgb(200 150 47 / 0.4);
 }
 :root[data-theme="dark"] ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
 :root[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #3f3f3f;
-  border: 3px solid #0f0f0f;
+  background: #23417a;
+  border: 3px solid #081329;
   border-radius: 9999px;
 }
 :root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: #717171;
+  background: #c8962f;
 }
 :root[data-theme="dark"] ::-webkit-scrollbar-track {
   background: transparent;
