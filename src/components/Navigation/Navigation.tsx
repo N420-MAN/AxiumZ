@@ -6,8 +6,8 @@ import { pageForSlug, pathFor, type PageKey } from "../../i18n/config";
 import { useScrolled } from "../../hooks/useScrolled";
 import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
 import { BRAND } from "../../data/brand";
-import logo from "../../assets/images/axiumz-logo.png";
-import logoFooter from "../../assets/images/axiumz-logo-footer.png";
+import logo from "../../assets/images/axiumz-logo.webp";
+import logoFooter from "../../assets/images/axiumz-logo-footer.webp";
 import { trackEvent } from "../../lib/analytics";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -67,7 +67,7 @@ export default function Navigation() {
           className="flex w-full max-w-[1180px] items-center justify-between gap-4 rounded-full border border-black/[0.06] bg-paper/95 px-4 backdrop-blur-md sm:px-6"
         >
           <Link to={pathFor(locale, "home")} className="flex shrink-0 items-center" aria-label="AxiumZ — accueil">
-            <img src={logo} alt="AxiumZ" className="h-11 w-auto sm:h-12" />
+            <img src={logo} alt="AxiumZ" width={320} height={145} className="h-11 w-auto sm:h-12" />
           </Link>
 
           <ul className="hidden items-center gap-5 xl:flex">
@@ -119,7 +119,7 @@ export default function Navigation() {
             className="fixed inset-0 z-[60] flex flex-col bg-ink px-6 pt-6 pb-10 text-paper xl:hidden"
           >
             <div className="flex items-center justify-between">
-              <img src={logoFooter} alt="AxiumZ" className="h-11 w-auto" />
+              <img src={logoFooter} alt="AxiumZ" width={320} height={145} className="h-11 w-auto" />
               <button
                 type="button"
                 onClick={() => setOpen(false)}

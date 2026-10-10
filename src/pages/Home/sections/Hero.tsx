@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale } from "../../../i18n/LocaleContext";
 import { pathFor } from "../../../i18n/config";
 import { BRAND } from "../../../data/brand";
@@ -14,6 +14,16 @@ export default function Hero() {
   const { locale, t } = useLocale();
   const h = t.home.hero;
   const sectionRef = useRef<HTMLDivElement>(null);
+
+  // Pause the decorative animations (planets, glow) while the hero is scrolled out of view.
+  const [offscreen, setOffscreen] = useState(false);
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => setOffscreen(!entry.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -33,7 +43,7 @@ export default function Hero() {
     <>
       <section
         ref={sectionRef}
-        className="grain-texture relative min-h-dvh overflow-hidden bg-ink px-4 pt-36 pb-[calc(4.75rem+env(safe-area-inset-bottom)+2rem)] text-paper sm:min-h-0 sm:px-6 sm:pt-44 sm:pb-20 xl:pt-48"
+        className={`${offscreen ? "hero-paused " : ""}grain-texture relative min-h-dvh overflow-hidden bg-ink px-4 pt-36 pb-[calc(4.75rem+env(safe-area-inset-bottom)+2rem)] text-paper sm:min-h-0 sm:px-6 sm:pt-44 sm:pb-20 xl:pt-48`}
       >
         {/* Fine architectural grid — fills negative space without photography */}
         <div className="pattern-grid-dark pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" />
@@ -55,14 +65,7 @@ export default function Hero() {
         </motion.div>
 
         <div className="container-editorial relative !max-w-[1180px] !px-0">
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: EASE }}
-            className="text-[0.85rem] tracking-[0.04em] text-mist"
-          >
-            {h.eyebrow}
-          </motion.p>
+          <p className="text-[0.85rem] tracking-[0.04em] text-mist">{h.eyebrow}</p>
 
           <h1 className="font-display mt-6 text-[2.6rem] leading-[1.1] font-extrabold sm:text-[4.4rem] md:text-[5.4rem]">
             {h.headline.map((line, i) => (
@@ -71,7 +74,7 @@ export default function Hero() {
                   className="block"
                   initial={{ y: "110%" }}
                   animate={{ y: "0%" }}
-                  transition={{ duration: 0.9, ease: EASE, delay: 0.15 + i * 0.12 }}
+                  transition={{ duration: 0.45, ease: EASE, delay: i * 0.06 }}
                 >
                   {i === 1 ? <span className="text-accent-bright">{line}</span> : line}
                 </motion.span>
@@ -79,21 +82,10 @@ export default function Hero() {
             ))}
           </h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: EASE, delay: 0.7 }}
-            className="mt-8 max-w-md text-[1.02rem] leading-relaxed text-mist sm:max-w-lg"
-          >
-            {h.sub}
-          </motion.p>
+          {/* Visible from the first paint: this paragraph is the page's largest text block. */}
+          <p className="mt-8 max-w-md text-[1.02rem] leading-relaxed text-mist sm:max-w-lg">{h.sub}</p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: EASE, delay: 0.85 }}
-            className="mt-9 flex flex-wrap items-center gap-4"
-          >
+          <div className="mt-9 flex flex-wrap items-center gap-4">
             <Button to={pathFor(locale, "inscription")} tone="dark">
               {h.ctaPrimary}
             </Button>
@@ -103,14 +95,11 @@ export default function Hero() {
             >
               {h.ctaSecondary}
             </a>
-          </motion.div>
+          </div>
 
-          <motion.a
+          <a
             href={`tel:${BRAND.phoneIntl.replace(/\s/g, "")}`}
             onClick={() => trackEvent("call_click", { source: "hero" })}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: EASE, delay: 1 }}
             className="mt-6 flex items-center gap-2.5 text-[0.9rem] font-medium text-mist transition-colors hover:text-red-bright"
           >
             <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0 text-red" fill="none" aria-hidden="true">
@@ -125,7 +114,7 @@ export default function Hero() {
             <span>
               {h.callPrompt} — <span className="text-paper">{BRAND.phoneDisplay}</span>
             </span>
-          </motion.a>
+          </a>
         </div>
       </section>
 

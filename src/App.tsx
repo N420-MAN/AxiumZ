@@ -1,14 +1,18 @@
 import { useEffect, lazy, Suspense } from "react";
+import { MotionConfig } from "framer-motion";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import RootLayout from "./layouts/RootLayout";
 import PageResolver from "./layouts/PageResolver";
 import Home from "./pages/Home/Home";
-import Cursor from "./components/Cursor/Cursor";
 import WhatsAppButton from "./components/WhatsAppButton/WhatsAppButton";
 import { initAnalytics, trackPageView } from "./lib/analytics";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
 
 const MonEspaceApp = lazy(() => import("./pages/MonEspace/MonEspaceApp"));
+const Cursor = lazy(() => import("./components/Cursor/Cursor"));
+
+// Phones and tablets have no mouse pointer: never download the custom cursor there.
+const hasMouse = typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -34,7 +38,11 @@ function MarketingChrome() {
   if (pathname.includes("/mon-espace")) return null;
   return (
     <>
-      <Cursor />
+      {hasMouse && (
+        <Suspense fallback={null}>
+          <Cursor />
+        </Suspense>
+      )}
       <WhatsAppButton />
     </>
   );
@@ -47,6 +55,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <MotionConfig reducedMotion="user">
       <BrowserRouter>
         <MarketingChrome />
         <ScrollToTop />
@@ -71,6 +80,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/fr" replace />} />
         </Routes>
       </BrowserRouter>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

@@ -1,0 +1,26 @@
+# AxiumZ
+
+> AxiumZ est un centre de soutien scolaire et de cours de langues à Casablanca (Sidi Maarouf) : accompagnement pédagogique structuré et personnalisé, soutien bilingue, préparation aux examens du système français, et centre de langues pour enfants, adolescents et adultes. Le site existe en français et en anglais.
+
+## Pages principales
+
+- [Accueil](https://www.axiumz.com/fr): présentation du centre et de sa méthode
+- [Le centre](https://www.axiumz.com/fr/centre): qui nous sommes, notre approche et notre équipe
+- [Activités](https://www.axiumz.com/fr/activites): soutien bilingue, soutien Mission et centre de langues
+- [Programmes](https://www.axiumz.com/fr/programmes): programmes et niveaux proposés
+- [Méthodologie](https://www.axiumz.com/fr/methodologie): comment fonctionne l'accompagnement
+- [Inscription](https://www.axiumz.com/fr/inscription): formulaire d'inscription
+- [Contact](https://www.axiumz.com/fr/contact): adresse, téléphone et formulaire de contact
+
+## English
+
+- [Home](https://www.axiumz.com/en): overview of the centre
+- [Programmes](https://www.axiumz.com/en/programmes): programmes and levels offered
+- [Methodology](https://www.axiumz.com/en/methodology): how the support works
+- [Registration](https://www.axiumz.com/en/registration): enrolment form
+- [Contact](https://www.axiumz.com/en/contact): address, phone and contact form
+
+## Optional
+
+- [Politique de confidentialité](https://www.axiumz.com/fr/confidentialite): traitement des données personnelles
+- [Plan du site](https://www.axiumz.com/sitemap.xml): liste complète des pages

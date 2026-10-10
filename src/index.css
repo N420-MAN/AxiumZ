@@ -142,6 +142,13 @@
   }
 }
 
+/* Hero is scrolled out of view: stop its decorative animations so they cost nothing. */
+.hero-paused *,
+.hero-paused *::before,
+.hero-paused *::after {
+  animation-play-state: paused !important;
+}
+
 @keyframes marquee {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }

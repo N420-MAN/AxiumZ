@@ -1,10 +1,9 @@
 // ---------------------------------------------------------------------------
 // Google Analytics 4 (GA4) integration.
 //
-// SETUP: replace the placeholder below with your real GA4 Measurement ID
-// (looks like "G-XXXXXXXXXX"). You get this from analytics.google.com after
-// creating a property for axiumz.com. Until you do, analytics is a safe
-// no-op — the site works normally, nothing is sent anywhere.
+// Events are queued in `dataLayer` straight away; the Google script itself is only
+// downloaded after the visitor's first interaction (or 3.5 s), so it never competes
+// with the first screen. Google processes the queued events when it loads.
 // ---------------------------------------------------------------------------
 const GA_MEASUREMENT_ID: string = "G-63TTC9L6F1";
 
@@ -17,18 +16,13 @@ declare global {
   }
 }
 
-let initialized = false;
+let queued = false;
+let scriptRequested = false;
 
-/** Injects the GA4 script and initializes tracking. Call once, on app start. */
-export function initAnalytics() {
-  if (initialized || !isConfigured || typeof window === "undefined") return;
-  initialized = true;
-
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
-  document.head.appendChild(script);
-
+/** Creates the in-page queue (no network). Safe to call many times. */
+function ensureQueue() {
+  if (queued || !isConfigured || typeof window === "undefined") return;
+  queued = true;
   window.dataLayer = window.dataLayer || [];
   window.gtag = function gtag(...args: unknown[]) {
     window.dataLayer.push(args);
@@ -38,9 +32,34 @@ export function initAnalytics() {
   window.gtag("config", GA_MEASUREMENT_ID, { send_page_view: false });
 }
 
+function loadScript() {
+  if (scriptRequested) return;
+  scriptRequested = true;
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+  document.head.appendChild(script);
+}
+
+/** Call once, on app start. Starts the queue now and loads Google's script a little later. */
+export function initAnalytics() {
+  if (!isConfigured || typeof window === "undefined") return;
+  ensureQueue();
+
+  const events: (keyof WindowEventMap)[] = ["pointerdown", "keydown", "scroll", "touchstart"];
+  const start = () => {
+    events.forEach((e) => window.removeEventListener(e, start));
+    window.clearTimeout(timer);
+    loadScript();
+  };
+  const timer = window.setTimeout(start, 3500);
+  events.forEach((e) => window.addEventListener(e, start, { passive: true, once: true }));
+}
+
 /** Call on every route change (SPA navigation doesn't trigger a real page load). */
 export function trackPageView(path: string, title?: string) {
-  if (!isConfigured || typeof window.gtag !== "function") return;
+  if (!isConfigured) return;
+  ensureQueue();
   window.gtag("event", "page_view", {
     page_path: path,
     page_title: title,
@@ -50,10 +69,10 @@ export function trackPageView(path: string, title?: string) {
 
 /**
  * Call for the actions that actually matter for this site: WhatsApp clicks,
- * phone clicks, and successful form submissions. These are the "conversions"
- * — see the explanation in chat for how to mark them as Conversions in GA4.
+ * phone clicks, and successful form submissions. These are the "conversions".
  */
 export function trackEvent(name: "whatsapp_click" | "call_click" | "form_submit", params?: Record<string, string>) {
-  if (!isConfigured || typeof window.gtag !== "function") return;
+  if (!isConfigured) return;
+  ensureQueue();
   window.gtag("event", name, params);
 }

@@ -5,7 +5,7 @@ import { useAuth } from "../../features/auth/AuthContext";
 import { useLocale } from "../../i18n/LocaleContext";
 import NotificationBell from "./NotificationBell";
 import MonEspaceErrorBoundary from "./MonEspaceErrorBoundary";
-import axiumzLogo from "../../assets/images/axiumz-logo.png";
+import axiumzLogo from "../../assets/images/axiumz-logo.webp";
 import { supabase } from "../../lib/supabaseClient";
 import { useTutorialFile, tutorialUrl } from "../../features/tutorial/useTutorial";
 
@@ -78,7 +78,7 @@ export default function MonEspaceLayout() {
   const sidebarContent = (
     <>
       <div className="flex items-center justify-between px-1 pb-5">
-        <img src={axiumzLogo} alt="AxiumZ" className="h-8 w-auto object-contain" />
+        <img src={axiumzLogo} alt="AxiumZ" width={320} height={145} className="h-8 w-auto object-contain" />
         <NotificationBell />
       </div>
 
@@ -159,7 +159,7 @@ export default function MonEspaceLayout() {
             {ICONS.menu}
           </svg>
         </button>
-        <img src={axiumzLogo} alt="AxiumZ" className="h-6 w-auto object-contain" />
+        <img src={axiumzLogo} alt="AxiumZ" width={320} height={145} className="h-6 w-auto object-contain" />
         <NotificationBell />
       </div>
 

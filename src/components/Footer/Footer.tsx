@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useLocale } from "../../i18n/LocaleContext";
 import { pathFor } from "../../i18n/config";
 import { BRAND } from "../../data/brand";
-import logoFooter from "../../assets/images/axiumz-logo-footer.png";
+import logoFooter from "../../assets/images/axiumz-logo-footer.webp";
 
 export default function Footer() {
   const { locale, t } = useLocale();
@@ -12,7 +12,7 @@ export default function Footer() {
       <div className="container-editorial !max-w-[1180px] !px-0">
         <div className="grid grid-cols-1 gap-14 md:grid-cols-[1.3fr_1fr_1fr_1fr]">
           <div>
-            <img src={logoFooter} alt="AxiumZ" className="h-9 w-auto opacity-95" />
+            <img src={logoFooter} alt="AxiumZ" width={320} height={145} className="h-9 w-auto opacity-95" />
             <p className="mt-6 max-w-xs text-[0.95rem] leading-relaxed text-mist">
               {t.footer.tagline}
             </p>
