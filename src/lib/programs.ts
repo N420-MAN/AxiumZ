@@ -12,6 +12,8 @@ export interface ProgramRow {
   kind: ProgramKind;
   audience: Audience;
   is_active: boolean;
+  /** Students of this programme write what they did at their own school before each session. */
+  tracks_school_progress: boolean;
 }
 
 export interface LevelRow {

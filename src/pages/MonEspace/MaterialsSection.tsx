@@ -10,7 +10,8 @@ interface MaterialRow {
   external_url: string | null;
 }
 
-export default function MaterialsSection({ classId, organizationId, canEdit }: { classId: string; organizationId: string; canEdit: boolean }) {
+// With a sessionId, the list is that session's documents (cahier de texte) and new ones are tied to it.
+export default function MaterialsSection({ classId, organizationId, canEdit, sessionId }: { classId: string; organizationId: string; canEdit: boolean; sessionId?: string }) {
   const { t } = useLocale();
   const m = t.monEspace.materials;
   const [materials, setMaterials] = useState<MaterialRow[]>([]);
@@ -26,7 +27,9 @@ export default function MaterialsSection({ classId, organizationId, canEdit }: {
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase.from("materials").select("id, title, file_url, external_url").eq("class_id", classId).order("created_at", { ascending: false });
+    let query = supabase.from("materials").select("id, title, file_url, external_url").eq("class_id", classId);
+    if (sessionId) query = query.eq("session_id", sessionId);
+    const { data } = await query.order("created_at", { ascending: false });
     setMaterials(data ?? []);
     setLoading(false);
   }
@@ -34,7 +37,7 @@ export default function MaterialsSection({ classId, organizationId, canEdit }: {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classId]);
+  }, [classId, sessionId]);
 
   async function handleSave() {
     if (!title.trim() || (!pendingFile && !link.trim())) {
@@ -58,6 +61,7 @@ export default function MaterialsSection({ classId, organizationId, canEdit }: {
     const { error: insertError } = await supabase.from("materials").insert({
       organization_id: organizationId,
       class_id: classId,
+      session_id: sessionId ?? null,
       title,
       material_type: filePath ? "file" : "link",
       file_url: filePath,
@@ -101,9 +105,9 @@ export default function MaterialsSection({ classId, organizationId, canEdit }: {
   }
 
   return (
-    <div className="mt-5 rounded-lg border border-gray-200 bg-white p-4">
+    <div className={sessionId ? "mt-6" : "mt-5 rounded-lg border border-gray-200 bg-white p-4"}>
       <div className="flex items-center justify-between">
-        <h3 className="text-[0.88rem] font-semibold text-gray-900">{m.heading}</h3>
+        <h3 className={sessionId ? "text-[0.85rem] font-semibold text-gray-900" : "text-[0.88rem] font-semibold text-gray-900"}>{sessionId ? m.sessionHeading : m.heading}</h3>
         {canEdit && (
           <button type="button" onClick={() => setShowForm((v) => !v)} className="text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
             {showForm ? t.monEspace.gestion.common.cancel : m.add}
@@ -164,7 +168,7 @@ export default function MaterialsSection({ classId, organizationId, canEdit }: {
         {loading ? (
           <p className="text-[0.8rem] text-gray-400">{t.monEspace.gestion.common.loading}</p>
         ) : materials.length === 0 ? (
-          <p className="text-[0.8rem] text-gray-400">{m.empty}</p>
+          <p className="text-[0.8rem] text-gray-400">{sessionId ? m.sessionEmpty : m.empty}</p>
         ) : (
           materials.map((mat) => (
             <div key={mat.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-gray-50 px-3 py-2">

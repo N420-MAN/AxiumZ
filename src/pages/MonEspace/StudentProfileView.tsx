@@ -6,6 +6,8 @@ import { supabase } from "../../lib/supabaseClient";
 import { useLocale } from "../../i18n/LocaleContext";
 import { type ProgramKind, classLabel, isLanguageProgram } from "../../lib/programs";
 import LanguageProgressSection from "./LanguageProgressSection";
+import EnglishTestCard from "./EnglishTestCard";
+import { useAuth } from "../../features/auth/AuthContext";
 
 interface StudentDetail {
   id: string;
@@ -75,6 +77,8 @@ function computeAge(dob: string | null): number | null {
 export default function StudentProfileView() {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
+  const { memberships } = useAuth();
+  const canLink = memberships.some((x) => x.role_name === "super_admin" || x.role_name === "center_admin");
   const { t, locale } = useLocale();
   const m = t.monEspace.studentProfile;
   const pp = t.monEspace.people;
@@ -290,6 +294,8 @@ export default function StudentProfileView() {
           )}
         </div>
       </div>
+
+      <EnglishTestCard studentId={student.id} studentName={fullName} canLink={canLink} />
 
       <LanguageProgressSection
         studentId={student.id}

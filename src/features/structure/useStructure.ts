@@ -11,7 +11,7 @@ interface Structure {
 
 async function fetchStructure(organizationId: string): Promise<Structure> {
   const [programs, levels, classes] = await Promise.all([
-    supabase.from("programs").select("id, name, kind, audience, is_active").eq("organization_id", organizationId).order("name"),
+    supabase.from("programs").select("id, name, kind, audience, is_active, tracks_school_progress").eq("organization_id", organizationId).order("name"),
     supabase.from("levels").select("id, program_id, name, position").eq("organization_id", organizationId).order("position"),
     supabase
       .from("classes")

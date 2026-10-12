@@ -1,3 +1,4 @@
+import CahierView from "./CahierView";
 import { useEffect, useLayoutEffect, useRef, useState, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useParams, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "../../features/auth/AuthContext";
@@ -80,6 +81,7 @@ function AuthenticatedApp() {
         <Route index element={<Navigate to={`${base}/aujourdhui`} replace />} />
         <Route path="aujourdhui" element={isAdmin || isTeacher ? <TodayView /> : <OverviewView />} />
         <Route path="planning" element={<CalendarView />} />
+        {!isAdmin && !isTeacher && <Route path="cahier" element={<CahierView />} />}
         <Route
           path="eleve/:studentId"
           element={

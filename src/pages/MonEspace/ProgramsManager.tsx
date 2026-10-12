@@ -19,16 +19,17 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
   const { programs, levels, classes, loading, reload } = useStructure(organizationId);
   const { confirm, dialog } = useConfirmDialog();
 
-  const [form, setForm] = useState<{ kind: ProgramKind; audience: Audience; name: string; starter: boolean }>({
+  const [form, setForm] = useState<{ kind: ProgramKind; audience: Audience; name: string; starter: boolean; tracks: boolean }>({
     kind: "scolaire",
     audience: "eleves",
     name: "",
     starter: true,
+    tracks: false,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<{ name: string; kind: ProgramKind; audience: Audience }>({ name: "", kind: "scolaire", audience: "both" });
+  const [editForm, setEditForm] = useState<{ name: string; kind: ProgramKind; audience: Audience; tracks: boolean }>({ name: "", kind: "scolaire", audience: "both", tracks: false });
   const [busyId, setBusyId] = useState<string | null>(null);
 
   // Search, filters and sort (reset every time the page is opened).
@@ -68,7 +69,7 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
     setSaving(true);
     const { data, error: insertError } = await supabase
       .from("programs")
-      .insert({ organization_id: organizationId, name: form.name.trim(), kind: form.kind, audience: form.audience })
+      .insert({ organization_id: organizationId, name: form.name.trim(), kind: form.kind, audience: form.audience, tracks_school_progress: form.tracks })
       .select("id")
       .single();
     if (insertError || !data) {
@@ -88,7 +89,7 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
 
   function startEdit(program: ProgramRow) {
     setEditingId(program.id);
-    setEditForm({ name: program.name, kind: program.kind, audience: program.audience });
+    setEditForm({ name: program.name, kind: program.kind, audience: program.audience, tracks: program.tracks_school_progress });
     setError(null);
   }
 
@@ -97,7 +98,7 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
     setError(null);
     const { error: updateError } = await supabase
       .from("programs")
-      .update({ name: editForm.name.trim(), kind: editForm.kind, audience: editForm.audience })
+      .update({ name: editForm.name.trim(), kind: editForm.kind, audience: editForm.audience, tracks_school_progress: editForm.tracks })
       .eq("id", program.id);
     setBusyId(null);
     if (updateError) {
@@ -178,6 +179,13 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
             {pg.withStarter}
           </label>
         )}
+        <label className="flex items-start gap-2 text-[0.8rem] text-gray-600 sm:col-span-4">
+          <input type="checkbox" className="mt-0.5" checked={form.tracks} onChange={(e) => setForm({ ...form, tracks: e.target.checked })} />
+          <span>
+            <span className="font-medium text-gray-700">{pg.tracksSchoolLabel}</span>
+            <span className="block text-[0.74rem] text-gray-400">{pg.tracksSchoolHint}</span>
+          </span>
+        </label>
       </form>
 
       {error && <p className="mt-3 text-[0.82rem] text-red-600">{error}</p>}
@@ -254,6 +262,13 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
                       {c.cancel}
                     </button>
                   </div>
+                  <label className="flex items-start gap-2 text-[0.8rem] text-gray-600 sm:col-span-4">
+                    <input type="checkbox" className="mt-0.5" checked={editForm.tracks} onChange={(e) => setEditForm({ ...editForm, tracks: e.target.checked })} />
+                    <span>
+                      <span className="font-medium text-gray-700">{pg.tracksSchoolLabel}</span>
+                      <span className="block text-[0.74rem] text-gray-400">{pg.tracksSchoolHint}</span>
+                    </span>
+                  </label>
                 </div>
               );
             }
@@ -263,6 +278,7 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
                   <span className={`text-[0.92rem] font-medium ${program.is_active ? "text-gray-900" : "text-gray-400"}`}>{program.name}</span>
                   <span className="ml-2 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[0.7rem] font-medium text-amber-800">{kindLabel[program.kind]}</span>
                   <span className="ml-1.5 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[0.7rem] font-medium text-blue-800">{audienceLabel[program.audience]}</span>
+                  {program.tracks_school_progress && <span className="ml-1.5 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[0.7rem] font-medium text-green-800">{pg.tracksSchoolBadge}</span>}
                   {!program.is_active && <span className="ml-1.5 rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[0.7rem] font-medium text-gray-500">{pg.inactive}</span>}
                   <p className="mt-0.5 text-[0.76rem] text-gray-400">{pg.usedBy.replace("{classes}", String(classCount)).replace("{levels}", String(levelCount))}</p>
                 </div>

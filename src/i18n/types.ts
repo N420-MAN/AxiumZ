@@ -210,6 +210,7 @@ export interface Dictionary {
   monEspace: {
     layout: {
       todayNav: string;
+      cahierNav: string;
       overviewNav: string;
       planningNav: string;
       manageNav: string;
@@ -374,6 +375,9 @@ export interface Dictionary {
       usedBy: string;
       deleteBlocked: string;
       typeLocked: string;
+      tracksSchoolLabel: string;
+      tracksSchoolHint: string;
+      tracksSchoolBadge: string;
     };
     levels: {
       title: string;
@@ -392,6 +396,31 @@ export interface Dictionary {
       deleteBlocked: string;
       usedBy: string;
       noPrograms: string;
+    };
+    schoolProgress: {
+      heading: string;
+      headingParent: string;
+      prompt: string;
+      placeholder: string;
+      save: string;
+      saving: string;
+      saved: string;
+      dueBefore: string;
+      editable: string;
+      saveFailed: string;
+      notFilled: string;
+      filledLabel: string;
+    };
+    cahier: {
+      title: string;
+      intro: string;
+      empty: string;
+      done: string;
+      documents: string;
+      homework: string;
+      open: string;
+      loadMore: string;
+      childLabel: string;
     };
     filters: {
       searchPrograms: string;
@@ -595,6 +624,20 @@ export interface Dictionary {
       progressEmpty: string;
       placementPoint: string;
     };
+    englishTest: {
+      heading: string;
+      empty: string;
+      scoreLine: string;
+      link: string;
+      linkTitle: string;
+      linkEmpty: string;
+      suggested: string;
+      choose: string;
+      cancel: string;
+      unlink: string;
+      unlinkConfirm: string;
+      error: string;
+    };
     studentProfile: {
       back: string;
       notFound: string;
@@ -655,6 +698,8 @@ export interface Dictionary {
       fileTooLarge: string;
       fileInvalidType: string;
       needTitleAndSource: string;
+      sessionHeading: string;
+      sessionEmpty: string;
       open: string;
     };
     satisfaction: {
@@ -684,6 +729,9 @@ export interface Dictionary {
       saveFailed: string;
       nothingLogged: string;
       pickStatus: string;
+      schoolProgressHeading: string;
+      schoolProgressHint: string;
+      schoolProgressMissing: string;
     };
     overview: {
       title: string;
@@ -693,6 +741,7 @@ export interface Dictionary {
       noGrades: string;
       recentAttendance: string;
       noAttendance: string;
+      openCahier: string;
       sessionLogHeading: string;
     };
     announcements: {

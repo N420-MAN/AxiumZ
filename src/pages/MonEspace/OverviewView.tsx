@@ -5,6 +5,9 @@ import { useLocale } from "../../i18n/LocaleContext";
 import TeacherAvatar from "./TeacherAvatar";
 import TeacherProfileModal from "./TeacherProfileModal";
 import { getMaterialSignedUrl } from "../../lib/materialUpload";
+import { Link, useParams } from "react-router-dom";
+import EnglishTestCard from "./EnglishTestCard";
+import SchoolProgressCard from "./SchoolProgressCard";
 
 interface ChildOption {
   id: string;
@@ -65,6 +68,7 @@ export default function OverviewView() {
   const attendanceLabels = t.monEspace.attendanceStatus;
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const isParent = memberships[0]?.role_name === "parent";
+  const { lang } = useParams();
 
   const [children, setChildren] = useState<ChildOption[]>([]);
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
@@ -256,6 +260,15 @@ export default function OverviewView() {
         <div className="mt-8 h-40" />
       ) : (
         <>
+          {selectedChild && (
+            <SchoolProgressCard
+              key={selectedChild}
+              studentId={selectedChild}
+              studentName={selectedChildName ? selectedChildName.first_name : ""}
+              canEdit={!isParent}
+            />
+          )}
+          {selectedChild && <EnglishTestCard key={`en-${selectedChild}`} studentId={selectedChild} studentName="" canLink={false} />}
           {homework.length > 0 && (
             <div className="mt-7">
               <h2 className="text-[0.9rem] font-semibold text-gray-900">{t.monEspace.homework.heading}</h2>
@@ -402,7 +415,12 @@ export default function OverviewView() {
 
           {notes.length > 0 && (
             <div className="sm:col-span-2">
-              <h2 className="text-[0.9rem] font-semibold text-gray-900">{m.sessionLogHeading}</h2>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-[0.9rem] font-semibold text-gray-900">{m.sessionLogHeading}</h2>
+                <Link to={`/${lang ?? "fr"}/mon-espace/cahier`} className="text-[0.78rem] text-gray-600 hover:text-gray-900 hover:underline">
+                  {m.openCahier}
+                </Link>
+              </div>
               <div className="mt-2.5 space-y-2">
                 {notes.map((n) => (
                   <div key={n.id} className="rounded-lg border border-gray-200 bg-white p-3">

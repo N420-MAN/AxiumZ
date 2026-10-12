@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
 import StudentCommentModal from "./StudentCommentModal";
+import MaterialsSection from "./MaterialsSection";
 
 interface SessionDetailPanelProps {
   sessionId: string;
@@ -50,12 +51,34 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
   const [savingHomework, setSavingHomework] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
   const [notesError, setNotesError] = useState<string | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [tracksSchool, setTracksSchool] = useState(false);
+  const [schoolEntries, setSchoolEntries] = useState<Record<string, string>>({});
 
   async function load() {
     setLoading(true);
-    const { data: session } = await supabase.from("class_sessions").select("class_id, notes, syllabus_item_id").eq("id", sessionId).single();
+    const { data: sessionRow } = await supabase
+      .from("class_sessions")
+      .select("class_id, notes, syllabus_item_id, classes(organization_id, programs(tracks_school_progress))")
+      .eq("id", sessionId)
+      .single();
+    const session = sessionRow as unknown as {
+      class_id: string;
+      notes: string | null;
+      syllabus_item_id: string | null;
+      classes: { organization_id: string; programs: { tracks_school_progress: boolean } | null } | null;
+    } | null;
 
     if (session) {
+      setOrganizationId(session.classes?.organization_id ?? null);
+      const tracks = session.classes?.programs?.tracks_school_progress === true;
+      setTracksSchool(tracks);
+      if (tracks && canEdit) {
+        const { data: entryRows } = await supabase.from("school_progress_entries").select("student_id, content").eq("session_id", sessionId);
+        const byStudent: Record<string, string> = {};
+        for (const row of entryRows ?? []) byStudent[row.student_id] = row.content;
+        setSchoolEntries(byStudent);
+      }
       setNotes(session.notes ?? "");
       setSavedNotes(session.notes ?? "");
       setClassId(session.class_id);
@@ -150,7 +173,7 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
     setSavingHomework(true);
     const { error: insertError } = await supabase
       .from("homework")
-      .insert({ class_id: classId, title: newHomeworkTitle, due_date: newHomeworkDue || null });
+      .insert({ class_id: classId, session_id: sessionId, title: newHomeworkTitle, due_date: newHomeworkDue || null });
     setSavingHomework(false);
     if (!insertError) {
       supabase.functions.invoke("notify-class-content", { body: { classId, title: newHomeworkTitle, type: "assignment" } }).catch((err) => {
@@ -253,6 +276,30 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
               </div>
             </div>
 
+            {canEdit && tracksSchool && enrollments.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-[0.85rem] font-semibold text-gray-900">{m.schoolProgressHeading}</h3>
+                <p className="mt-0.5 text-[0.76rem] text-gray-400">{m.schoolProgressHint}</p>
+                <div className="mt-2.5 space-y-2">
+                  {enrollments.map((e) => {
+                    const entry = schoolEntries[e.student_id];
+                    return (
+                      <div key={e.student_id} className="rounded-md bg-gray-50 px-3 py-2 text-[0.85rem]">
+                        <p className="font-medium text-gray-800">
+                          {e.students?.first_name} {e.students?.last_name}
+                        </p>
+                        {entry ? (
+                          <p className="mt-0.5 whitespace-pre-wrap break-words text-gray-600">{entry}</p>
+                        ) : (
+                          <p className="mt-0.5 text-[0.8rem] font-medium text-amber-700">{m.schoolProgressMissing}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {canEdit && syllabusItems.length > 0 && (
               <div className="mt-4">
                 <span className="text-[0.78rem] text-gray-500">{t.monEspace.progress.sessionChapterLabel}</span>
@@ -298,6 +345,8 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
                 <p className="mt-2 text-[0.87rem] text-gray-600">{savedNotes || m.nothingLogged}</p>
               )}
             </div>
+
+            {classId && organizationId && <MaterialsSection classId={classId} organizationId={organizationId} canEdit={canEdit} sessionId={sessionId} />}
 
             <div className="mt-6">
               <h3 className="text-[0.85rem] font-semibold text-gray-900">{t.monEspace.homework.heading}</h3>
