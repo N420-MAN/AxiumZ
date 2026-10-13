@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
 import { useLocale } from "../../i18n/LocaleContext";
+import { firstContactError, normalizePhone } from "../../lib/validation";
 import { SCHOOL_NONE } from "../../lib/schoolOptions";
 import { type InvitableTable, accountState, sendInvitation } from "../../lib/invitations";
 import { downloadCsv } from "../../lib/exportCsv";
@@ -336,12 +337,19 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
       return;
     }
 
+    const contactError =
+      firstContactError(form, t.validation) ?? (guardianChoice.mode === "new" ? firstContactError(guardianChoice.draft, t.validation) : null);
+    if (contactError) {
+      setError(contactError);
+      return;
+    }
+
     setSaving(true);
     const fields = {
       first_name: form.first_name.trim(),
       last_name: form.last_name.trim(),
       email: form.email.trim(),
-      phone: form.phone.trim(),
+      phone: normalizePhone(form.phone) ?? "",
       address: form.address.trim(),
       school_name: form.school_name.trim(),
       grade_level: form.grade_level.trim(),
@@ -349,7 +357,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
     const newClassIds = selection.flatMap((s) => (s.type === "class" ? [s.classId] : []));
     const newWishes = selection.flatMap((s) => (s.type === "wish" ? [{ program_id: s.programId, level_id: s.levelId, note: s.note }] : []));
     const existingGuardianId = guardianChoice.mode === "existing" ? guardianChoice.id : null;
-    const newGuardian = guardianChoice.mode === "new" ? guardianChoice.draft : null;
+    const newGuardian = guardianChoice.mode === "new" ? { ...guardianChoice.draft, phone: normalizePhone(guardianChoice.draft.phone) ?? guardianChoice.draft.phone } : null;
     const toInvite: { table: InvitableTable; id: string; email: string }[] = [];
     let personId = editingId;
 

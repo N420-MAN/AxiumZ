@@ -177,7 +177,7 @@ export default function TodayView() {
 
       <AtRiskPanel />
 
-      {openSess && <SessionDetailPanel sessionId={openSess.id} className={title(openSess)} canEdit onClose={() => setOpenId(null)} onChanged={() => setRev((x) => x + 1)} />}
+      {openSess && <SessionDetailPanel sessionId={openSess.id} className={title(openSess)} canEdit canManage={isAdmin} onClose={() => setOpenId(null)} onChanged={() => setRev((x) => x + 1)} />}
     </div>
   );
 }

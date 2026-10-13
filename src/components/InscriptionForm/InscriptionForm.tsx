@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocale } from "../../i18n/LocaleContext";
+import { firstContactError, normalizePhone } from "../../lib/validation";
 import { BRAND } from "../../data/brand";
 import { trackEvent } from "../../lib/analytics";
 
@@ -48,13 +49,19 @@ export default function InscriptionForm() {
   const { t } = useLocale();
   const f = t.inscriptionForm;
   const [status, setStatus] = useState<Status>("idle");
+  const [fieldError, setFieldError] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setStatus("sending");
-
     const form = e.currentTarget;
     const data = new FormData(form);
+    const problem = firstContactError({ email: data.get(f.email)?.toString(), phone: data.get(f.phone)?.toString() }, t.validation);
+    if (problem) {
+      setFieldError(problem);
+      return;
+    }
+    setFieldError(null);
+    setStatus("sending");
     const firstName = data.get(f.firstName)?.toString() ?? "";
     const lastName = data.get(f.lastName)?.toString() ?? "";
     const guardianEmail = data.get(f.email)?.toString() ?? "";
@@ -63,6 +70,7 @@ export default function InscriptionForm() {
     data.forEach((value, key) => {
       payload[key] = value.toString();
     });
+    payload[f.phone] = normalizePhone(data.get(f.phone)?.toString() ?? "") ?? payload[f.phone];
     payload["_subject"] = `Nouvelle préinscription AxiumZ — ${firstName} ${lastName}`.trim();
     payload["_template"] = "table";
     payload["_captcha"] = "false";
@@ -244,6 +252,12 @@ export default function InscriptionForm() {
             <span className="absolute inset-0 origin-left scale-x-0 bg-accent transition-transform duration-500 ease-[var(--ease-editorial)] group-hover:scale-x-100" aria-hidden="true" />
             <span className="relative">{status === "sending" ? f.sending : f.submit}</span>
           </button>
+
+          {fieldError && (
+            <p role="alert" className="max-w-md text-[0.9rem] text-accent">
+              {fieldError}
+            </p>
+          )}
 
           <AnimatePresence>
             {status === "error" && (

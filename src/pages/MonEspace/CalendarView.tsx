@@ -30,7 +30,7 @@ interface ExamMarker {
 }
 
 const DEFAULT_START_HOUR = 8;
-const DEFAULT_END_HOUR = 21;
+const DEFAULT_END_HOUR = 23;
 const ROW_PX = 56; // height of one hour in the week grid
 
 // Puts overlapping sessions of one day side by side instead of on top of each other.
@@ -430,6 +430,7 @@ export default function CalendarView() {
           className={openSession.classes?.name ?? ""}
           canEdit={isSuperAdmin || primaryRole === "center_admin" || openSession.classes?.teachers?.user_id === currentUserId}
           onClose={() => setOpenSession(null)}
+          canManage={isSuperAdmin || primaryRole === "center_admin"}
           onChanged={() => setRev((x) => x + 1)}
         />
       )}

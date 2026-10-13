@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
 import { useLocale } from "../../i18n/LocaleContext";
+import { firstContactError, normalizePhone } from "../../lib/validation";
 import { accountState, sendInvitation } from "../../lib/invitations";
 import { type GuardianKind, matchesWords } from "../../lib/programs";
 import { useAcceptedAccounts } from "../../features/accounts/useAcceptedAccounts";
@@ -143,12 +144,17 @@ export default function GuardiansTable({ kind, organizationId }: { kind: Guardia
       setError(gd.consentError);
       return;
     }
+    const contactError = firstContactError(form, t.validation);
+    if (contactError) {
+      setError(contactError);
+      return;
+    }
     setSaving(true);
     const fields = {
       first_name: form.first_name.trim(),
       last_name: form.last_name.trim(),
       email: form.email.trim(),
-      phone: form.phone.trim(),
+      phone: normalizePhone(form.phone) ?? "",
       address: form.address.trim() || null,
       company: isSupervisor ? form.company.trim() || null : null,
     };

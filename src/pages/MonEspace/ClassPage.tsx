@@ -364,7 +364,7 @@ export default function ClassPage() {
         </Link>
       )}
 
-      {openSession && <SessionDetailPanel sessionId={openSession.id} className={label} canEdit={canEdit} onClose={() => setOpenSession(null)} onChanged={() => setRev((x) => x + 1)} />}
+      {openSession && <SessionDetailPanel sessionId={openSession.id} className={label} canEdit={canEdit} canManage={isAdmin} onClose={() => setOpenSession(null)} onChanged={() => setRev((x) => x + 1)} />}
     </div>
   );
 }

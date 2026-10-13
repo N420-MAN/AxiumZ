@@ -207,6 +207,10 @@ export interface Dictionary {
     dashboardTitle: string;
     backToWebsite: string;
   };
+  validation: {
+    phone: string;
+    email: string;
+  };
   monEspace: {
     layout: {
       todayNav: string;

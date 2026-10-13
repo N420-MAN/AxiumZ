@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
+import { firstContactError, normalizePhone } from "../../lib/validation";
 import { uploadTeacherAvatar } from "../../lib/avatarUpload";
 import TeacherAvatar from "./TeacherAvatar";
 import { useAuth } from "../../features/auth/AuthContext";
@@ -102,6 +103,13 @@ export default function SettingsView() {
 
   async function handleSavePhone(e: FormEvent) {
     e.preventDefault();
+    const phoneProblem = firstContactError({ phone }, t.validation);
+    if (phoneProblem) {
+      setPhoneMessage({ text: phoneProblem, isError: true });
+      return;
+    }
+    const cleanPhone = phone.trim() ? normalizePhone(phone) : null;
+    setPhone(cleanPhone ?? "");
     setPhoneSaving(true);
     setPhoneMessage(null);
 
@@ -112,7 +120,7 @@ export default function SettingsView() {
     }
     const userId = userData.user.id;
 
-    const { error: profileError } = await supabase.from("profiles").update({ full_name: fullName || null, phone: phone || null }).eq("id", userId);
+    const { error: profileError } = await supabase.from("profiles").update({ full_name: fullName || null, phone: cleanPhone }).eq("id", userId);
     if (profileError) {
       setPhoneSaving(false);
       setPhoneMessage({ text: humanizeError(profileError), isError: true });
@@ -123,9 +131,9 @@ export default function SettingsView() {
     // a person only ever matches one of these, the others simply affect
     // zero rows, which is not an error.
     await Promise.all([
-      supabase.from("students").update({ phone: phone || null }).eq("user_id", userId),
-      supabase.from("teachers").update({ phone: phone || null, bio: bio || null }).eq("user_id", userId),
-      supabase.from("parents").update({ phone: phone || null }).eq("user_id", userId),
+      supabase.from("students").update({ phone: cleanPhone }).eq("user_id", userId),
+      supabase.from("teachers").update({ phone: cleanPhone, bio: bio || null }).eq("user_id", userId),
+      supabase.from("parents").update({ phone: cleanPhone }).eq("user_id", userId),
     ]);
 
     setPhoneSaving(false);

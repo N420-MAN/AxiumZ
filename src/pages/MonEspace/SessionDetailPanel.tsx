@@ -12,6 +12,8 @@ interface SessionDetailPanelProps {
   canEdit: boolean;
   onClose: () => void;
   onChanged?: () => void;
+  /** Only admins may move or cancel a session. */
+  canManage?: boolean;
 }
 
 interface Enrollment {
@@ -29,7 +31,7 @@ function toLocalInput(iso: string): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-export default function SessionDetailPanel({ sessionId, className, canEdit, onClose, onChanged }: SessionDetailPanelProps) {
+export default function SessionDetailPanel({ sessionId, className, canEdit, onClose, onChanged, canManage = false }: SessionDetailPanelProps) {
   const { t, locale } = useLocale();
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const m = t.monEspace.sessionDetail;
@@ -54,9 +56,6 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
   const [timeError, setTimeError] = useState<string | null>(null);
   const [savingNotes, setSavingNotes] = useState(false);
   const [classId, setClassId] = useState<string | null>(null);
-  const [syllabusItems, setSyllabusItems] = useState<{ id: string; title: string }[]>([]);
-  const [selectedChapter, setSelectedChapter] = useState("");
-  const [savingChapter, setSavingChapter] = useState(false);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [commentTarget, setCommentTarget] = useState<{ id: string; name: string } | null>(null);
   const [homeworkItems, setHomeworkItems] = useState<{ id: string; title: string; due_date: string | null }[]>([]);
@@ -103,10 +102,7 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
       setNotes(session.notes ?? "");
       setSavedNotes(session.notes ?? "");
       setClassId(session.class_id);
-      setSelectedChapter(session.syllabus_item_id ?? "");
 
-      const { data: chapters } = await supabase.from("syllabus_items").select("id, title").eq("class_id", session.class_id).order("position");
-      setSyllabusItems(chapters ?? []);
 
       const [{ data: enrollData }, { data: attData }] = await Promise.all([
         supabase.from("class_students").select("student_id, students(first_name, last_name)").eq("class_id", session.class_id),
@@ -164,13 +160,6 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
     const { data: attData } = await supabase.from("attendance").select("student_id, status").eq("session_id", sessionId);
     setAttendance(attData ?? []);
     setMarkingAll(false);
-  }
-
-  async function handleChapterChange(chapterId: string) {
-    setSelectedChapter(chapterId);
-    setSavingChapter(true);
-    await supabase.from("class_sessions").update({ syllabus_item_id: chapterId || null }).eq("id", sessionId);
-    setSavingChapter(false);
   }
 
   async function saveTime() {
@@ -272,7 +261,7 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
         ) : (
           <div className="flex-1 overflow-y-auto px-6 py-5">
             {sessionStatus === "cancelled" && <p className="mb-4 rounded-2xl bg-red-50 px-4 py-2.5 text-[0.84rem] font-semibold text-red-700">{m.cancelledBanner}</p>}
-            {canEdit && (
+            {canManage && (
               <div className="mb-5 rounded-2xl bg-gray-50 p-4">
                 <h3 className="text-[0.85rem] font-semibold text-gray-900">{m.manage}</h3>
                 <div className="mt-2.5 grid grid-cols-2 gap-2.5">
@@ -406,25 +395,6 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
                     );
                   })}
                 </div>
-              </div>
-            )}
-
-            {canEdit && syllabusItems.length > 0 && (
-              <div className="mt-4">
-                <span className="text-[0.78rem] text-gray-500">{t.monEspace.progress.sessionChapterLabel}</span>
-                <select
-                  value={selectedChapter}
-                  onChange={(e) => handleChapterChange(e.target.value)}
-                  disabled={savingChapter}
-                  className="mt-1 w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-[0.82rem] outline-none focus:border-gray-400 disabled:opacity-50"
-                >
-                  <option value="">{t.monEspace.progress.sessionChapterNone}</option>
-                  {syllabusItems.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.title}
-                    </option>
-                  ))}
-                </select>
               </div>
             )}
 

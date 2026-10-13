@@ -4,6 +4,7 @@ import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import { useLocale } from "../../i18n/LocaleContext";
+import { firstContactError, normalizePhone } from "../../lib/validation";
 import PersonalDataNotice from "./PersonalDataNotice";
 import DirectoryField from "./DirectoryField";
 import NameInput from "./NameInput";
@@ -52,13 +53,18 @@ export default function AdminsManager({ organizationId }: { organizationId: stri
       setError(m.nameRequired);
       return;
     }
+    const editContactError = firstContactError({ phone: editForm.phone }, t.validation);
+    if (editContactError) {
+      setError(editContactError);
+      return;
+    }
     setEditSaving(true);
     setError(null);
     const { error: updateError } = await supabase.rpc("update_admin_profile", {
       p_organization_id: organizationId,
       p_user_id: editingId,
       p_full_name: editForm.fullName,
-      p_phone: editForm.phone,
+      p_phone: normalizePhone(editForm.phone) ?? "",
     });
     setEditSaving(false);
     if (updateError) {
@@ -90,11 +96,16 @@ export default function AdminsManager({ organizationId }: { organizationId: stri
 
   async function handleInvite(e: FormEvent) {
     e.preventDefault();
+    const contactError = firstContactError(form, t.validation);
+    if (contactError) {
+      setError(contactError);
+      return;
+    }
     setSaving(true);
     setError(null);
 
     const { data, error: inviteError } = await supabase.functions.invoke("invite-admin", {
-      body: { organizationId, email: form.email.trim(), fullName: form.fullName.trim(), phone: form.phone.trim() },
+      body: { organizationId, email: form.email.trim(), fullName: form.fullName.trim(), phone: normalizePhone(form.phone) ?? "" },
     });
 
     setSaving(false);

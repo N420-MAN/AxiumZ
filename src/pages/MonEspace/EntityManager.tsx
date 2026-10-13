@@ -5,6 +5,7 @@ import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import SendAnnouncementModal from "./SendAnnouncementModal";
 import { useLocale } from "../../i18n/LocaleContext";
+import { firstContactError, normalizePhone } from "../../lib/validation";
 import { uploadTeacherAvatar } from "../../lib/avatarUpload";
 import TeacherAvatar from "./TeacherAvatar";
 import { accountState, sendInvitation } from "../../lib/invitations";
@@ -167,11 +168,16 @@ export default function EntityManager({ table, organizationId, title, extraField
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSaving(true);
     setError(null);
     setNotice(null);
+    const contactError = firstContactError(form, t.validation);
+    if (contactError) {
+      setError(contactError);
+      return;
+    }
+    setSaving(true);
 
-    const payload = { ...form, email: (form.email ?? "").trim(), phone: (form.phone ?? "").trim() };
+    const payload = { ...form, email: (form.email ?? "").trim(), phone: normalizePhone(form.phone ?? "") ?? "" };
     let personId: string | null = editingId;
     let saveError: unknown = null;
     if (editingId) {
