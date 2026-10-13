@@ -231,8 +231,8 @@ export default function OverviewView() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
-      <h1 className="font-display text-[1.5rem] font-bold text-gray-900">{m.title}</h1>
+    <div className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-8 sm:py-10 md:pb-10">
+      <h1 className="text-[1.7rem] font-extrabold text-gray-900">{m.title}</h1>
 
       {isParent && children.length > 1 && (
         <div className="mt-4 flex gap-2">
@@ -260,6 +260,33 @@ export default function OverviewView() {
         <div className="mt-8 h-40" />
       ) : (
         <>
+          {(() => {
+            const nx = upcoming[0];
+            const vals = averages.map((a) => Number(a.average_out_of_20));
+            const overall = vals.length > 0 ? Math.round((vals.reduce((x, y) => x + y, 0) / vals.length) * 10) / 10 : null;
+            return (
+              <div className="mt-5 grid gap-4 sm:grid-cols-[1.6fr_1fr]">
+                <div className="rounded-3xl bg-gradient-to-br from-ink to-ink-soft p-6 text-paper shadow-lg">
+                  <p className="text-[0.72rem] font-bold uppercase tracking-widest text-accent-bright">{m.heroNext}</p>
+                  {nx ? (
+                    <>
+                      <p className="mt-2 text-[1.5rem] font-extrabold leading-tight">{nx.classes?.name}</p>
+                      <p className="mt-1 text-[0.88rem] text-paper/75">
+                        {new Date(nx.starts_at).toLocaleString(dateLocale, { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                        {nx.room ? ` · ${nx.room}` : ""}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-[1.05rem] font-semibold">{m.heroNone}</p>
+                  )}
+                </div>
+                <div className="app-card flex flex-col justify-center px-6 py-5">
+                  <p className="text-[0.74rem] text-gray-500">{m.heroAverage}</p>
+                  <p className="text-[2rem] font-extrabold text-gray-900">{overall !== null ? `${overall}/20` : "—"}</p>
+                </div>
+              </div>
+            );
+          })()}
           {selectedChild && (
             <SchoolProgressCard
               key={selectedChild}
@@ -274,7 +301,7 @@ export default function OverviewView() {
               <h2 className="text-[0.9rem] font-semibold text-gray-900">{t.monEspace.homework.heading}</h2>
               <div className="mt-2 space-y-1.5">
                 {homework.map((hw) => (
-                  <div key={hw.id} className="rounded-lg border border-gray-200 bg-white px-3.5 py-2.5">
+                  <div key={hw.id} className="app-card px-4 py-3">
                     <p className="text-[0.85rem] text-gray-800">{hw.title}</p>
                     <p className="mt-0.5 text-[0.76rem] text-gray-400">
                       {hw.classes?.name}
@@ -290,7 +317,7 @@ export default function OverviewView() {
               <h2 className="text-[0.9rem] font-semibold text-gray-900">{t.monEspace.materials.heading}</h2>
               <div className="mt-2 space-y-1.5">
                 {materials.map((mat) => (
-                  <div key={mat.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5">
+                  <div key={mat.id} className="flex flex-wrap items-center justify-between gap-2 app-card px-4 py-3">
                     <div className="min-w-0">
                       <p className="break-words text-[0.85rem] text-gray-800">{mat.title}</p>
                       <p className="mt-0.5 text-[0.76rem] text-gray-400">{mat.classes?.name}</p>
@@ -316,7 +343,7 @@ export default function OverviewView() {
             ) : (
               <div className="mt-2.5 space-y-2">
                 {upcoming.map((s) => (
-                  <div key={s.id} className="rounded-lg border border-gray-200 bg-white p-3">
+                  <div key={s.id} className="app-card p-4">
                     <p className="text-[0.85rem] font-medium text-gray-900">{s.classes?.name}</p>
                     {s.classes?.teachers && (
                       <button
@@ -380,7 +407,7 @@ export default function OverviewView() {
             ) : (
               <div className="mt-2.5 space-y-2">
                 {grades.map((g) => (
-                  <div key={g.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3">
+                  <div key={g.id} className="flex items-center justify-between app-card p-4">
                     <span className="text-[0.85rem] text-gray-800">{g.assessments?.title}</span>
                     <span className="text-[0.85rem] font-semibold text-gray-900">
                       {g.score}/{g.assessments?.max_score ?? "—"}
@@ -423,7 +450,7 @@ export default function OverviewView() {
               </div>
               <div className="mt-2.5 space-y-2">
                 {notes.map((n) => (
-                  <div key={n.id} className="rounded-lg border border-gray-200 bg-white p-3">
+                  <div key={n.id} className="app-card p-4">
                     <p className="text-[0.78rem] text-gray-500">
                       {n.classes?.name} — {new Date(n.starts_at).toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}
                     </p>

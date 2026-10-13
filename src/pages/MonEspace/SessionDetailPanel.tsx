@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
@@ -10,6 +11,7 @@ interface SessionDetailPanelProps {
   className: string;
   canEdit: boolean;
   onClose: () => void;
+  onChanged?: () => void;
 }
 
 interface Enrollment {
@@ -21,7 +23,13 @@ interface AttendanceRow {
   status: string;
 }
 
-export default function SessionDetailPanel({ sessionId, className, canEdit, onClose }: SessionDetailPanelProps) {
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+export default function SessionDetailPanel({ sessionId, className, canEdit, onClose, onChanged }: SessionDetailPanelProps) {
   const { t, locale } = useLocale();
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const m = t.monEspace.sessionDetail;
@@ -38,6 +46,12 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
+  const [sessionStatus, setSessionStatus] = useState("scheduled");
+  const [savedTimes, setSavedTimes] = useState({ s: "", e: "" });
+  const [savingTime, setSavingTime] = useState(false);
+  const [timeError, setTimeError] = useState<string | null>(null);
   const [savingNotes, setSavingNotes] = useState(false);
   const [classId, setClassId] = useState<string | null>(null);
   const [syllabusItems, setSyllabusItems] = useState<{ id: string; title: string }[]>([]);
@@ -59,13 +73,16 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
     setLoading(true);
     const { data: sessionRow } = await supabase
       .from("class_sessions")
-      .select("class_id, notes, syllabus_item_id, classes(organization_id, programs(tracks_school_progress))")
+      .select("class_id, notes, syllabus_item_id, starts_at, ends_at, status, classes(organization_id, programs(tracks_school_progress))")
       .eq("id", sessionId)
       .single();
     const session = sessionRow as unknown as {
       class_id: string;
       notes: string | null;
       syllabus_item_id: string | null;
+      starts_at: string;
+      ends_at: string;
+      status: string;
       classes: { organization_id: string; programs: { tracks_school_progress: boolean } | null } | null;
     } | null;
 
@@ -79,6 +96,10 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
         for (const row of entryRows ?? []) byStudent[row.student_id] = row.content;
         setSchoolEntries(byStudent);
       }
+      setStartsAt(toLocalInput(session.starts_at));
+      setEndsAt(toLocalInput(session.ends_at));
+      setSavedTimes({ s: toLocalInput(session.starts_at), e: toLocalInput(session.ends_at) });
+      setSessionStatus(session.status);
       setNotes(session.notes ?? "");
       setSavedNotes(session.notes ?? "");
       setClassId(session.class_id);
@@ -152,6 +173,40 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
     setSavingChapter(false);
   }
 
+  async function saveTime() {
+    setTimeError(null);
+    if (!startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt)) {
+      setTimeError(m.timeInvalid);
+      return;
+    }
+    setSavingTime(true);
+    const { data, error: upErr } = await supabase
+      .from("class_sessions")
+      .update({ starts_at: new Date(startsAt).toISOString(), ends_at: new Date(endsAt).toISOString() })
+      .eq("id", sessionId)
+      .select("id");
+    setSavingTime(false);
+    if (upErr || !data || data.length === 0) {
+      setTimeError(upErr ? humanizeError(upErr) : m.saveFailed);
+      return;
+    }
+    setSavedTimes({ s: startsAt, e: endsAt });
+    onChanged?.();
+  }
+
+  async function toggleCancel() {
+    const next = sessionStatus === "cancelled" ? "scheduled" : "cancelled";
+    if (next === "cancelled" && !window.confirm(m.confirmCancel)) return;
+    setTimeError(null);
+    const { data, error: upErr } = await supabase.from("class_sessions").update({ status: next }).eq("id", sessionId).select("id");
+    if (upErr || !data || data.length === 0) {
+      setTimeError(upErr ? humanizeError(upErr) : m.saveFailed);
+      return;
+    }
+    setSessionStatus(next);
+    onChanged?.();
+  }
+
   async function saveNotes() {
     setSavingNotes(true);
     setNotesError(null);
@@ -197,11 +252,17 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/40 px-4 py-12">
-      <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h2 className="text-[1.05rem] font-semibold text-gray-900">{className}</h2>
-          <button type="button" onClick={onClose} className="text-[0.85rem] text-gray-400 hover:text-gray-700">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-gray-900/30"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      {/* Side panel: the page behind stays in view, so the teacher never loses their place. */}
+      <div className="app-slide-in m-3 flex h-[calc(100%-1.5rem)] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-100 px-6 py-5">
+          <h2 className="text-[1.15rem] font-extrabold text-gray-900">{className}</h2>
+          <button type="button" onClick={onClose} className="rounded-xl border border-gray-200 px-3 py-1.5 text-[0.8rem] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-800">
             {m.close}
           </button>
         </div>
@@ -209,7 +270,37 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
         {loading ? (
           <p className="px-6 py-8 text-[0.88rem] text-gray-400">{m.loading}</p>
         ) : (
-          <div className="px-6 py-5">
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            {sessionStatus === "cancelled" && <p className="mb-4 rounded-2xl bg-red-50 px-4 py-2.5 text-[0.84rem] font-semibold text-red-700">{m.cancelledBanner}</p>}
+            {canEdit && (
+              <div className="mb-5 rounded-2xl bg-gray-50 p-4">
+                <h3 className="text-[0.85rem] font-semibold text-gray-900">{m.manage}</h3>
+                <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+                  <label className="text-[0.74rem] text-gray-500">
+                    {m.start}
+                    <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-2.5 py-2 text-[0.82rem] text-gray-800" />
+                  </label>
+                  <label className="text-[0.74rem] text-gray-500">
+                    {m.end}
+                    <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-2.5 py-2 text-[0.82rem] text-gray-800" />
+                  </label>
+                </div>
+                {timeError && <p className="mt-2 text-[0.78rem] text-red-600">{timeError}</p>}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={saveTime}
+                    disabled={savingTime || (startsAt === savedTimes.s && endsAt === savedTimes.e)}
+                    className="rounded-xl bg-gradient-to-br from-ink to-ink-soft px-3.5 py-2 text-[0.8rem] font-semibold text-paper disabled:opacity-40"
+                  >
+                    {m.saveTime}
+                  </button>
+                  <button type="button" onClick={toggleCancel} className={`rounded-xl border px-3.5 py-2 text-[0.8rem] font-semibold ${sessionStatus === "cancelled" ? "border-gray-200 text-gray-700" : "border-red-200 text-red-600"}`}>
+                    {sessionStatus === "cancelled" ? m.restoreSession : m.cancelSession}
+                  </button>
+                </div>
+              </div>
+            )}
             <div>
               <div className="flex items-center justify-between">
                 <h3 className="text-[0.85rem] font-semibold text-gray-900">{m.attendance}</h3>
@@ -228,9 +319,17 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
                 {enrollments.map((e) => {
                   const record = attendance.find((a) => a.student_id === e.student_id);
                   return (
-                    <div key={e.student_id} className="flex items-center justify-between text-[0.87rem]">
+                    <div key={e.student_id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-gray-50 px-3.5 py-2.5 text-[0.87rem]">
                       <span className="flex items-center gap-1.5 text-gray-800">
-                        {e.students?.first_name} {e.students?.last_name}
+                        {canEdit ? (
+                          <Link to={`/${locale}/mon-espace/eleve/${e.student_id}`} className="hover:text-ink hover:underline">
+                            {e.students?.first_name} {e.students?.last_name}
+                          </Link>
+                        ) : (
+                          <>
+                            {e.students?.first_name} {e.students?.last_name}
+                          </>
+                        )}
                         {canEdit && (
                           <button
                             type="button"
@@ -250,20 +349,28 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
                         )}
                       </span>
                       {canEdit ? (
-                        <select
-                          value={record?.status ?? ""}
-                          onChange={(ev) => setStudentStatus(e.student_id, ev.target.value)}
-                          className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[0.82rem] text-gray-700"
-                        >
-                          <option value="" disabled>
-                            {m.pickStatus}
-                          </option>
-                          {ATTENDANCE_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex flex-wrap gap-1" role="group" aria-label={m.attendance}>
+                          {ATTENDANCE_OPTIONS.map((opt) => {
+                            const on = record?.status === opt.value;
+                            const tone =
+                              opt.value === "present"
+                                ? "bg-green-50 text-green-800 ring-green-300"
+                                : opt.value === "absent"
+                                  ? "bg-red-50 text-red-700 ring-red-200"
+                                  : "bg-amber-50 text-amber-800 ring-amber-300";
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => setStudentStatus(e.student_id, opt.value)}
+                                aria-pressed={on}
+                                className={`rounded-lg px-2.5 py-1.5 text-[0.76rem] font-semibold transition-colors ${on ? `${tone} ring-2` : "bg-white text-gray-500 ring-1 ring-gray-200 hover:bg-gray-50"}`}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
                       ) : (
                         <span className="text-gray-400">
                           {ATTENDANCE_OPTIONS.find((o) => o.value === record?.status)?.label ?? "—"}
@@ -286,7 +393,9 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
                     return (
                       <div key={e.student_id} className="rounded-md bg-gray-50 px-3 py-2 text-[0.85rem]">
                         <p className="font-medium text-gray-800">
-                          {e.students?.first_name} {e.students?.last_name}
+                          <Link to={`/${locale}/mon-espace/eleve/${e.student_id}`} className="hover:text-ink hover:underline">
+                            {e.students?.first_name} {e.students?.last_name}
+                          </Link>
                         </p>
                         {entry ? (
                           <p className="mt-0.5 whitespace-pre-wrap break-words text-gray-600">{entry}</p>

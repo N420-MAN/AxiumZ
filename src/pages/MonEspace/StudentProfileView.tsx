@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "../../lib/supabaseClient";
@@ -92,6 +92,7 @@ export default function StudentProfileView() {
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [homework, setHomework] = useState<HomeworkRow[]>([]);
   const [waiting, setWaiting] = useState<WaitingLine[]>([]);
+  const [tab, setTab] = useState<"overview" | "grades" | "attendance" | "contacts">("overview");
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -208,159 +209,214 @@ export default function StudentProfileView() {
     excused: m.attExcused,
   };
 
+  const avgVals = averages.map((x) => Number(x.average_out_of_20));
+  const overallAvg = avgVals.length > 0 ? Math.round((avgVals.reduce((x, y) => x + y, 0) / avgVals.length) * 10) / 10 : null;
+  const presentN = attendance.filter((x) => x.status === "present" || x.status === "late").length;
+  const presenceRate = attendance.length > 0 ? Math.round((presentN / attendance.length) * 100) : null;
+  const base = `/${locale}/mon-espace`;
+  const tabs = [
+    { id: "overview", label: m.tabOverview },
+    { id: "grades", label: m.tabGrades },
+    { id: "attendance", label: m.tabAttendance },
+    { id: "contacts", label: m.tabContacts },
+  ] as const;
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
-      <div className="flex items-center justify-between">
-        <button type="button" onClick={() => navigate(-1)} className="text-[0.82rem] text-gray-500 hover:text-gray-800 hover:underline">
-          {m.back}
-        </button>
-        <button
-          type="button"
-          onClick={generateReportCard}
-          className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.8rem] font-medium text-paper"
-        >
-          {m.generateReportCard}
-        </button>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-5 sm:px-8">
+      <button type="button" onClick={() => navigate(-1)} className="mb-3 text-[0.82rem] text-gray-500 hover:text-gray-800 hover:underline">
+        {m.back}
+      </button>
 
-      <div className="mt-3 flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent text-[1.1rem] font-bold text-ink">
-          {initialsFrom(fullName)}
-        </div>
-        <div className="min-w-0">
-          <h1 className="font-display text-[1.3rem] font-bold text-gray-900">{fullName}</h1>
-          <p className="mt-0.5 text-[0.82rem] text-gray-500">
-            {[student.kind === "stagiaire" ? pp.stagiaire : null, age !== null ? m.ageValue.replace("{age}", String(age)) : null, gradeLevel, student.school_name].filter(Boolean).join(" · ")}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <h2 className="text-[0.85rem] font-semibold text-gray-900">{m.contactHeading}</h2>
-          <div className="mt-2 space-y-1 text-[0.85rem] text-gray-700">
-            {student.phone && <p>{student.phone}</p>}
-            {student.email && <p>{student.email}</p>}
-            {student.address && <p>{student.address}</p>}
-            {!student.phone && !student.email && !student.address && <p className="text-gray-400">{m.noContact}</p>}
+      <div className="app-card flex flex-wrap items-center justify-between gap-5 p-6 sm:p-7">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent text-[1.15rem] font-bold text-ink">{initialsFrom(fullName)}</div>
+          <div className="min-w-0">
+            <h1 className="text-[1.5rem] font-extrabold text-gray-900">{fullName}</h1>
+            <p className="mt-0.5 text-[0.84rem] text-gray-500">
+              {[student.kind === "stagiaire" ? pp.stagiaire : null, age !== null ? m.ageValue.replace("{age}", String(age)) : null, gradeLevel, student.school_name].filter(Boolean).join(" · ")}
+            </p>
           </div>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <h2 className="text-[0.85rem] font-semibold text-gray-900">{student.kind === "stagiaire" ? m.supervisorsHeading : m.parentsHeading}</h2>
-          <div className="mt-2 space-y-1.5 text-[0.85rem] text-gray-700">
-            {parents.length === 0 ? (
-              <p className="text-gray-400">{student.kind === "stagiaire" ? m.noSupervisors : m.noParents}</p>
-            ) : (
-              parents.map((p, i) => (
-                <p key={i}>
-                  {p.first_name} {p.last_name} {p.phone && `· ${p.phone}`}
-                </p>
-              ))
-            )}
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {[
+            [m.statAverage, overallAvg !== null ? `${overallAvg}/20` : "—"],
+            [m.statPresence, presenceRate !== null ? `${presenceRate}%` : "—"],
+          ].map(([k, v]) => (
+            <div key={k} className="min-w-[92px] rounded-2xl bg-gray-50 px-4 py-3">
+              <p className="text-[0.72rem] text-gray-500">{k}</p>
+              <p className="text-[1.25rem] font-extrabold text-gray-900">{v}</p>
+            </div>
+          ))}
+          <button type="button" onClick={generateReportCard} className="rounded-xl bg-gradient-to-br from-ink to-ink-soft px-4 py-2.5 text-[0.82rem] font-semibold text-paper">
+            {m.generateReportCard}
+          </button>
         </div>
       </div>
 
-      {waiting.length > 0 && (
-        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <h2 className="text-[0.85rem] font-semibold text-amber-900">{pp.waitingProfileHeading}</h2>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {waiting.map((w) => (
-              <span key={w.id} className="rounded-full border border-dashed border-amber-300 bg-white px-2.5 py-0.5 text-[0.78rem] text-amber-900">
-                {[w.programs?.name, w.levels?.name, w.note].filter(Boolean).join(" · ")}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="mt-5 flex max-w-full gap-1 overflow-x-auto rounded-2xl bg-gray-100 p-1.5" role="tablist">
+        {tabs.map((x) => (
+          <button
+            key={x.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === x.id}
+            onClick={() => setTab(x.id)}
+            className={`shrink-0 rounded-xl px-4 py-2 text-[0.85rem] transition-colors ${tab === x.id ? "bg-white font-bold text-ink shadow-sm" : "font-medium text-gray-500 hover:text-gray-800"}`}
+          >
+            {x.label}
+          </button>
+        ))}
+      </div>
 
-      <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="text-[0.85rem] font-semibold text-gray-900">{m.classesHeading}</h2>
-        <div className="mt-2 space-y-1.5">
-          {classes.length === 0 ? (
-            <p className="text-[0.85rem] text-gray-400">{m.noClasses}</p>
-          ) : (
-            classes.map((c) => {
-              const avg = averages.find((a) => a.class_id === c.class_id);
-              return (
-                <div key={c.class_id} className="flex items-center justify-between text-[0.85rem]">
-                  <span className="text-gray-800">
-                    {c.classes ? classLabel(c.classes) : "—"}
-                  </span>
-                  {avg && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[0.76rem] font-medium text-gray-700">{avg.average_out_of_20}/20</span>}
+      <div className="app-fade-in mt-5 space-y-5" key={tab}>
+        {tab === "overview" && (
+          <>
+            {waiting.length > 0 && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                <h2 className="text-[0.9rem] font-bold text-amber-900">{pp.waitingProfileHeading}</h2>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {waiting.map((w) => (
+                    <span key={w.id} className="rounded-full border border-dashed border-amber-300 bg-white px-2.5 py-0.5 text-[0.78rem] text-amber-900">
+                      {[w.programs?.name, w.levels?.name, w.note].filter(Boolean).join(" · ")}
+                    </span>
+                  ))}
                 </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      <EnglishTestCard studentId={student.id} studentName={fullName} canLink={canLink} />
-
-      <LanguageProgressSection
-        studentId={student.id}
-        languageClasses={classes
-          .filter((c) => isLanguageProgram(c.classes?.programs?.kind))
-          .map((c) => ({ classId: c.class_id, className: c.classes ? classLabel(c.classes) : "—" }))}
-      />
-
-      <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="text-[0.85rem] font-semibold text-gray-900">{m.attendanceHeading}</h2>
-        <div className="mt-2 space-y-1.5">
-          {attendance.length === 0 ? (
-            <p className="text-[0.85rem] text-gray-400">{m.noAttendance}</p>
-          ) : (
-            attendance.map((a, i) => (
-              <div key={i} className="flex items-center justify-between text-[0.82rem]">
-                <span className="text-gray-600">
-                  {a.class_sessions?.classes?.name} — {a.class_sessions?.starts_at && new Date(a.class_sessions.starts_at).toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}
-                </span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[0.74rem] font-medium ${
-                    a.status === "present"
-                      ? "bg-green-50 text-green-700"
-                      : a.status === "absent"
-                        ? "bg-red-50 text-red-700"
-                        : "bg-amber-50 text-amber-700"
-                  }`}
-                >
-                  {attendanceLabels[a.status] ?? a.status}
-                </span>
               </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {homework.length > 0 && (
-        <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-          <h2 className="text-[0.85rem] font-semibold text-gray-900">{t.monEspace.homework.heading}</h2>
-          <div className="mt-2 space-y-1.5">
-            {homework.map((hw) => (
-              <div key={hw.id} className="text-[0.85rem] text-gray-700">
-                {hw.title} <span className="text-[0.76rem] text-gray-400">— {hw.classes?.name}</span>
+            )}
+            <div className="app-card p-6">
+              <h2 className="text-[1.05rem] font-bold text-gray-900">{m.classesHeading}</h2>
+              <div className="mt-2">
+                {classes.length === 0 ? (
+                  <p className="text-[0.88rem] text-gray-400">{m.noClasses}</p>
+                ) : (
+                  classes.map((c) => {
+                    const avg = averages.find((a) => a.class_id === c.class_id);
+                    return (
+                      <Link key={c.class_id} to={`${base}/classe/${c.class_id}`} className="flex items-center justify-between border-t border-gray-100 py-3 text-[0.9rem] first:border-t-0 hover:opacity-80">
+                        <span className="font-semibold text-gray-900">{c.classes ? classLabel(c.classes) : "—"}</span>
+                        {avg && <span className="rounded-full bg-gray-100 px-3 py-0.5 text-[0.78rem] font-semibold text-gray-700">{avg.average_out_of_20}/20</span>}
+                      </Link>
+                    );
+                  })
+                )}
               </div>
-            ))}
+            </div>
+            <EnglishTestCard studentId={student.id} studentName={fullName} canLink={canLink} />
+            {homework.length > 0 && (
+              <div className="app-card p-6">
+                <h2 className="text-[1.05rem] font-bold text-gray-900">{t.monEspace.homework.heading}</h2>
+                <div className="mt-2 space-y-1.5">
+                  {homework.map((hw) => (
+                    <div key={hw.id} className="text-[0.88rem] text-gray-700">
+                      {hw.title} <span className="text-[0.76rem] text-gray-400">— {hw.classes?.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {tab === "grades" && (
+          <>
+            <div className="app-card p-6">
+              <h2 className="text-[1.05rem] font-bold text-gray-900">{m.statAverage}</h2>
+              <div className="mt-2">
+                {classes.map((c) => {
+                  const avg = averages.find((a) => a.class_id === c.class_id);
+                  return (
+                    <div key={c.class_id} className="flex items-center justify-between border-t border-gray-100 py-3 text-[0.9rem] first:border-t-0">
+                      <span className="font-semibold text-gray-900">{c.classes ? classLabel(c.classes) : "—"}</span>
+                      <span className="text-gray-700">{avg ? `${avg.average_out_of_20}/20` : "—"}</span>
+                    </div>
+                  );
+                })}
+                {classes.length === 0 && <p className="text-[0.88rem] text-gray-400">{m.noClasses}</p>}
+              </div>
+            </div>
+            <LanguageProgressSection
+              studentId={student.id}
+              languageClasses={classes
+                .filter((c) => isLanguageProgram(c.classes?.programs?.kind))
+                .map((c) => ({ classId: c.class_id, className: c.classes ? classLabel(c.classes) : "—" }))}
+            />
+            <div className="app-card p-6">
+              <h2 className="text-[1.05rem] font-bold text-gray-900">{m.commentsHeading}</h2>
+              <div className="mt-2 space-y-2">
+                {comments.length === 0 ? (
+                  <p className="text-[0.88rem] text-gray-400">{m.noComments}</p>
+                ) : (
+                  comments.map((c) => (
+                    <div key={c.id} className="rounded-xl bg-gray-50 px-4 py-3">
+                      <p className="text-[0.88rem] text-gray-800">{c.content}</p>
+                      <p className="mt-1 text-[0.72rem] text-gray-400">
+                        {c.author_name || t.monEspace.gestion.journal.unknownUser} · {new Date(c.created_at).toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {tab === "attendance" && (
+          <div className="app-card p-6">
+            <h2 className="text-[1.05rem] font-bold text-gray-900">{m.attendanceHeading}</h2>
+            <div className="mt-2">
+              {attendance.length === 0 ? (
+                <p className="text-[0.88rem] text-gray-400">{m.noAttendance}</p>
+              ) : (
+                attendance.map((a, i) => (
+                  <div key={i} className="flex items-center justify-between border-t border-gray-100 py-2.5 text-[0.86rem] first:border-t-0">
+                    <span className="text-gray-700">
+                      {a.class_sessions?.classes?.name} — {a.class_sessions?.starts_at && new Date(a.class_sessions.starts_at).toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}
+                    </span>
+                    <span
+                      className={`rounded-full px-3 py-0.5 text-[0.74rem] font-semibold ${
+                        a.status === "present" ? "bg-green-50 text-green-700" : a.status === "absent" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
+                      }`}
+                    >
+                      {attendanceLabels[a.status] ?? a.status}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="text-[0.85rem] font-semibold text-gray-900">{m.commentsHeading}</h2>
-        <div className="mt-2 space-y-2">
-          {comments.length === 0 ? (
-            <p className="text-[0.85rem] text-gray-400">{m.noComments}</p>
-          ) : (
-            comments.map((c) => (
-              <div key={c.id} className="rounded-lg bg-gray-50 px-3 py-2.5">
-                <p className="text-[0.85rem] text-gray-800">{c.content}</p>
-                <p className="mt-1 text-[0.72rem] text-gray-400">
-                  {c.author_name || t.monEspace.gestion.journal.unknownUser} · {new Date(c.created_at).toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}
-                </p>
+        {tab === "contacts" && (
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="app-card p-6">
+              <h2 className="text-[1.05rem] font-bold text-gray-900">{m.contactHeading}</h2>
+              <div className="mt-2 space-y-1 text-[0.88rem] text-gray-700">
+                {student.phone && <p>{student.phone}</p>}
+                {student.email && <p>{student.email}</p>}
+                {student.address && <p>{student.address}</p>}
+                {!student.phone && !student.email && !student.address && <p className="text-gray-400">{m.noContact}</p>}
               </div>
-            ))
-          )}
-        </div>
+            </div>
+            <div className="app-card p-6">
+              <h2 className="text-[1.05rem] font-bold text-gray-900">{student.kind === "stagiaire" ? m.supervisorsHeading : m.parentsHeading}</h2>
+              <div className="mt-2 space-y-2 text-[0.88rem] text-gray-700">
+                {parents.length === 0 ? (
+                  <p className="text-gray-400">{student.kind === "stagiaire" ? m.noSupervisors : m.noParents}</p>
+                ) : (
+                  parents.map((p, i) => (
+                    <div key={i}>
+                      <p className="font-semibold text-gray-900">
+                        {p.first_name} {p.last_name}
+                      </p>
+                      {p.phone && <p>{p.phone}</p>}
+                      {p.email && !p.email.endsWith(".invalid") && <p>{p.email}</p>}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

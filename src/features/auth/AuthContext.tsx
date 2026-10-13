@@ -127,19 +127,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!mounted) return;
       if (newSession?.user) {
         // A password sign-in arrives here with a session but no memberships
         // yet. Without this, the app briefly saw "signed in, zero memberships"
-        // and rejected the person as not invited (Google sign-in doesn't hit
-        // this because the page reloads with loading already held).
+        // and rejected the person as not invited.
         const isNewUser = loadedUserId.current !== newSession.user.id;
         if (isNewUser) setLoading(true);
         setSession(newSession);
-        await loadProfileAndMemberships(newSession.user.id);
-        loadedUserId.current = newSession.user.id;
-        if (mounted && isNewUser) setLoading(false);
+        // Never run database calls inside this callback itself: while Supabase is
+        // finishing a Google sign-in it holds an internal lock, and a query started
+        // from here waits for that lock and goes out without the new session
+        // (empty memberships -> wrongly rejected). Deferring it lets the lock go first.
+        setTimeout(async () => {
+          if (!mounted) return;
+          await loadProfileAndMemberships(newSession.user.id);
+          loadedUserId.current = newSession.user.id;
+          if (mounted && isNewUser) setLoading(false);
+        }, 0);
       } else {
         loadedUserId.current = null;
         setSession(null);

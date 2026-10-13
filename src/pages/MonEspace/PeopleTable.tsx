@@ -118,7 +118,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   const [supervisorFilter, setSupervisorFilter] = useState<"" | "with" | "without">("");
 
   // form
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(() => new URLSearchParams(window.location.search).get("new") === "1");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<PersonForm>(EMPTY_FORM);
   const [originalEmail, setOriginalEmail] = useState("");

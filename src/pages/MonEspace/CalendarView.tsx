@@ -9,6 +9,7 @@ interface SessionRow {
   starts_at: string;
   ends_at: string;
   room: string | null;
+  status?: string;
   classes: {
     id: string;
     name: string;
@@ -28,9 +29,44 @@ interface ExamMarker {
   classes: { name: string } | null;
 }
 
-const START_HOUR = 8;
-const END_HOUR = 21;
-const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
+const DEFAULT_START_HOUR = 8;
+const DEFAULT_END_HOUR = 21;
+const ROW_PX = 56; // height of one hour in the week grid
+
+// Puts overlapping sessions of one day side by side instead of on top of each other.
+function layoutDay<T extends { starts_at: string; ends_at: string }>(list: T[]) {
+  const items = list
+    .map((s) => {
+      const st = new Date(s.starts_at);
+      const en = new Date(s.ends_at);
+      const topMin = st.getHours() * 60 + st.getMinutes();
+      const durMin = Math.max((en.getTime() - st.getTime()) / 60000, 30);
+      return { s, topMin, durMin, endMin: topMin + durMin, lane: 0, lanes: 1 };
+    })
+    .sort((a, b) => a.topMin - b.topMin || a.endMin - b.endMin);
+  let group: typeof items = [];
+  let groupEnd = -1;
+  const flush = () => {
+    const laneEnds: number[] = [];
+    for (const it of group) {
+      let l = laneEnds.findIndex((e) => e <= it.topMin);
+      if (l === -1) {
+        l = laneEnds.length;
+        laneEnds.push(it.endMin);
+      } else laneEnds[l] = it.endMin;
+      it.lane = l;
+    }
+    for (const it of group) it.lanes = laneEnds.length;
+    group = [];
+  };
+  for (const it of items) {
+    if (group.length > 0 && it.topMin >= groupEnd) flush();
+    group.push(it);
+    groupEnd = Math.max(groupEnd, it.endMin);
+  }
+  if (group.length > 0) flush();
+  return items;
+}
 
 // Same categorical-color idea as the mockup: color means "which class," not
 // severity or sequence, so the same class keeps the same color everywhere.
@@ -71,6 +107,7 @@ export default function CalendarView() {
   const [exams, setExams] = useState<ExamMarker[]>([]);
   const [teachers, setTeachers] = useState<TeacherOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rev, setRev] = useState(0);
   const [openSession, setOpenSession] = useState<SessionRow | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -109,7 +146,7 @@ export default function CalendarView() {
       const [{ data }, { data: examData }] = await Promise.all([
         supabase
           .from("class_sessions")
-          .select("id, starts_at, ends_at, room, classes(id, name, teacher_id, teachers(user_id, first_name, last_name, phone))")
+          .select("id, starts_at, ends_at, room, status, classes(id, name, teacher_id, teachers(user_id, first_name, last_name, phone))")
           .gte("starts_at", weekStart.toISOString())
           .lt("starts_at", rangeEnd.toISOString())
           .order("starts_at"),
@@ -126,7 +163,7 @@ export default function CalendarView() {
     }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekOffset]);
+  }, [weekOffset, rev]);
 
   const examsByDay = useMemo(() => {
     const map: Record<number, ExamMarker[]> = {};
@@ -147,6 +184,25 @@ export default function CalendarView() {
     });
   }, [sessions, teacherFilter, roomFilter]);
 
+  // Visible hours: 8h–21h by default, widened when a session starts earlier or ends later.
+  const { startHour, endHour } = useMemo(() => {
+    let lo = DEFAULT_START_HOUR;
+    let hi = DEFAULT_END_HOUR;
+    for (const s of filteredSessions) {
+      const st = new Date(s.starts_at);
+      const en = new Date(s.ends_at);
+      lo = Math.min(lo, st.getHours());
+      hi = Math.max(hi, en.getHours() + (en.getMinutes() > 0 ? 1 : 0));
+    }
+    return { startHour: lo, endHour: Math.min(hi, 24) };
+  }, [filteredSessions]);
+  const hours = useMemo(() => Array.from({ length: endHour - startHour }, (_, i) => startHour + i), [startHour, endHour]);
+  const daySessionsForGrid = useMemo(() => {
+    const days: SessionRow[][] = Array.from({ length: 7 }, () => []);
+    for (const s of filteredSessions) days[(new Date(s.starts_at).getDay() + 6) % 7].push(s);
+    return days;
+  }, [filteredSessions]);
+
   const availableRooms = useMemo(() => {
     const rooms = new Set<string>();
     for (const s of sessions) if (s.room) rooms.add(s.room);
@@ -164,18 +220,21 @@ export default function CalendarView() {
   const classColor = (classId: string | undefined) => PALETTE[classColorIndex(classId)];
   const classDotColor = (classId: string | undefined) => DOT_PALETTE[classColorIndex(classId)];
 
+  const todayLabel = locale === "en" ? "Today" : "Aujourd'hui";
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
+    <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-8 sm:py-10 md:pb-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-[1.5rem] font-bold text-gray-900">{m.title}</h1>
+        <h1 className="text-[1.7rem] font-extrabold text-gray-900">{m.title}</h1>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setWeekOffset((w) => w - 1)}
-            className="rounded-md border border-gray-200 px-2.5 py-1 text-[0.8rem] text-gray-600 hover:bg-gray-50"
+            className="rounded-xl bg-white px-3 py-1.5 text-[0.8rem] font-medium text-gray-600 shadow-sm hover:bg-gray-50"
           >
             {m.previous}
           </button>
+          <button type="button" onClick={() => setWeekOffset(0)} className="rounded-xl bg-accent-soft px-3 py-1.5 text-[0.8rem] font-semibold text-ink">{todayLabel}</button>
           <span className="px-1 text-[0.82rem] text-gray-500">
             {weekStart.toLocaleDateString(dateLocale, { day: "numeric", month: "short" })} –{" "}
             {weekEnd.toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}
@@ -183,7 +242,7 @@ export default function CalendarView() {
           <button
             type="button"
             onClick={() => setWeekOffset((w) => w + 1)}
-            className="rounded-md border border-gray-200 px-2.5 py-1 text-[0.8rem] text-gray-600 hover:bg-gray-50"
+            className="rounded-xl bg-white px-3 py-1.5 text-[0.8rem] font-medium text-gray-600 shadow-sm hover:bg-gray-50"
           >
             {m.next}
           </button>
@@ -196,7 +255,7 @@ export default function CalendarView() {
             <select
               value={teacherFilter}
               onChange={(e) => setTeacherFilter(e.target.value)}
-              className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[0.8rem] text-gray-700"
+              className="rounded-xl border-0 bg-white px-3 py-2 text-[0.8rem] text-gray-700 shadow-sm"
             >
               <option value="">Tous les enseignants</option>
               {teachers.map((t) => (
@@ -210,7 +269,7 @@ export default function CalendarView() {
             <select
               value={roomFilter}
               onChange={(e) => setRoomFilter(e.target.value)}
-              className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[0.8rem] text-gray-700"
+              className="rounded-xl border-0 bg-white px-3 py-2 text-[0.8rem] text-gray-700 shadow-sm"
             >
               <option value="">Toutes les salles</option>
               {availableRooms.map((r) => (
@@ -222,18 +281,18 @@ export default function CalendarView() {
           )}
         </div>
 
-        <div className="flex items-center rounded-md border border-gray-200 bg-white p-0.5">
+        <div className="flex items-center rounded-xl bg-gray-100 p-1">
           <button
             type="button"
             onClick={() => setViewMode("grid")}
-            className={`rounded px-2.5 py-1 text-[0.78rem] font-medium ${viewMode === "grid" ? "bg-gradient-to-br from-ink to-ink-soft text-paper" : "text-gray-600"}`}
+            className={`rounded-lg px-3 py-1 text-[0.78rem] font-semibold ${viewMode === "grid" ? "bg-white text-ink shadow-sm" : "text-gray-500"}`}
           >
             Grille
           </button>
           <button
             type="button"
             onClick={() => setViewMode("list")}
-            className={`rounded px-2.5 py-1 text-[0.78rem] font-medium ${viewMode === "list" ? "bg-gradient-to-br from-ink to-ink-soft text-paper" : "text-gray-600"}`}
+            className={`rounded-lg px-3 py-1 text-[0.78rem] font-semibold ${viewMode === "list" ? "bg-white text-ink shadow-sm" : "text-gray-500"}`}
           >
             Liste
           </button>
@@ -243,7 +302,7 @@ export default function CalendarView() {
       {loading ? (
         <div className="mt-4 h-96" />
       ) : viewMode === "grid" ? (
-        <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <div className="app-card mt-4 overflow-x-auto">
           <div className="grid min-w-[840px] grid-cols-[52px_repeat(7,1fr)]">
             <div className="border-b border-gray-100" />
             {m.dayLabels.map((label, i) => {
@@ -265,45 +324,44 @@ export default function CalendarView() {
               );
             })}
           </div>
-          <div className="relative grid min-w-[840px] grid-cols-[52px_repeat(7,1fr)]" style={{ gridAutoRows: "44px" }}>
-            {HOURS.map((h, i) => (
-              <div key={h} className="border-t border-gray-100 px-1.5 py-0.5 text-[0.7rem] text-gray-400" style={{ gridColumn: 1, gridRow: i + 1 }}>
-                {h}h
+          <div className="relative grid min-w-[840px] grid-cols-[52px_repeat(7,1fr)]" style={{ height: hours.length * ROW_PX }}>
+            <div className="relative">
+              {hours.map((h, i) => (
+                <div key={h} className="absolute inset-x-0 border-t border-gray-100 px-1.5 py-0.5 text-[0.7rem] text-gray-400" style={{ top: i * ROW_PX }}>
+                  {h}h
+                </div>
+              ))}
+            </div>
+            {Array.from({ length: 7 }, (_, dayIdx) => (
+              <div key={dayIdx} className="relative border-l border-gray-100">
+                {hours.map((h, i) => (
+                  <div key={h} className="absolute inset-x-0 border-t border-gray-100" style={{ top: i * ROW_PX }} />
+                ))}
+                {layoutDay(daySessionsForGrid[dayIdx] ?? []).map(({ s, lane, lanes, topMin, durMin }) => {
+                  const start = new Date(s.starts_at);
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setOpenSession(s)}
+                      style={{
+                        top: ((topMin - startHour * 60) / 60) * ROW_PX,
+                        height: Math.max((durMin / 60) * ROW_PX, 28),
+                        left: `calc(${(lane / lanes) * 100}% + 2px)`,
+                        width: `calc(${100 / lanes}% - 4px)`,
+                      }}
+                      className={`absolute overflow-hidden rounded-xl p-2 text-left text-[0.72rem] leading-tight shadow-sm transition-all hover:-translate-y-px hover:shadow-md ${classColor(s.classes?.id)} ${s.status === "cancelled" ? "opacity-50 line-through ring-2 ring-red-300" : ""}`}
+                    >
+                      <p className="font-bold">{s.classes?.name}</p>
+                      <p className="opacity-80">
+                        {start.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
+                        {s.room ? ` · ${s.room}` : ""}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
             ))}
-            {Array.from({ length: 7 }, (_, dayIdx) => (
-              <div
-                key={dayIdx}
-                style={{ gridColumn: dayIdx + 2, gridRow: `1 / ${HOURS.length + 1}` }}
-                className="border-t border-l border-gray-100"
-              />
-            ))}
-
-            {filteredSessions.map((s) => {
-              const start = new Date(s.starts_at);
-              const end = new Date(s.ends_at);
-              const dayIdx = (start.getDay() + 6) % 7; // Monday = 0
-              
-              const startRow = start.getHours() - START_HOUR + start.getMinutes() / 60 + 1;
-              const endRow = end.getHours() - START_HOUR + end.getMinutes() / 60 + 1;
-              if (startRow < 1 || startRow > HOURS.length + 1) return null;
-
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setOpenSession(s)}
-                  style={{ gridColumn: dayIdx + 2, gridRow: `${startRow} / ${endRow}` }}
-                  className={`m-0.5 overflow-hidden rounded-md p-1.5 text-left text-[0.72rem] leading-tight transition-opacity hover:opacity-80 ${classColor(s.classes?.id)}`}
-                >
-                  <p className="font-medium">{s.classes?.name}</p>
-                  <p className="opacity-80">
-                    {start.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
-                    {s.room ? ` · ${s.room}` : ""}
-                  </p>
-                </button>
-              );
-            })}
           </div>
         </div>
       ) : (
@@ -333,7 +391,7 @@ export default function CalendarView() {
                       key={s.id}
                       type="button"
                       onClick={() => setOpenSession(s)}
-                      className="flex w-full items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 text-left hover:bg-gray-50"
+                      className={`app-card flex w-full items-center justify-between px-4 py-3 text-left hover:-translate-y-px ${s.status === "cancelled" ? "opacity-50" : ""}`}
                     >
                       <div className="flex items-center gap-3">
                         <span className={`h-2 w-2 shrink-0 rounded-full ${classDotColor(s.classes?.id)}`} />
@@ -372,6 +430,7 @@ export default function CalendarView() {
           className={openSession.classes?.name ?? ""}
           canEdit={isSuperAdmin || primaryRole === "center_admin" || openSession.classes?.teachers?.user_id === currentUserId}
           onClose={() => setOpenSession(null)}
+          onChanged={() => setRev((x) => x + 1)}
         />
       )}
     </div>

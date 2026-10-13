@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { useLocale } from "../../i18n/LocaleContext";
 
@@ -29,7 +30,7 @@ interface AtRiskEntry {
 }
 
 export default function AtRiskPanel() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const m = t.monEspace.atRisk;
   const [entries, setEntries] = useState<AtRiskEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +98,11 @@ export default function AtRiskPanel() {
         {entries.map((e) => (
           <div key={`${e.studentId}:${e.classId}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
             <div className="min-w-0">
-              <p className="truncate text-[0.88rem] font-medium text-gray-900">{e.studentName}</p>
+              <p className="truncate text-[0.88rem] font-medium text-gray-900">
+                <Link to={`/${locale}/mon-espace/eleve/${e.studentId}`} className="hover:underline">
+                  {e.studentName}
+                </Link>
+              </p>
               <p className="mt-0.5 truncate text-[0.78rem] text-gray-500">{e.className}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">

@@ -1,4 +1,4 @@
-import { NavLink, Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
+import { NavLink, Routes, Route, Navigate, Outlet, useParams, useLocation } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useLocale } from "../../i18n/LocaleContext";
 import PeopleTable from "./PeopleTable";
@@ -11,40 +11,52 @@ import TermsManager from "./TermsManager";
 import AuditLogViewer from "./AuditLogViewer";
 import AdminsManager from "./AdminsManager";
 import RoomsManager from "./RoomsManager";
+import PeopleDirectory from "./PeopleDirectory";
+import StructureTree from "./StructureTree";
 
 interface Tab {
   to: string;
   label: string;
-  /** Starts a new group of tabs (people / structure / administration). */
-  divider?: boolean;
+}
+interface Group {
+  id: string;
+  label: string;
+  tabs: Tab[];
 }
 
-function GestionShell({ tabs }: { tabs: Tab[] }) {
+function GestionShell({ groups }: { groups: Group[] }) {
   const { lang } = useParams();
+  const { pathname } = useLocation();
   const base = `/${lang ?? "fr"}/mon-espace/gestion`;
+  const active = groups.find((gr) => gr.tabs.some((tb) => pathname.startsWith(`${base}/${tb.to}`))) ?? groups[0];
 
   return (
-    <div>
-      <div className="border-b border-gray-200 bg-white px-4 sm:px-8">
-        <nav className="flex gap-1 overflow-x-auto">
-          {tabs.map((tab) => (
-            <div key={tab.to} className="flex items-center">
-              {tab.divider && <span className="mx-1.5 h-5 w-px bg-gray-200" aria-hidden="true" />}
-              <NavLink
-                to={`${base}/${tab.to}`}
-                className={({ isActive }) =>
-                  `whitespace-nowrap border-b-2 px-3 py-3 text-[0.85rem] font-medium transition-colors ${
-                    isActive ? "border-ink text-ink" : "border-transparent text-gray-500 hover:text-gray-900"
-                  }`
-                }
-              >
-                {tab.label}
-              </NavLink>
-            </div>
-          ))}
-        </nav>
+    <div className="mx-auto max-w-6xl px-4 py-5 sm:px-8">
+      <div className="flex max-w-full gap-1 overflow-x-auto rounded-2xl bg-gray-100 p-1.5 sm:inline-flex" role="tablist">
+        {groups.map((gr) => (
+          <NavLink
+            key={gr.id}
+            to={`${base}/${gr.tabs[0].to}`}
+            className={`shrink-0 rounded-xl px-5 py-2 text-[0.88rem] transition-colors ${gr.id === active.id ? "bg-white font-bold text-ink shadow-sm" : "font-medium text-gray-500 hover:text-gray-800"}`}
+          >
+            {gr.label}
+          </NavLink>
+        ))}
       </div>
-      <div className="p-4 sm:p-8">
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {active.tabs.map((tab) => (
+          <NavLink
+            key={tab.to}
+            to={`${base}/${tab.to}`}
+            className={({ isActive }) =>
+              `whitespace-nowrap rounded-full px-3.5 py-1.5 text-[0.8rem] font-semibold transition-colors ${isActive ? "bg-ink text-paper" : "bg-gray-100 text-gray-600 hover:text-gray-900"}`
+            }
+          >
+            {tab.label}
+          </NavLink>
+        ))}
+      </div>
+      <div className="mt-5">
         <Outlet />
       </div>
     </div>
@@ -59,18 +71,35 @@ export default function GestionLayout() {
   const base = `/${lang ?? "fr"}/mon-espace/gestion`;
   const orgId = memberships.find((mem) => mem.role_name === "center_admin")?.organization_id ?? memberships[0]?.organization_id;
 
-  const tabs: Tab[] = [
-    { to: "eleves", label: t.monEspace.people.eleves },
-    { to: "stagiaires", label: t.monEspace.people.stagiaires },
-    { to: "parents", label: t.monEspace.guardian.parents },
-    { to: "superviseurs", label: t.monEspace.guardian.supervisors },
-    { to: "enseignants", label: m.teachersTitle },
-    { to: "programmes", label: t.monEspace.programs.title, divider: true },
-    { to: "niveaux", label: t.monEspace.levels.title },
-    { to: "classes", label: m.classes.title },
-    { to: "salles", label: t.monEspace.rooms.title },
-    ...(isSuperAdmin ? [{ to: "admins", label: m.admins.title, divider: true }] : []),
-    { to: "journal", label: m.journal.title, divider: !isSuperAdmin },
+  const groups: Group[] = [
+    {
+      id: "people",
+      label: m.groupPeople,
+      tabs: [
+        { to: "personnes", label: m.allPeople },
+        { to: "eleves", label: t.monEspace.people.eleves },
+        { to: "stagiaires", label: t.monEspace.people.stagiaires },
+        { to: "parents", label: t.monEspace.guardian.parents },
+        { to: "superviseurs", label: t.monEspace.guardian.supervisors },
+        { to: "enseignants", label: m.teachersTitle },
+      ],
+    },
+    {
+      id: "structure",
+      label: m.groupStructure,
+      tabs: [
+        { to: "structure", label: m.tree },
+        { to: "classes", label: m.classes.title },
+        { to: "programmes", label: t.monEspace.programs.title },
+        { to: "niveaux", label: t.monEspace.levels.title },
+        { to: "salles", label: t.monEspace.rooms.title },
+      ],
+    },
+    {
+      id: "admin",
+      label: m.groupAdmin,
+      tabs: [...(isSuperAdmin ? [{ to: "admins", label: m.admins.title }] : []), { to: "periodes", label: m.periods }, { to: "journal", label: m.journal.title }],
+    },
   ];
 
   if (!orgId) {
@@ -83,8 +112,10 @@ export default function GestionLayout() {
 
   return (
     <Routes>
-      <Route element={<GestionShell tabs={tabs} />}>
-        <Route index element={<Navigate to={`${base}/eleves`} replace />} />
+      <Route element={<GestionShell groups={groups} />}>
+        <Route index element={<Navigate to={`${base}/personnes`} replace />} />
+        <Route path="personnes" element={<PeopleDirectory organizationId={orgId} />} />
+        <Route path="structure" element={<StructureTree organizationId={orgId} />} />
         <Route path="eleves" element={<PeopleTable kind="eleve" organizationId={orgId} />} />
         <Route path="stagiaires" element={<PeopleTable kind="stagiaire" organizationId={orgId} />} />
         <Route path="parents" element={<GuardiansTable kind="parent" organizationId={orgId} />} />
@@ -107,7 +138,7 @@ export default function GestionLayout() {
         <Route path="salles" element={<RoomsManager organizationId={orgId} />} />
         <Route path="periodes" element={<TermsManager organizationId={orgId} />} />
         <Route path="journal" element={<AuditLogViewer organizationId={orgId} />} />
-        <Route path="*" element={<Navigate to={`${base}/eleves`} replace />} />
+        <Route path="*" element={<Navigate to={`${base}/personnes`} replace />} />
       </Route>
     </Routes>
   );

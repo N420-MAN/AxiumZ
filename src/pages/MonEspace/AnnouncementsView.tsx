@@ -53,7 +53,7 @@ export default function AnnouncementsView() {
   const [myClasses, setMyClasses] = useState<ClassOption[]>([]);
   const [myStudents, setMyStudents] = useState<StudentOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(() => new URLSearchParams(window.location.search).get("new") === "1");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scope, setScope] = useState<Scope>("org");

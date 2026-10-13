@@ -211,6 +211,13 @@ export interface Dictionary {
     layout: {
       todayNav: string;
       cahierNav: string;
+      classesNav: string;
+      adminGroup: string;
+      teachGroup: string;
+      myGroup: string;
+      roleAdmin: string;
+      roleTeacher: string;
+      roleMember: string;
       overviewNav: string;
       planningNav: string;
       manageNav: string;
@@ -247,12 +254,21 @@ export interface Dictionary {
       cancelled: string;
     };
     today: {
+      centerHeading: string;
+      statTeachers: string;
+      statClasses: string;
+      statWaiting: string;
+      statUnlinked: string;
       greeting: string;
       sessionsToday: string;
       students: string;
       sessionsThisWeek: string;
       todayHeading: string;
       noSessionsToday: string;
+      nextUp: string;
+      inProgress: string;
+      openSession: string;
+      freeDay: string;
     };
     atRisk: {
       heading: string;
@@ -638,7 +654,81 @@ export interface Dictionary {
       unlinkConfirm: string;
       error: string;
     };
+    teacherClasses: {
+      title: string;
+      intro: string;
+      empty: string;
+      students: string;
+      studentsOne: string;
+      nextSession: string;
+      noNextSession: string;
+      average: string;
+      noStudents: string;
+      colStudent: string;
+      colSchool: string;
+      colAverage: string;
+      colAbsence: string;
+      openPlanning: string;
+      room: string;
+    };
+    shell: {
+      newBtn: string;
+      newStudent: string;
+      newClass: string;
+      newAnnouncement: string;
+      searchPlaceholder: string;
+      searchButton: string;
+      searchEsc: string;
+      noResult: string;
+      suggestions: string;
+      typeStudent: string;
+      typeStagiaire: string;
+      typeClass: string;
+      typeTeacher: string;
+      menu: string;
+      close: string;
+    };
+    classPage: {
+      tabOverview: string;
+      tabStudents: string;
+      tabSessions: string;
+      tabChapters: string;
+      tabGrades: string;
+      tabDocs: string;
+      students: string;
+      average: string;
+      absences: string;
+      nextSession: string;
+      noNextSession: string;
+      openSession: string;
+      chaptersHeading: string;
+      seeAll: string;
+      colStudent: string;
+      colSchool: string;
+      colAverage: string;
+      colAbsence: string;
+      noStudents: string;
+      sessionsEmpty: string;
+      assessmentsEmpty: string;
+      openGrades: string;
+      manageEnrollment: string;
+      notFound: string;
+      back: string;
+      room: string;
+      noTeacher: string;
+      today: string;
+      noRoom: string;
+      spots: string;
+      assessmentsHeading: string;
+      sessionsHeading: string;
+    };
     studentProfile: {
+      tabOverview: string;
+      tabGrades: string;
+      tabAttendance: string;
+      tabContacts: string;
+      statAverage: string;
+      statPresence: string;
       back: string;
       notFound: string;
       ageValue: string;
@@ -715,6 +805,15 @@ export interface Dictionary {
       dayLabels: string[];
     };
     sessionDetail: {
+      manage: string;
+      start: string;
+      end: string;
+      saveTime: string;
+      cancelSession: string;
+      restoreSession: string;
+      cancelledBanner: string;
+      confirmCancel: string;
+      timeInvalid: string;
       close: string;
       loading: string;
       attendance: string;
@@ -734,6 +833,9 @@ export interface Dictionary {
       schoolProgressMissing: string;
     };
     overview: {
+      heroNext: string;
+      heroAverage: string;
+      heroNone: string;
       title: string;
       upcomingSessions: string;
       noUpcomingSessions: string;
@@ -781,6 +883,18 @@ export interface Dictionary {
     gestion: {
       noOrganization: string;
       teachersTitle: string;
+      groupPeople: string;
+      groupStructure: string;
+      groupAdmin: string;
+      allPeople: string;
+      tree: string;
+      periods: string;
+      searchPeople: string;
+      treeEmpty: string;
+      noClassesInLevel: string;
+      noTeacher: string;
+      treeHint: string;
+      peopleCount: string;
       specialization: string;
       common: {
         add: string;

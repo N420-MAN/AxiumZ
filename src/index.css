@@ -330,3 +330,34 @@ html.theme-switching *::before,
 html.theme-switching *::after {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease !important;
 }
+
+/* ---- Mon espace app shell ----
+   The signed-in app uses its own, rounder typeface; the public site keeps Poppins + Inter. */
+.app-shell {
+  font-family: "Plus Jakarta Sans", var(--font-body);
+}
+.app-shell h1,
+.app-shell h2,
+.app-shell h3 {
+  font-family: "Plus Jakarta Sans", var(--font-display);
+  letter-spacing: -0.015em;
+}
+/* Soft depth instead of thin borders: the card look used across the app. */
+.app-card {
+  background: var(--color-white);
+  border-radius: 1.5rem;
+  box-shadow: 0 1px 2px rgb(15 42 92 / 0.04), 0 10px 26px rgb(15 42 92 / 0.06);
+}
+:root[data-theme="dark"] .app-card {
+  box-shadow: inset 0 0 0 1px #1b3a6b;
+}
+@keyframes app-slide-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes app-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.app-slide-in { animation: app-slide-in 0.22s var(--ease-editorial); }
+.app-fade-in { animation: app-fade-in 0.28s var(--ease-editorial); }

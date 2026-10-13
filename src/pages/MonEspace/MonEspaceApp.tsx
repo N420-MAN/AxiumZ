@@ -1,3 +1,5 @@
+import ClassPage from "./ClassPage";
+import TeacherClassesView from "./TeacherClassesView";
 import CahierView from "./CahierView";
 import { useEffect, useLayoutEffect, useRef, useState, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useParams, useLocation, useNavigate } from "react-router-dom";
@@ -82,6 +84,8 @@ function AuthenticatedApp() {
         <Route path="aujourdhui" element={isAdmin || isTeacher ? <TodayView /> : <OverviewView />} />
         <Route path="planning" element={<CalendarView />} />
         {!isAdmin && !isTeacher && <Route path="cahier" element={<CahierView />} />}
+        {isTeacher && <Route path="classes" element={<TeacherClassesView />} />}
+        {(isAdmin || isTeacher) && <Route path="classe/:classId" element={<ClassPage />} />}
         <Route
           path="eleve/:studentId"
           element={
@@ -152,7 +156,7 @@ function NotInvited() {
 
 function MonEspaceGate() {
   const { t } = useLocale();
-  const { session, loading, memberships, signOut } = useAuth();
+  const { session, loading, memberships, signOut, refresh } = useAuth();
   usePageMeta(`${t.auth.dashboardTitle} — AxiumZ`, t.auth.dashboardTitle, "monEspace", { noindex: true });
 
   // Read the value captured at app entry (see authFlowCapture.ts) instead of
@@ -172,13 +176,25 @@ function MonEspaceGate() {
   // read it, replaced instantly by the Login screen.
   const [rejected, setRejected] = useState(false);
   const signOutRef = useRef(false);
+  const recheckedRef = useRef(false);
   useEffect(() => {
     if (!loading && session && memberships.length === 0 && !signOutRef.current) {
       signOutRef.current = true;
-      setRejected(true);
-      signOut();
+      // Double-check against the database before rejecting anybody, so a slow or
+      // half-finished sign-in can never lock out a person who does have access.
+      (async () => {
+        const { data, error } = await supabase.from("organization_members").select("id").eq("user_id", session.user.id).limit(1);
+        if (!error && data && data.length > 0 && !recheckedRef.current) {
+          recheckedRef.current = true;
+          signOutRef.current = false;
+          await refresh();
+          return;
+        }
+        setRejected(true);
+        signOut();
+      })();
     }
-  }, [loading, session, memberships, signOut]);
+  }, [loading, session, memberships, signOut, refresh]);
 
   if (rejected) {
     return <NotInvited />;
