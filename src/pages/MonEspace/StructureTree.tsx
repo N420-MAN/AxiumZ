@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useLocale } from "../../i18n/LocaleContext";
+import { slotText } from "../../lib/programs";
 import { useStructure } from "../../features/structure/useStructure";
 import { seatText, isFull } from "../../lib/programs";
 
@@ -38,7 +39,7 @@ export default function StructureTree({ organizationId }: { organizationId: stri
                           <Link key={c.id} to={`${base}/classe/${c.id}`} className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-4 py-2.5 hover:bg-gray-100">
                             <span className="min-w-0">
                               <span className="block truncate text-[0.88rem] font-semibold text-gray-900">{c.name}</span>
-                              <span className="block truncate text-[0.74rem] text-gray-500">{c.teachers ? `${c.teachers.first_name} ${c.teachers.last_name}` : g.noTeacher}</span>
+                              <span className="block truncate text-[0.74rem] text-gray-500">{[c.subject, c.teachers ? `${c.teachers.first_name} ${c.teachers.last_name}` : g.noTeacher, ...[...c.slots].sort((a, b) => a.weekday - b.weekday).map((sl) => slotText(sl, locale))].filter(Boolean).join(" · ")}</span>
                             </span>
                             <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[0.72rem] font-semibold ${isFull(c) ? "bg-red-50 text-red-700" : "bg-white text-gray-700"}`}>{seatText(c)}</span>
                           </Link>

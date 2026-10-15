@@ -11,6 +11,8 @@ import TermsManager from "./TermsManager";
 import AuditLogViewer from "./AuditLogViewer";
 import AdminsManager from "./AdminsManager";
 import RoomsManager from "./RoomsManager";
+import SpecialtiesManager from "./SpecialtiesManager";
+import PacksManager from "./PacksManager";
 import PeopleDirectory from "./PeopleDirectory";
 import StructureTree from "./StructureTree";
 
@@ -89,9 +91,11 @@ export default function GestionLayout() {
       label: m.groupStructure,
       tabs: [
         { to: "structure", label: m.tree },
-        { to: "classes", label: m.classes.title },
         { to: "programmes", label: t.monEspace.programs.title },
         { to: "niveaux", label: t.monEspace.levels.title },
+        { to: "specialites", label: t.monEspace.specialties.title },
+        { to: "classes", label: m.classes.title },
+        { to: "packs", label: t.monEspace.packs.title },
         { to: "salles", label: t.monEspace.rooms.title },
       ],
     },
@@ -122,7 +126,9 @@ export default function GestionLayout() {
         <Route path="superviseurs" element={<GuardiansTable kind="superviseur" organizationId={orgId} />} />
         <Route path="programmes" element={<ProgramsManager organizationId={orgId} />} />
         <Route path="niveaux" element={<LevelsManager organizationId={orgId} />} />
+        <Route path="specialites" element={<SpecialtiesManager organizationId={orgId} />} />
         <Route path="classes" element={<ClassesManager organizationId={orgId} />} />
+        <Route path="packs" element={<PacksManager organizationId={orgId} />} />
         <Route
           path="enseignants"
           element={

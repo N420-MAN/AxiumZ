@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useConfirmDialog } from "./useConfirmDialog";
 import { useLocale } from "../../i18n/LocaleContext";
+import { type ClassSlot, slotText } from "../../lib/programs";
 
 interface SessionRow {
   id: string;
@@ -35,7 +36,9 @@ export default function ScheduleSessionsForm({
   defaultRoomId,
   teacherId,
   organizationId,
+  slots = [],
 }: {
+  slots?: ClassSlot[];
   classId: string;
   defaultRoomId: string | null;
   teacherId: string | null;
@@ -63,9 +66,9 @@ export default function ScheduleSessionsForm({
   const [showForm, setShowForm] = useState(false);
   const { confirm, dialog } = useConfirmDialog();
   const [form, setForm] = useState({
-    weekday: 1,
-    startTime: "14:00",
-    endTime: "16:00",
+    weekday: slots[0]?.weekday ?? 1,
+    startTime: slots[0]?.start_time.slice(0, 5) ?? "14:00",
+    endTime: slots[0]?.end_time.slice(0, 5) ?? "16:00",
     roomId: defaultRoomId ?? "",
     startDate: "",
     endDate: "",
@@ -213,6 +216,21 @@ export default function ScheduleSessionsForm({
 
       {showForm && (
         <div className="mt-3 grid grid-cols-2 gap-2 rounded-md border border-gray-200 bg-gray-50 p-3 sm:grid-cols-3">
+          {slots.length > 0 && (
+            <div className="col-span-2 flex flex-wrap items-center gap-1.5 sm:col-span-3">
+              <span className="text-[0.74rem] text-gray-500">{m.useClassSlot}</span>
+              {slots.map((sl) => (
+                <button
+                  key={sl.id}
+                  type="button"
+                  onClick={() => setForm({ ...form, weekday: sl.weekday, startTime: sl.start_time.slice(0, 5), endTime: sl.end_time.slice(0, 5) })}
+                  className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-[0.76rem] font-medium text-gray-700 hover:border-ink"
+                >
+                  {slotText(sl, locale)}
+                </button>
+              ))}
+            </div>
+          )}
           <select value={form.weekday} onChange={(e) => setForm({ ...form, weekday: Number(e.target.value) })} className={inputClass}>
             {DAY_OPTIONS.map((d) => (
               <option key={d.value} value={d.value}>

@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useStructure } from "../../features/structure/useStructure";
-import { type StructureClass, classLabel, enrolledCount, searchable, seatText } from "../../lib/programs";
+import { type StructureClass, classLabel, enrolledCount, searchable, seatText, slotText, slotsOverlap } from "../../lib/programs";
 import FilterBar from "./FilterBar";
 import NameInput from "./NameInput";
 import ClassPanel, { type PersonOption, type WaitingWish } from "./ClassPanel";
@@ -27,7 +27,13 @@ interface RefData {
   wishes: WaitingWish[];
 }
 
-const EMPTY_FORM = { program_id: "", level_id: "", name: "", teacher_id: "", capacity: "", room_id: "" };
+interface SlotDraft {
+  weekday: number;
+  start_time: string;
+  end_time: string;
+}
+const EMPTY_FORM = { program_id: "", level_id: "", name: "", subject: "", teacher_id: "", capacity: "", room_id: "" };
+const DEFAULT_SLOT: SlotDraft = { weekday: 1, start_time: "17:00", end_time: "19:00" };
 const EMPTY_REF: RefData = { teachers: [], rooms: [], people: [], wishes: [] };
 
 const inputClass =
@@ -56,13 +62,13 @@ async function fetchRefData(organizationId: string): Promise<RefData> {
 }
 
 export default function ClassesManager({ organizationId }: { organizationId: string }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const m = t.monEspace.gestion.classes;
   const st = t.monEspace.structure;
   const rm = t.monEspace.rooms;
   const c = t.monEspace.gestion.common;
   const structure = useStructure(organizationId);
-  const { programs, levels, classes, loading } = structure;
+  const { programs, levels, classes, specialties, loading } = structure;
   const reloadStructure = structure.reload;
   const { confirm, dialog } = useConfirmDialog();
 
@@ -70,6 +76,8 @@ export default function ClassesManager({ organizationId }: { organizationId: str
   const [showForm, setShowForm] = useState(() => new URLSearchParams(window.location.search).get("new") === "1");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [specialtyIds, setSpecialtyIds] = useState<string[]>([]);
+  const [slotDrafts, setSlotDrafts] = useState<SlotDraft[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -105,6 +113,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
   const openPrograms = programs.filter((p) => p.is_active || p.id === form.program_id);
   const formLevels = levels.filter((l) => l.program_id === form.program_id).sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
   const filterLevels = levels.filter((l) => l.program_id === programFilter).sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
+  const formSpecialties = specialties.filter((sp) => sp.level_id === form.level_id);
   const editingClass = classes.find((cl) => cl.id === editingId);
   // The database freezes programme and niveau once a class has people.
   const editingHasPeople = editingClass ? enrolledCount(editingClass) > 0 : false;
@@ -144,6 +153,8 @@ export default function ClassesManager({ organizationId }: { organizationId: str
   function openAddForm() {
     setEditingId(null);
     setForm({ ...EMPTY_FORM, program_id: programFilter, level_id: levelFilter });
+    setSpecialtyIds([]);
+    setSlotDrafts([]);
     setError(null);
     setShowForm(true);
   }
@@ -154,35 +165,64 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       program_id: cl.program_id,
       level_id: cl.level_id,
       name: cl.name,
+      subject: cl.subject ?? "",
       teacher_id: cl.teacher_id ?? "",
       capacity: cl.capacity?.toString() ?? "",
       room_id: cl.room_id ?? "",
     });
+    setSpecialtyIds(cl.specialty_ids);
+    setSlotDrafts(cl.slots.map((s) => ({ weekday: s.weekday, start_time: s.start_time.slice(0, 5), end_time: s.end_time.slice(0, 5) })));
     setError(null);
     setShowForm(true);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (slotDrafts.some((s) => s.end_time <= s.start_time)) {
+      setError(m.slotInvalid);
+      return;
+    }
     setSaving(true);
     setError(null);
     const payload = {
       program_id: form.program_id,
       level_id: form.level_id,
       name: form.name.trim(),
+      subject: form.subject.trim() || null,
       teacher_id: form.teacher_id || null,
       capacity: form.capacity ? Number(form.capacity) : null,
       room_id: form.room_id || null,
     };
-    const { error: saveError } = editingId
-      ? await supabase.from("classes").update(payload).eq("id", editingId)
-      : await supabase.from("classes").insert({ organization_id: organizationId, ...payload });
+    let classId = editingId;
+    let saveError: unknown = null;
+    if (editingId) {
+      ({ error: saveError } = await supabase.from("classes").update(payload).eq("id", editingId));
+    } else {
+      const { data: created, error: insertError } = await supabase.from("classes").insert({ organization_id: organizationId, ...payload }).select("id").single();
+      saveError = insertError;
+      classId = created?.id ?? null;
+    }
+    if (!saveError && classId) {
+      // Specialties and weekly slots are replaced as a whole with what the form shows.
+      const validSpecialties = specialtyIds.filter((id) => specialties.some((sp) => sp.id === id && sp.level_id === form.level_id));
+      const clearedSpecialties = await supabase.from("class_specialties").delete().eq("class_id", classId);
+      const clearedSlots = await supabase.from("class_slots").delete().eq("class_id", classId);
+      saveError = clearedSpecialties.error ?? clearedSlots.error;
+      if (!saveError && validSpecialties.length > 0) {
+        saveError = (await supabase.from("class_specialties").insert(validSpecialties.map((specialty_id) => ({ class_id: classId, specialty_id })))).error;
+      }
+      if (!saveError && slotDrafts.length > 0) {
+        saveError = (await supabase.from("class_slots").insert(slotDrafts.map((s) => ({ class_id: classId, weekday: s.weekday, start_time: s.start_time, end_time: s.end_time })))).error;
+      }
+    }
     setSaving(false);
     if (saveError) {
       setError(humanizeError(saveError));
       return;
     }
     setForm(EMPTY_FORM);
+    setSpecialtyIds([]);
+    setSlotDrafts([]);
     setEditingId(null);
     setShowForm(false);
     await reloadAll();
@@ -222,7 +262,10 @@ export default function ClassesManager({ organizationId }: { organizationId: str
             required
             disabled={editingHasPeople}
             value={form.program_id}
-            onChange={(e) => setForm({ ...form, program_id: e.target.value, level_id: "" })}
+            onChange={(e) => {
+              setForm({ ...form, program_id: e.target.value, level_id: "" });
+              setSpecialtyIds([]);
+            }}
             className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}
             aria-label={st.programmeLabel}
           >
@@ -237,7 +280,10 @@ export default function ClassesManager({ organizationId }: { organizationId: str
             required
             disabled={editingHasPeople || !form.program_id}
             value={form.level_id}
-            onChange={(e) => setForm({ ...form, level_id: e.target.value })}
+            onChange={(e) => {
+              setForm({ ...form, level_id: e.target.value });
+              setSpecialtyIds([]);
+            }}
             className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}
             aria-label={st.niveauLabel}
           >
@@ -273,6 +319,66 @@ export default function ClassesManager({ organizationId }: { organizationId: str
               <p className="mt-1 text-[0.74rem] text-amber-700">{rm.capacityWarning.replace("{n}", form.capacity).replace("{max}", String(selectedRoom.capacity))}</p>
             )}
           </div>
+          <div className="sm:col-span-3">
+            <input list="class-subjects" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder={m.subjectPlaceholder} className={inputClass} />
+            <datalist id="class-subjects">
+              {[...new Set(classes.map((cl) => cl.subject).filter((x): x is string => !!x))].sort().map((sj) => (
+                <option key={sj} value={sj} />
+              ))}
+            </datalist>
+            <p className="mt-1 text-[0.74rem] text-gray-500">{m.subjectHelp}</p>
+          </div>
+          {formSpecialties.length > 0 && (
+            <fieldset className="sm:col-span-3">
+              <legend className="text-[0.8rem] font-medium text-gray-700">{m.specialtiesLabel}</legend>
+              <p className="text-[0.74rem] text-gray-500">{m.specialtiesHelp}</p>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {formSpecialties.map((sp) => {
+                  const on = specialtyIds.includes(sp.id);
+                  return (
+                    <label key={sp.id} className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-[0.82rem] ${on ? "border-ink bg-ink text-paper" : "border-gray-200 bg-white text-gray-700"}`}>
+                      <input type="checkbox" className="sr-only" checked={on} onChange={() => setSpecialtyIds(on ? specialtyIds.filter((id) => id !== sp.id) : [...specialtyIds, sp.id])} />
+                      {sp.name}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
+          <fieldset className="sm:col-span-3">
+            <legend className="text-[0.8rem] font-medium text-gray-700">{m.slotsLabel}</legend>
+            <div className="mt-1.5 space-y-2">
+              {slotDrafts.map((slot, i) => {
+                const clash = classes.find(
+                  (o) => o.id !== editingId && form.teacher_id && o.teacher_id === form.teacher_id && o.slots.some((os) => slotsOverlap({ ...slot, start_time: `${slot.start_time}:00`, end_time: `${slot.end_time}:00` }, os)),
+                );
+                const update = (patch: Partial<SlotDraft>) => setSlotDrafts(slotDrafts.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+                return (
+                  <div key={i}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select value={slot.weekday} onChange={(e) => update({ weekday: Number(e.target.value) })} className={`${inputClass} sm:w-40`} aria-label={m.slotDay}>
+                        {m.dayNames.map((d, k) => (
+                          <option key={d} value={k + 1}>
+                            {d}
+                          </option>
+                        ))}
+                      </select>
+                      <input type="time" required value={slot.start_time} onChange={(e) => update({ start_time: e.target.value })} className={`${inputClass} sm:w-32`} aria-label={m.slotStart} />
+                      <span className="text-gray-400">–</span>
+                      <input type="time" required value={slot.end_time} onChange={(e) => update({ end_time: e.target.value })} className={`${inputClass} sm:w-32`} aria-label={m.slotEnd} />
+                      <button type="button" onClick={() => setSlotDrafts(slotDrafts.filter((_, j) => j !== i))} className="text-[0.78rem] text-red-600 hover:underline">
+                        {m.removeSlot}
+                      </button>
+                    </div>
+                    {clash && <p className="mt-1 text-[0.74rem] text-amber-700">{m.slotOverlapTeacher.replace("{other}", clash.name)}</p>}
+                  </div>
+                );
+              })}
+              <button type="button" onClick={() => setSlotDrafts([...slotDrafts, slotDrafts.length > 0 ? { ...slotDrafts[slotDrafts.length - 1] } : DEFAULT_SLOT])} className="text-[0.82rem] font-medium text-accent-dark hover:underline">
+                {m.addSlot}
+              </button>
+            </div>
+          </fieldset>
           <button type="submit" disabled={saving} className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50 sm:col-span-3">
             {saving ? c.saving : editingId ? c.saveEdits : c.save}
           </button>
@@ -339,6 +445,15 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                         <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-800">{st.waitingCount.replace("{n}", String(waiting.length))}</span>
                       )}
                       <span className="text-gray-400">{cl.teachers ? `${cl.teachers.first_name} ${cl.teachers.last_name}` : m.noTeacher}</span>
+                    </span>
+                    <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[0.74rem]">
+                      {cl.subject && <span className="rounded-full bg-accent-soft px-2 py-0.5 font-semibold text-ink">{cl.subject}</span>}
+                      {cl.specialty_ids.map((id) => (
+                        <span key={id} className="rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-800">
+                          {specialties.find((sp) => sp.id === id)?.name}
+                        </span>
+                      ))}
+                      {cl.slots.length === 0 ? <span className="text-gray-400">{m.noSlots}</span> : cl.slots.map((sl) => <span key={sl.id} className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700">{slotText(sl, locale)}</span>)}
                     </span>
                     {cl.capacity !== null && (
                       <span className="mt-1.5 block h-1.5 w-full max-w-[14rem] overflow-hidden rounded-full bg-gray-100" aria-hidden="true">

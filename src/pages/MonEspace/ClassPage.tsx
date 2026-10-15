@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useLocale } from "../../i18n/LocaleContext";
+import { slotText } from "../../lib/programs";
 import { classLabel } from "../../lib/programs";
 import SyllabusProgressSection from "./SyllabusProgressSection";
 import MaterialsSection from "./MaterialsSection";
@@ -20,6 +21,9 @@ interface ClassData {
   id: string;
   name: string;
   capacity: number | null;
+  subject: string | null;
+  class_slots: { weekday: number; start_time: string; end_time: string }[];
+  class_specialties: { specialties: { name: string } | null }[];
   room: string | null;
   rooms: { name: string } | null;
   organization_id: string;
@@ -81,7 +85,7 @@ export default function ClassPage() {
     async function load() {
       const { data } = await supabase
         .from("classes")
-        .select("id, name, capacity, room, rooms(name), organization_id, teacher_id, programs(name, kind), levels(name), teachers(first_name, last_name), class_students(status, students(id, first_name, last_name, kind, grade_level, school_name))")
+        .select("id, name, subject, class_slots(weekday, start_time, end_time), class_specialties(specialties(name)), capacity, room, rooms(name), organization_id, teacher_id, programs(name, kind), levels(name), teachers(first_name, last_name), class_students(status, students(id, first_name, last_name, kind, grade_level, school_name))")
         .eq("id", classId)
         .maybeSingle();
       if (!data) {
@@ -222,6 +226,13 @@ export default function ClassPage() {
         <div className="min-w-0">
           <span className="rounded-full bg-accent-soft px-3 py-1 text-[0.72rem] font-bold text-ink">{cls.programs?.name}</span>
           <h1 className="mt-3 text-[1.7rem] font-extrabold text-gray-900">{[cls.levels?.name, cls.name].filter(Boolean).join(" · ")}</h1>
+          {(cls.subject || cls.class_specialties.length > 0 || cls.class_slots.length > 0) && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {cls.subject && <span className="rounded-full bg-ink px-2.5 py-0.5 text-[0.72rem] font-semibold text-white">{cls.subject}</span>}
+              {cls.class_specialties.map((cs, i) => cs.specialties && <span key={i} className="rounded-full bg-accent-soft px-2.5 py-0.5 text-[0.72rem] font-semibold text-ink">{cs.specialties.name}</span>)}
+              {[...cls.class_slots].sort((a, b) => a.weekday - b.weekday || a.start_time.localeCompare(b.start_time)).map((sl, i) => <span key={i} className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[0.72rem] font-medium text-gray-700">{slotText(sl, locale)}</span>)}
+            </div>
+          )}
           <p className="mt-1 text-[0.88rem] text-gray-500">
             {cls.teachers ? `${cls.teachers.first_name} ${cls.teachers.last_name}` : m.noTeacher} · {roomName ? `${m.room} ${roomName}` : m.noRoom}
             {cls.capacity ? ` · ${m.spots.replace("{n}", String(students.length)).replace("{max}", String(cls.capacity))}` : ""}

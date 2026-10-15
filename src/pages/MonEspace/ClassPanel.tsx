@@ -247,7 +247,7 @@ export default function ClassPanel({ cls, label, program, people, waiting, organ
         </div>
       )}
 
-      <ScheduleSessionsForm classId={cls.id} defaultRoomId={cls.room_id} teacherId={cls.teacher_id} organizationId={organizationId} />
+      <ScheduleSessionsForm classId={cls.id} defaultRoomId={cls.room_id} teacherId={cls.teacher_id} organizationId={organizationId} slots={cls.slots} />
 
       <SyllabusProgressSection key={chaptersKey} classId={cls.id} />
       <button type="button" onClick={() => setShowChapters(true)} className="mt-2 text-[0.8rem] font-medium text-gray-700 hover:underline">

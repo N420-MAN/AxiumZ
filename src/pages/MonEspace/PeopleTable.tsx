@@ -15,6 +15,7 @@ import { useAcceptedAccounts } from "../../features/accounts/useAcceptedAccounts
 import DirectoryField from "./DirectoryField";
 import SuggestInput from "./SuggestInput";
 import { useOrgDirectory } from "../../features/directory/useOrgDirectory";
+import PackPicker from "./PackPicker";
 import ClassPicker, { type ExistingPlacement, type PlacementChoice } from "./ClassPicker";
 import GuardianPicker from "./GuardianPicker";
 import AccountStatus from "./AccountStatus";
@@ -33,6 +34,7 @@ interface PersonRow {
   grade_level: string | null;
   user_id: string | null;
   created_at: string;
+  pack_id: string | null;
   class_students: { id: string; class_id: string }[];
   class_wishes: { id: string; program_id: string; level_id: string | null; note: string | null; fulfilled_at: string | null }[];
 }
@@ -61,7 +63,7 @@ async function fetchPeople(organizationId: string, kind: PersonKind) {
     supabase
       .from("students")
       .select(
-        "id, first_name, last_name, email, phone, address, school_name, grade_level, user_id, created_at, class_students(id, class_id), class_wishes(id, program_id, level_id, note, fulfilled_at)",
+        "id, first_name, last_name, email, phone, address, school_name, grade_level, user_id, created_at, pack_id, class_students(id, class_id), class_wishes(id, program_id, level_id, note, fulfilled_at)",
       )
       .eq("organization_id", organizationId)
       .eq("kind", kind)
@@ -87,6 +89,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   const guardianKind = guardianKindFor(kind);
   const { t } = useLocale();
   const pp = t.monEspace.people;
+  const pk = t.monEspace.packPicker;
   const m = t.monEspace.gestion.students;
   const c = t.monEspace.gestion.common;
   const inv = t.monEspace.invitations;
@@ -127,6 +130,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   const [removedKeys, setRemovedKeys] = useState<Set<string>>(new Set());
   const [guardianChoice, setGuardianChoice] = useState<GuardianChoice>(NO_GUARDIAN);
   const [consent, setConsent] = useState(false);
+  const [packId, setPackId] = useState("");
   const [saving, setSaving] = useState(false);
   const [inviting, setInviting] = useState<string | null>(null);
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({});
@@ -257,6 +261,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
       ]
     : [];
   const takenClassIds = editingPerson ? editingPerson.class_students.map((cs) => cs.class_id) : [];
+  const removedClassIdSet = new Set(editingPerson ? editingPerson.class_students.filter((cs) => removedKeys.has(`c:${cs.id}`)).map((cs) => cs.class_id) : []);
 
   // Someone who already accepted their invitation signs in with this address:
   // changing it here would silently disconnect the login from the record.
@@ -268,6 +273,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   function resetForm() {
     setForm(EMPTY_FORM);
     setSelection([]);
+    setPackId("");
     setRemovedKeys(new Set());
     setConsent(false);
     // A parent is mandatory for an élève: start with the form already open.
@@ -295,6 +301,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
       grade_level: p.grade_level ?? "",
     });
     setSelection([]);
+    setPackId(p.pack_id ?? "");
     setRemovedKeys(new Set());
     setGuardianChoice(NO_GUARDIAN);
     setConsent(false);
@@ -380,6 +387,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
       }
       const result = created as { student_id: string; guardian_id: string | null; guardian_created: boolean };
       personId = result.student_id;
+      if (packId) await supabase.from("students").update({ pack_id: packId }).eq("id", result.student_id);
       toInvite.push({ table: "students", id: result.student_id, email: fields.email });
       if (result.guardian_created && result.guardian_id && newGuardian?.email.trim()) {
         toInvite.push({ table: "parents", id: result.guardian_id, email: newGuardian.email.trim() });
@@ -414,6 +422,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
           address: fields.address || null,
           school_name: fields.school_name || null,
           grade_level: fields.grade_level || null,
+          pack_id: packId || null,
         })
         .eq("id", editingId);
       const removedClassRows = existingPlacements.filter((x) => removedKeys.has(x.key) && !x.wish).map((x) => x.key.slice(2));
@@ -603,6 +612,20 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
             inputClassName={inputClass}
           />
 
+          <PackPicker
+            personKind={kind}
+            programs={programs}
+            levels={levels}
+            classes={classes}
+            packs={structure.packs}
+            organizationId={organizationId}
+            takenClassIds={takenClassIds.filter((id) => !removedClassIdSet.has(id))}
+            selection={selection}
+            onChange={setSelection}
+            packId={packId}
+            onPackChange={setPackId}
+          />
+
           <ClassPicker
             personKind={kind}
             programs={programs}
@@ -782,6 +805,11 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex flex-wrap gap-1">
+                        {p.pack_id && (
+                          <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[0.72rem] font-semibold text-ink">
+                            {pk.packChip.replace("{name}", structure.packs.find((x) => x.id === p.pack_id)?.name ?? "—")}
+                          </span>
+                        )}
                         {p.class_students.map((cs) => (
                           <span key={cs.id} className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[0.72rem] text-gray-700">
                             {classLabelById(cs.class_id)}

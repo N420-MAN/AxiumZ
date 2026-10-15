@@ -16,6 +16,31 @@ export interface ProgramRow {
   tracks_school_progress: boolean;
 }
 
+export interface SpecialtyRow {
+  id: string;
+  program_id: string;
+  level_id: string;
+  name: string;
+}
+
+export interface PackRow {
+  id: string;
+  program_id: string;
+  level_id: string;
+  name: string;
+  specialty_ids: string[];
+  subjects: { id: string; subject: string; position: number }[];
+}
+
+/** One fixed weekly time of a class. weekday: 1 = Monday ... 7 = Sunday; times are "HH:MM:SS". */
+export interface ClassSlot {
+  id: string;
+  weekday: number;
+  start_time: string;
+  end_time: string;
+  room_id: string | null;
+}
+
 export interface LevelRow {
   id: string;
   program_id: string;
@@ -32,8 +57,27 @@ export interface StructureClass {
   capacity: number | null;
   room_id: string | null;
   created_at: string;
+  /** The course this class belongs to (Maths, Physique…): groups the same course given on several days. */
+  subject: string | null;
   teachers: { first_name: string; last_name: string } | null;
   class_students: { count: number }[];
+  specialty_ids: string[];
+  slots: ClassSlot[];
+}
+
+const DAY_SHORT = {
+  fr: ["", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
+  en: ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+};
+
+/** "Lun 17:00–19:00" */
+export function slotText(slot: Pick<ClassSlot, "weekday" | "start_time" | "end_time">, locale: "fr" | "en" = "fr"): string {
+  return `${DAY_SHORT[locale][slot.weekday] ?? ""} ${slot.start_time.slice(0, 5)}–${slot.end_time.slice(0, 5)}`;
+}
+
+/** Two weekly slots collide when they are on the same day and the hours overlap. */
+export function slotsOverlap(a: Pick<ClassSlot, "weekday" | "start_time" | "end_time">, b: Pick<ClassSlot, "weekday" | "start_time" | "end_time">): boolean {
+  return a.weekday === b.weekday && a.start_time < b.end_time && b.start_time < a.end_time;
 }
 
 /** Language programmes get the four-skill scoring and the placement test. */
