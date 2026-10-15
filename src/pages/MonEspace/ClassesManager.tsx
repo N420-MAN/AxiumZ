@@ -198,9 +198,11 @@ export default function ClassesManager({ organizationId }: { organizationId: str
     if (editingId) {
       ({ error: saveError } = await supabase.from("classes").update(payload).eq("id", editingId));
     } else {
-      const { data: created, error: insertError } = await supabase.from("classes").insert({ organization_id: organizationId, ...payload }).select("id").single();
-      saveError = insertError;
-      classId = created?.id ?? null;
+      // The id is made here: asking the database to return the new row would be refused, because the
+      // read rule for classes cannot see a row that is still being inserted.
+      const newId = crypto.randomUUID();
+      ({ error: saveError } = await supabase.from("classes").insert({ id: newId, organization_id: organizationId, ...payload }));
+      classId = saveError ? null : newId;
     }
     if (!saveError && classId) {
       // Specialties and weekly slots are replaced as a whole with what the form shows.

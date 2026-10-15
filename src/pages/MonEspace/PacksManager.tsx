@@ -71,13 +71,9 @@ export default function PacksManager({ organizationId }: { organizationId: strin
     if (editingId) {
       failure = (await supabase.from("packs").update({ name: name.trim() }).eq("id", editingId)).error;
     } else {
-      const { data, error: insertError } = await supabase
-        .from("packs")
-        .insert({ organization_id: organizationId, program_id: program.id, level_id: level.id, name: name.trim() })
-        .select("id")
-        .single();
-      failure = insertError;
-      packId = (data as { id: string } | null)?.id ?? null;
+      const newId = crypto.randomUUID();
+      failure = (await supabase.from("packs").insert({ id: newId, organization_id: organizationId, program_id: program.id, level_id: level.id, name: name.trim() })).error;
+      packId = failure ? null : newId;
     }
     if (!failure && packId) {
       failure = (await supabase.from("pack_specialties").delete().eq("pack_id", packId)).error;
