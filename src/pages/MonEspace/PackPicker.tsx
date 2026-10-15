@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useLocale } from "../../i18n/LocaleContext";
-import { type LevelRow, type PackRow, type PersonKind, type ProgramRow, type StructureClass, audienceAllows, enrolledCount, isFull, isLanguageProgram, seatText, slotText, slotsOverlap } from "../../lib/programs";
+import { type LevelRow, type PackRow, type PersonKind, type ProgramRow, type StructureClass, audienceAllows, enrolledCount, isFull, isLanguageProgram, seatText, priceText, slotText, slotsOverlap } from "../../lib/programs";
 import type { PlacementChoice } from "./ClassPicker";
 
 const selectClass = "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.88rem] text-gray-900 outline-none focus:border-gray-400";
@@ -121,10 +121,11 @@ export default function PackPicker({ personKind, programs, levels, classes, pack
         </select>
         <select value={pickId} disabled={!levelId} onChange={(e) => { setPickId(e.target.value); setChoice({}); }} className={`${selectClass} disabled:bg-gray-100`} aria-label={pk.heading}>
           <option value="">{levelId && levelPacks.length === 0 ? pk.noPack : pk.choosePack}</option>
-          {levelPacks.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+          {levelPacks.map((x) => <option key={x.id} value={x.id}>{x.price_trimestre !== null ? `${x.name} — ${priceText(x.price_trimestre, locale)}` : x.name}</option>)}
         </select>
       </div>
 
+      {pack && pack.price_trimestre !== null && <p className="mt-2 text-[0.84rem] font-semibold text-ink">{priceText(pack.price_trimestre, locale)}</p>}
       {pack && (
         <div className="mt-3 space-y-3">
           {rows.map((r) => (

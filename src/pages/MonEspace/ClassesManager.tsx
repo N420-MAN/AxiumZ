@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useStructure } from "../../features/structure/useStructure";
-import { type StructureClass, classLabel, enrolledCount, searchable, seatText, slotText, slotsOverlap } from "../../lib/programs";
+import { type StructureClass, classLabel, enrolledCount, searchable, seatText, priceText, slotText, slotsOverlap } from "../../lib/programs";
 import FilterBar from "./FilterBar";
 import NameInput from "./NameInput";
 import ClassPanel, { type PersonOption, type WaitingWish } from "./ClassPanel";
@@ -32,7 +32,7 @@ interface SlotDraft {
   start_time: string;
   end_time: string;
 }
-const EMPTY_FORM = { program_id: "", level_id: "", name: "", subject: "", teacher_id: "", capacity: "", room_id: "" };
+const EMPTY_FORM = { program_id: "", level_id: "", name: "", subject: "", teacher_id: "", capacity: "", room_id: "", price_trimestre: "" };
 const DEFAULT_SLOT: SlotDraft = { weekday: 1, start_time: "17:00", end_time: "19:00" };
 const EMPTY_REF: RefData = { teachers: [], rooms: [], people: [], wishes: [] };
 
@@ -169,6 +169,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       teacher_id: cl.teacher_id ?? "",
       capacity: cl.capacity?.toString() ?? "",
       room_id: cl.room_id ?? "",
+      price_trimestre: cl.price_trimestre?.toString() ?? "",
     });
     setSpecialtyIds(cl.specialty_ids);
     setSlotDrafts(cl.slots.map((s) => ({ weekday: s.weekday, start_time: s.start_time.slice(0, 5), end_time: s.end_time.slice(0, 5) })));
@@ -192,6 +193,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       teacher_id: form.teacher_id || null,
       capacity: form.capacity ? Number(form.capacity) : null,
       room_id: form.room_id || null,
+      price_trimestre: form.price_trimestre.trim() ? Number(form.price_trimestre) : null,
     };
     let classId = editingId;
     let saveError: unknown = null;
@@ -306,6 +308,11 @@ export default function ClassesManager({ organizationId }: { organizationId: str
             ))}
           </select>
           <input type="number" min="1" placeholder={m.capacityPlaceholder} value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} className={inputClass} />
+          <div className="sm:col-span-3">
+            <label className="text-[0.8rem] font-medium text-gray-600" htmlFor="class-price">{m.priceLabel}</label>
+            <input id="class-price" type="number" min="0" step="0.01" value={form.price_trimestre} onChange={(e) => setForm({ ...form, price_trimestre: e.target.value })} className={`${inputClass} mt-1 sm:max-w-xs`} />
+            <p className="mt-1 text-[0.74rem] text-gray-500">{m.priceHelp}</p>
+          </div>
           <div>
             <select value={form.room_id} onChange={(e) => setForm({ ...form, room_id: e.target.value })} className={inputClass} aria-label={rm.pickRoom}>
               <option value="">{rm.noRoom}</option>
@@ -455,6 +462,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                           {specialties.find((sp) => sp.id === id)?.name}
                         </span>
                       ))}
+                      {cl.price_trimestre !== null && <span className="rounded-full bg-accent-soft px-2 py-0.5 font-semibold text-ink">{priceText(cl.price_trimestre, locale)}</span>}
                       {cl.slots.length === 0 ? <span className="text-gray-400">{m.noSlots}</span> : cl.slots.map((sl) => <span key={sl.id} className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700">{slotText(sl, locale)}</span>)}
                     </span>
                     {cl.capacity !== null && (

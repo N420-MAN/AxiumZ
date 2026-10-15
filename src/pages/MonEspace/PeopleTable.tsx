@@ -131,6 +131,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   const [guardianChoice, setGuardianChoice] = useState<GuardianChoice>(NO_GUARDIAN);
   const [consent, setConsent] = useState(false);
   const [packId, setPackId] = useState("");
+  const [mode, setMode] = useState<"" | "pack" | "class">("");
   const [saving, setSaving] = useState(false);
   const [inviting, setInviting] = useState<string | null>(null);
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({});
@@ -274,6 +275,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
     setForm(EMPTY_FORM);
     setSelection([]);
     setPackId("");
+    setMode("");
     setRemovedKeys(new Set());
     setConsent(false);
     // A parent is mandatory for an élève: start with the form already open.
@@ -302,6 +304,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
     });
     setSelection([]);
     setPackId(p.pack_id ?? "");
+    setMode("");
     setRemovedKeys(new Set());
     setGuardianChoice(NO_GUARDIAN);
     setConsent(false);
@@ -612,7 +615,23 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
             inputClassName={inputClass}
           />
 
-          <PackPicker
+          <div className="sm:col-span-3">
+            <p className="text-[0.82rem] font-semibold text-gray-700">{pk.modeHelp}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(["pack", "class"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setMode(v)}
+                  className={`rounded-lg border px-4 py-2 text-[0.85rem] font-medium ${mode === v ? "border-ink bg-ink text-white" : "border-gray-200 bg-white text-gray-700 hover:border-gray-400"}`}
+                >
+                  {v === "pack" ? pk.modePack : pk.modeClass}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {mode === "pack" && <PackPicker
             personKind={kind}
             programs={programs}
             levels={levels}
@@ -624,9 +643,10 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
             onChange={setSelection}
             packId={packId}
             onPackChange={setPackId}
-          />
+          />}
 
-          <ClassPicker
+          {mode !== "" || selection.length > 0 || existingPlacements.length > 0 ? <ClassPicker
+            chipsOnly={mode !== "class"}
             personKind={kind}
             programs={programs}
             levels={levels}
@@ -637,7 +657,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
             existing={existingPlacements}
             onToggleExisting={toggleExisting}
             required
-          />
+          /> : null}
 
           <GuardianPicker
             kind={guardianKind}

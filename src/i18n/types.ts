@@ -417,6 +417,7 @@ export interface Dictionary {
       programmeLabel: string;
       niveauLabel: string;
       namePlaceholder: string;
+      priceLabel: string;
       specialtiesLabel: string;
       specialtiesHelp: string;
       subjectsLabel: string;
@@ -437,6 +438,9 @@ export interface Dictionary {
       noSpecialty: string;
     };
     packPicker: {
+      modePack: string;
+      modeClass: string;
+      modeHelp: string;
       heading: string;
       help: string;
       choosePack: string;
@@ -1003,6 +1007,8 @@ export interface Dictionary {
         pickTeacherOptional: string;
       subjectPlaceholder: string;
       subjectHelp: string;
+      priceLabel: string;
+      priceHelp: string;
       specialtiesLabel: string;
       specialtiesHelp: string;
       slotsLabel: string;

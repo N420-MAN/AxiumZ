@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
 import { useLocale } from "../../i18n/LocaleContext";
 import { useStructure } from "../../features/structure/useStructure";
-import { isLanguageProgram } from "../../lib/programs";
+import { isLanguageProgram, priceText } from "../../lib/programs";
 import { useConfirmDialog } from "./useConfirmDialog";
 
 const inputClass =
@@ -14,7 +14,7 @@ const chip = (on: boolean) =>
 
 // A pack = programme + niveau (+ spécialités) + the subjects a student follows together.
 export default function PacksManager({ organizationId }: { organizationId: string }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const pk = t.monEspace.packs;
   const c = t.monEspace.gestion.common;
   const { programs, levels, classes, specialties, packs, loading, reload } = useStructure(organizationId);
@@ -27,6 +27,7 @@ export default function PacksManager({ organizationId }: { organizationId: strin
   const [specIds, setSpecIds] = useState<string[]>([]);
   const [subjects, setSubjects] = useState<string[]>([]);
   const [subjectDraft, setSubjectDraft] = useState("");
+  const [price, setPrice] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +49,7 @@ export default function PacksManager({ organizationId }: { organizationId: strin
     setSpecIds([]);
     setSubjects([]);
     setSubjectDraft("");
+    setPrice("");
   }
 
   function addSubject(s: string) {
@@ -69,10 +71,10 @@ export default function PacksManager({ organizationId }: { organizationId: strin
     let packId = editingId;
     let failure: unknown = null;
     if (editingId) {
-      failure = (await supabase.from("packs").update({ name: name.trim() }).eq("id", editingId)).error;
+      failure = (await supabase.from("packs").update({ name: name.trim(), price_trimestre: price.trim() ? Number(price) : null }).eq("id", editingId)).error;
     } else {
       const newId = crypto.randomUUID();
-      failure = (await supabase.from("packs").insert({ id: newId, organization_id: organizationId, program_id: program.id, level_id: level.id, name: name.trim() })).error;
+      failure = (await supabase.from("packs").insert({ id: newId, organization_id: organizationId, program_id: program.id, level_id: level.id, name: name.trim(), price_trimestre: price.trim() ? Number(price) : null })).error;
       packId = failure ? null : newId;
     }
     if (!failure && packId) {
@@ -112,6 +114,10 @@ export default function PacksManager({ organizationId }: { organizationId: strin
         <>
           <form onSubmit={handleSave} className="app-card mt-4 max-w-2xl space-y-4 p-4">
             <input required value={name} onChange={(e) => setName(e.target.value)} placeholder={pk.namePlaceholder} className={inputClass} />
+            <div>
+              <label className="text-[0.8rem] font-semibold text-gray-700" htmlFor="pack-price">{pk.priceLabel}</label>
+              <input id="pack-price" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className={`${inputClass} mt-1 sm:max-w-xs`} />
+            </div>
             {levelSpecs.length > 0 && (
               <div>
                 <p className="text-[0.8rem] font-semibold text-gray-700">{pk.specialtiesLabel}</p>
@@ -154,9 +160,9 @@ export default function PacksManager({ organizationId }: { organizationId: strin
             {items.map((p) => (
               <div key={p.id} className="rounded-lg border border-gray-200 bg-white px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[0.92rem] font-semibold text-gray-900">{p.name}</span>
+                  <span className="text-[0.92rem] font-semibold text-gray-900">{p.name}{p.price_trimestre !== null && <span className="ml-2 rounded-full bg-accent-soft px-2.5 py-0.5 text-[0.72rem] font-semibold text-ink">{priceText(p.price_trimestre, locale)}</span>}</span>
                   <div className="flex items-center gap-3">
-                    <button type="button" className={linkClass} onClick={() => { setEditingId(p.id); setName(p.name); setSpecIds(p.specialty_ids); setSubjects(p.subjects.map((s) => s.subject)); setError(null); }}>{pk.edit}</button>
+                    <button type="button" className={linkClass} onClick={() => { setEditingId(p.id); setName(p.name); setPrice(p.price_trimestre?.toString() ?? ""); setSpecIds(p.specialty_ids); setSubjects(p.subjects.map((s) => s.subject)); setError(null); }}>{pk.edit}</button>
                     <button type="button" disabled={busy} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-40"
                       onClick={() => confirm(`${c.delete} « ${p.name} » ?`, async () => { setBusy(true); const { error: delError } = await supabase.from("packs").delete().eq("id", p.id); setBusy(false); setError(delError ? humanizeError(delError) : null); await reload(); })}>{c.delete}</button>
                   </div>

@@ -8,6 +8,7 @@ import {
   audienceAllows,
   classLabel,
   isFull,
+  priceText,
   seatText,
 } from "../../lib/programs";
 
@@ -37,6 +38,8 @@ interface ClassPickerProps {
   existing?: ExistingPlacement[];
   onToggleExisting?: (key: string) => void;
   required?: boolean;
+  /** Show only what is already chosen (chips), not the selectors. */
+  chipsOnly?: boolean;
 }
 
 const selectClass =
@@ -55,8 +58,9 @@ export default function ClassPicker({
   existing = [],
   onToggleExisting,
   required = false,
+  chipsOnly = false,
 }: ClassPickerProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const cp = t.monEspace.classPicker;
 
   const [programId, setProgramId] = useState("");
@@ -99,6 +103,8 @@ export default function ClassPicker({
     return cp.wishChip.replace("{label}", choice.note ? `${base} · ${choice.note}` : base);
   }
 
+  if (chipsOnly && existing.length === 0 && selection.length === 0) return null;
+
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 sm:col-span-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -135,7 +141,7 @@ export default function ClassPicker({
         </div>
       )}
 
-      {openPrograms.length === 0 ? (
+      {chipsOnly ? null : openPrograms.length === 0 ? (
         <p className="mt-2 text-[0.78rem] text-gray-500">{cp.noPrograms}</p>
       ) : (
         <>
@@ -191,6 +197,7 @@ export default function ClassPicker({
                       <input type="radio" name="class-option" disabled={full} checked={option === cl.id} onChange={() => setOption(cl.id)} />
                       <span>
                         {cl.name}
+                        {cl.price_trimestre !== null && <span className="ml-1.5 text-[0.74rem] font-semibold text-ink">· {priceText(cl.price_trimestre, locale)}</span>}
                         {cl.teachers && <span className="ml-1.5 text-[0.74rem] text-gray-400">· {cl.teachers.first_name} {cl.teachers.last_name}</span>}
                       </span>
                     </span>

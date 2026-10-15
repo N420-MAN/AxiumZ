@@ -28,6 +28,7 @@ export interface PackRow {
   program_id: string;
   level_id: string;
   name: string;
+  price_trimestre: number | null;
   specialty_ids: string[];
   subjects: { id: string; subject: string; position: number }[];
 }
@@ -59,6 +60,8 @@ export interface StructureClass {
   created_at: string;
   /** The course this class belongs to (Maths, Physique…): groups the same course given on several days. */
   subject: string | null;
+  /** Price of this class taken alone, per trimester (MAD). */
+  price_trimestre: number | null;
   teachers: { first_name: string; last_name: string } | null;
   class_students: { count: number }[];
   specialty_ids: string[];
@@ -71,6 +74,11 @@ const DAY_SHORT = {
 };
 
 /** "Lun 17:00–19:00" */
+/** "1 200 MAD / trimestre". */
+export function priceText(n: number, locale: "fr" | "en" = "fr"): string {
+  return `${new Intl.NumberFormat(locale === "en" ? "en-GB" : "fr-FR", { maximumFractionDigits: 2 }).format(n)} MAD / ${locale === "en" ? "term" : "trimestre"}`;
+}
+
 export function slotText(slot: Pick<ClassSlot, "weekday" | "start_time" | "end_time">, locale: "fr" | "en" = "fr"): string {
   return `${DAY_SHORT[locale][slot.weekday] ?? ""} ${slot.start_time.slice(0, 5)}–${slot.end_time.slice(0, 5)}`;
 }
