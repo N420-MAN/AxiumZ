@@ -258,7 +258,7 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
                     <button type="button" disabled={busyId === program.id || !editForm.name.trim()} onClick={() => handleSaveEdit(program)} className={`${linkClass} font-medium`}>
                       {c.save}
                     </button>
-                    <button type="button" onClick={() => setEditingId(null)} className={linkClass}>
+                    <button data-write type="button" onClick={() => setEditingId(null)} className={linkClass}>
                       {c.cancel}
                     </button>
                   </div>
@@ -283,13 +283,13 @@ export default function ProgramsManager({ organizationId }: { organizationId: st
                   <p className="mt-0.5 text-[0.76rem] text-gray-400">{pg.usedBy.replace("{classes}", String(classCount)).replace("{levels}", String(levelCount))}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => startEdit(program)} className={linkClass}>
+                  <button data-write type="button" onClick={() => startEdit(program)} className={linkClass}>
                     {c.edit}
                   </button>
-                  <button type="button" disabled={busyId === program.id} onClick={() => handleToggleActive(program)} className={linkClass}>
+                  <button data-write type="button" disabled={busyId === program.id} onClick={() => handleToggleActive(program)} className={linkClass}>
                     {program.is_active ? pg.deactivate : pg.reactivate}
                   </button>
-                  <button type="button" disabled={busyId === program.id} onClick={() => handleDelete(program)} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-50">
+                  <button data-write type="button" disabled={busyId === program.id} onClick={() => handleDelete(program)} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-50">
                     {c.delete}
                   </button>
                 </div>

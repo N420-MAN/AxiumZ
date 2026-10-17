@@ -31,8 +31,9 @@ function startOfDayISO(offsetDays = 0) {
 }
 
 export default function TodayView() {
-  const { profile, memberships, isSuperAdmin } = useAuth();
-  const isAdmin = isSuperAdmin || memberships.some((x) => x.role_name === "center_admin");
+  const { profile, memberships, isSuperAdmin, isAssistant } = useAuth();
+  const isAdminRole = isSuperAdmin || memberships.some((x) => x.role_name === "center_admin");
+  const isAdmin = isAdminRole || isAssistant; // reception sees the whole centre
   const { locale, t } = useLocale();
   const m = t.monEspace.today;
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
@@ -177,7 +178,7 @@ export default function TodayView() {
 
       <AtRiskPanel />
 
-      {openSess && <SessionDetailPanel sessionId={openSess.id} className={title(openSess)} canEdit canManage={isAdmin} onClose={() => setOpenId(null)} onChanged={() => setRev((x) => x + 1)} />}
+      {openSess && <SessionDetailPanel sessionId={openSess.id} className={title(openSess)} canEdit={!isAssistant} canManage={isAdminRole} onClose={() => setOpenId(null)} onChanged={() => setRev((x) => x + 1)} />}
     </div>
   );
 }

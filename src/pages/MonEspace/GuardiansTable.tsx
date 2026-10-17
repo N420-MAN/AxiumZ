@@ -1,3 +1,4 @@
+import { useAuth } from "../../features/auth/AuthContext";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
@@ -67,6 +68,7 @@ async function fetchGuardians(organizationId: string, kind: GuardianKind) {
 export default function GuardiansTable({ kind, organizationId }: { kind: GuardianKind; organizationId: string }) {
   const isSupervisor = kind === "superviseur";
   const { t } = useLocale();
+  const { isAssistant } = useAuth();
   const gd = t.monEspace.guardian;
   const c = t.monEspace.gestion.common;
   const inv = t.monEspace.invitations;
@@ -425,9 +427,9 @@ export default function GuardiansTable({ kind, organizationId }: { kind: Guardia
                       <button type="button" onClick={() => openEditForm(g)} className="mr-3 text-[0.78rem] text-gray-600 hover:underline">
                         {c.edit}
                       </button>
-                      <button type="button" onClick={() => handleDelete(g)} className="text-[0.78rem] text-red-600 hover:underline">
+                      {!isAssistant && <button type="button" onClick={() => handleDelete(g)} className="text-[0.78rem] text-red-600 hover:underline">
                         {c.delete}
-                      </button>
+                      </button>}
                     </td>
                   </tr>
                 );

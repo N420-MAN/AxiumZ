@@ -361,3 +361,10 @@ html.theme-switching *::after {
 }
 .app-slide-in { animation: app-slide-in 0.22s var(--ease-editorial); }
 .app-fade-in { animation: app-fade-in 0.28s var(--ease-editorial); }
+
+/* Reception (assistant) sees the structure and the teachers but never edits them:
+   forms and anything marked data-write disappear. The database refuses the writes anyway. */
+.read-only-zone form,
+.read-only-zone [data-write] {
+  display: none !important;
+}

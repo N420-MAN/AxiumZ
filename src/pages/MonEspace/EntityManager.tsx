@@ -263,7 +263,7 @@ export default function EntityManager({ table, organizationId, title, extraField
     <div className="rounded-lg border border-gray-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <h3 className="text-[1rem] font-semibold text-gray-900">{title}</h3>
-        <button
+        <button data-write
           type="button"
           onClick={() => (showForm ? setShowForm(false) : openAddForm())}
           className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.82rem] font-medium text-paper"
@@ -441,19 +441,21 @@ export default function EntityManager({ table, organizationId, title, extraField
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <AccountStatus
-                    state={accountState(row, accepted, acceptanceKnown)}
-                    busy={inviting === row.id}
-                    result={inviteResult[row.id]}
-                    onSend={() => handleInvite(row)}
-                  />
-                  <button type="button" onClick={() => setAnnouncingTo(row)} className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline">
+                  <span data-write>
+                    <AccountStatus
+                      state={accountState(row, accepted, acceptanceKnown)}
+                      busy={inviting === row.id}
+                      result={inviteResult[row.id]}
+                      onSend={() => handleInvite(row)}
+                    />
+                  </span>
+                  <button data-write type="button" onClick={() => setAnnouncingTo(row)} className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline">
                     {c.announce}
                   </button>
-                  <button type="button" onClick={() => openEditForm(row)} className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline">
+                  <button data-write type="button" onClick={() => openEditForm(row)} className="text-[0.8rem] text-gray-600 hover:text-gray-900 hover:underline">
                     {c.edit}
                   </button>
-                  <button
+                  <button data-write
                     type="button"
                     onClick={() =>
                       confirm(s.deleteConfirm.replace("{name}", `${row.first_name} ${row.last_name}`), () => handleDelete(row.id))

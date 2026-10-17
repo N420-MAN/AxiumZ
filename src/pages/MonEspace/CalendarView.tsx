@@ -94,12 +94,12 @@ function startOfWeek(offsetWeeks: number) {
 }
 
 export default function CalendarView() {
-  const { isSuperAdmin, memberships } = useAuth();
+  const { isSuperAdmin, isAssistant, memberships } = useAuth();
   const { locale, t } = useLocale();
   const m = t.monEspace.calendar;
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
-  const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
+  const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin" || isAssistant;
   const orgId = memberships[0]?.organization_id;
 
   const [weekOffset, setWeekOffset] = useState(0);

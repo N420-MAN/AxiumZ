@@ -220,6 +220,7 @@ export interface Dictionary {
       teachGroup: string;
       myGroup: string;
       roleAdmin: string;
+      roleAssistant: string;
       roleTeacher: string;
       roleMember: string;
       overviewNav: string;
@@ -1134,6 +1135,13 @@ export interface Dictionary {
         tableGrades: string;
         tableMembers: string;
       };
+      assistants: {
+        title: string;
+        description: string;
+        empty: string;
+        role: string;
+      };
+      readOnly: string;
       admins: {
         title: string;
         description: string;

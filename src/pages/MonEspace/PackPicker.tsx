@@ -121,11 +121,11 @@ export default function PackPicker({ personKind, programs, levels, classes, pack
         </select>
         <select value={pickId} disabled={!levelId} onChange={(e) => { setPickId(e.target.value); setChoice({}); }} className={`${selectClass} disabled:bg-gray-100`} aria-label={pk.heading}>
           <option value="">{levelId && levelPacks.length === 0 ? pk.noPack : pk.choosePack}</option>
-          {levelPacks.map((x) => <option key={x.id} value={x.id}>{x.price_trimestre !== null ? `${x.name} — ${priceText(x.price_trimestre, locale)}` : x.name}</option>)}
+          {levelPacks.map((x) => <option key={x.id} value={x.id}>{x.price_trimestre != null ? `${x.name} — ${priceText(x.price_trimestre, locale)}` : x.name}</option>)}
         </select>
       </div>
 
-      {pack && pack.price_trimestre !== null && <p className="mt-2 text-[0.84rem] font-semibold text-ink">{priceText(pack.price_trimestre, locale)}</p>}
+      {pack && pack.price_trimestre != null && <p className="mt-2 text-[0.84rem] font-semibold text-ink">{priceText(pack.price_trimestre, locale)}</p>}
       {pack && (
         <div className="mt-3 space-y-3">
           {rows.map((r) => (

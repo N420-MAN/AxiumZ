@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../features/auth/AuthContext";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
@@ -63,6 +65,8 @@ async function fetchRefData(organizationId: string): Promise<RefData> {
 
 export default function ClassesManager({ organizationId }: { organizationId: string }) {
   const { t, locale } = useLocale();
+  const { isAssistant } = useAuth();
+  const navigate = useNavigate();
   const m = t.monEspace.gestion.classes;
   const st = t.monEspace.structure;
   const rm = t.monEspace.rooms;
@@ -248,7 +252,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-[1rem] font-semibold text-gray-900">{m.title}</h2>
         {!noStructure && (
-          <button
+          <button data-write
             type="button"
             onClick={() => (showForm ? setShowForm(false) : openAddForm())}
             className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper"
@@ -444,7 +448,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
             return (
               <div key={cl.id} className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-                  <button type="button" onClick={() => setExpanded(expanded === cl.id ? null : cl.id)} className="min-w-0 flex-1 text-left">
+                  <button type="button" onClick={() => (isAssistant ? navigate(`/${locale}/mon-espace/classe/${cl.id}`) : setExpanded(expanded === cl.id ? null : cl.id))} className="min-w-0 flex-1 text-left">
                     <span className="text-[0.92rem] font-medium text-gray-900">{labelFor(cl)}</span>
                     <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[0.74rem]">
                       <span className={`rounded-full border px-2 py-0.5 font-medium ${full ? "border-red-200 bg-red-50 text-red-700" : "border-gray-200 bg-gray-50 text-gray-600"}`}>
@@ -462,7 +466,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                           {specialties.find((sp) => sp.id === id)?.name}
                         </span>
                       ))}
-                      {cl.price_trimestre !== null && <span className="rounded-full bg-accent-soft px-2 py-0.5 font-semibold text-ink">{priceText(cl.price_trimestre, locale)}</span>}
+                      {cl.price_trimestre != null && <span className="rounded-full bg-accent-soft px-2 py-0.5 font-semibold text-ink">{priceText(cl.price_trimestre, locale)}</span>}
                       {cl.slots.length === 0 ? <span className="text-gray-400">{m.noSlots}</span> : cl.slots.map((sl) => <span key={sl.id} className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700">{slotText(sl, locale)}</span>)}
                     </span>
                     {cl.capacity !== null && (
@@ -475,13 +479,13 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                     )}
                   </button>
                   <div className="flex items-center gap-3">
-                    <button type="button" onClick={() => openEditForm(cl)} className="text-[0.78rem] text-gray-600 hover:underline">
+                    <button data-write type="button" onClick={() => openEditForm(cl)} className="text-[0.78rem] text-gray-600 hover:underline">
                       {c.edit}
                     </button>
-                    <button type="button" onClick={() => handleDelete(cl)} className="text-[0.78rem] text-red-600 hover:underline">
+                    <button data-write type="button" onClick={() => handleDelete(cl)} className="text-[0.78rem] text-red-600 hover:underline">
                       {c.delete}
                     </button>
-                    <button type="button" onClick={() => setExpanded(expanded === cl.id ? null : cl.id)} className="text-[0.78rem] text-gray-500 hover:underline">
+                    <button data-write type="button" onClick={() => setExpanded(expanded === cl.id ? null : cl.id)} className="text-[0.78rem] text-gray-500 hover:underline">
                       {expanded === cl.id ? m.close : st.open}
                     </button>
                   </div>

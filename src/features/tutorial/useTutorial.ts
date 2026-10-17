@@ -38,6 +38,7 @@ export function useTutorialFile(): string | null {
 
   if (role === "super_admin") return "super-administrateur";
   if (role === "center_admin") return "administrateur";
+  if (role === "assistant") return "assistant";
   if (role === "teacher") return "enseignant";
   if (role === "student" || role === "parent") return kindFile;
   return null;

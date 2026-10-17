@@ -45,7 +45,7 @@ function initialsFrom(name: string): string {
 }
 
 export default function MonEspaceLayout() {
-  const { profile, memberships, isSuperAdmin, signOut, refresh } = useAuth();
+  const { profile, memberships, isSuperAdmin, isAssistant, signOut, refresh } = useAuth();
   const { t } = useLocale();
   const location = useLocation();
   const { lang } = useParams();
@@ -86,17 +86,19 @@ export default function MonEspaceLayout() {
 
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
   const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
+  // Reception sees what the admins see, and edits only subscriptions.
+  const isStaff = isAdmin || isAssistant;
   const isTeacher = primaryRole === "teacher";
   const displayName = profile?.full_name?.trim() || m.myAccount;
 
   const navItems: NavItem[] = [
-    { to: `${base}/aujourdhui`, label: isAdmin || isTeacher ? m.todayNav : m.overviewNav, icon: ICONS.today },
+    { to: `${base}/aujourdhui`, label: isStaff || isTeacher ? m.todayNav : m.overviewNav, icon: ICONS.today },
     { to: `${base}/planning`, label: m.planningNav, icon: ICONS.calendar },
-    ...(!isAdmin && !isTeacher ? [{ to: `${base}/cahier`, label: m.cahierNav, icon: ICONS.cahier }] : []),
+    ...(!isStaff && !isTeacher ? [{ to: `${base}/cahier`, label: m.cahierNav, icon: ICONS.cahier }] : []),
     ...(isTeacher ? [{ to: `${base}/classes`, label: m.classesNav, icon: ICONS.classes }] : []),
     ...(isAdmin || isTeacher ? [{ to: `${base}/notes`, label: "Notes", icon: ICONS.grades }] : []),
-    ...(isAdmin || isTeacher ? [{ to: `${base}/statistiques`, label: t.monEspace.statistics.navLabel, icon: ICONS.stats }] : []),
-    ...(isAdmin ? [{ to: `${base}/gestion`, label: m.manageNav, icon: ICONS.manage }] : []),
+    ...(isStaff || isTeacher ? [{ to: `${base}/statistiques`, label: t.monEspace.statistics.navLabel, icon: ICONS.stats }] : []),
+    ...(isStaff ? [{ to: `${base}/gestion`, label: m.manageNav, icon: ICONS.manage }] : []),
     { to: `${base}/annonces`, label: m.announcementsNav, icon: ICONS.announcements },
   ];
 
@@ -109,10 +111,10 @@ export default function MonEspaceLayout() {
         <img src={axiumzLogoLight} alt="AxiumZ" width={320} height={145} className="h-8 w-auto object-contain" />
       </div>
 
-      <p className="px-3 pb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-mist">{isAdmin ? m.adminGroup : isTeacher ? m.teachGroup : m.myGroup}</p>
+      <p className="px-3 pb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-mist">{isStaff ? m.adminGroup : isTeacher ? m.teachGroup : m.myGroup}</p>
       <nav className="flex flex-1 flex-col gap-1">
         {navItems.map((item) => {
-          const forced = underClasses && ((isTeacher && item.to.endsWith("/classes")) || (isAdmin && item.to.endsWith("/gestion")));
+          const forced = underClasses && ((isTeacher && item.to.endsWith("/classes")) || (isStaff && item.to.endsWith("/gestion")));
           return (
             <NavLink
               key={item.to}
@@ -163,7 +165,7 @@ export default function MonEspaceLayout() {
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-[0.8rem] font-bold text-ink">{initialsFrom(displayName)}</div>
         <div className="min-w-0">
           <p className="truncate text-[0.85rem] font-semibold text-white">{displayName}</p>
-          <p className="text-[0.72rem] text-mist">{isAdmin ? m.roleAdmin : isTeacher ? m.roleTeacher : m.roleMember}</p>
+          <p className="text-[0.72rem] text-mist">{isAssistant ? m.roleAssistant : isAdmin ? m.roleAdmin : isTeacher ? m.roleTeacher : m.roleMember}</p>
         </div>
       </div>
     </>
@@ -200,7 +202,7 @@ export default function MonEspaceLayout() {
             <span className="hidden shrink-0 rounded-lg border border-gray-200 px-2 py-0.5 text-[0.7rem] text-gray-400 lg:block">Ctrl K</span>
           </button>
           <div className="ml-auto flex items-center gap-2">
-            {isAdmin && (
+            {isStaff && (
               <div className="relative">
                 <button type="button" onClick={() => setNewOpen((v) => !v)} className="rounded-2xl bg-gradient-to-br from-ink to-ink-soft px-4 py-3 text-[0.85rem] font-bold text-paper shadow-sm">
                   + {m_shell.newBtn}
@@ -211,8 +213,8 @@ export default function MonEspaceLayout() {
                     <div className="absolute right-0 top-full z-40 mt-2 w-52 rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-gray-100">
                       {[
                         [m_shell.newStudent, `${base}/gestion/eleves?new=1`],
-                        [m_shell.newClass, `${base}/gestion/classes?new=1`],
-                        [m_shell.newAnnouncement, `${base}/annonces?new=1`],
+                        ...(isAssistant ? [] : [[m_shell.newClass, `${base}/gestion/classes?new=1`]]),
+                        ...(isAssistant ? [] : [[m_shell.newAnnouncement, `${base}/annonces?new=1`]]),
                       ].map(([label, to]) => (
                         <button
                           key={to}
@@ -265,7 +267,7 @@ export default function MonEspaceLayout() {
         </button>
       </nav>
 
-      {paletteOpen && <CommandPalette base={base} isAdmin={isAdmin} onClose={() => setPaletteOpen(false)} />}
+      {paletteOpen && <CommandPalette base={base} isAdmin={isStaff} onClose={() => setPaletteOpen(false)} />}
 
       {showTutorialPrompt && tutorialFile && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-900/50 px-4" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">

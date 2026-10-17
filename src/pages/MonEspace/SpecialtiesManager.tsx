@@ -140,7 +140,7 @@ export default function SpecialtiesManager({ organizationId }: { organizationId:
                     <button type="submit" disabled={busy} className={linkClass}>
                       {c.save}
                     </button>
-                    <button type="button" onClick={() => setEditingId(null)} className={linkClass}>
+                    <button data-write type="button" onClick={() => setEditingId(null)} className={linkClass}>
                       {c.cancel}
                     </button>
                   </form>
@@ -151,7 +151,7 @@ export default function SpecialtiesManager({ organizationId }: { organizationId:
                       <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[0.72rem] text-gray-600">{sp.usedBy.replace("{n}", String(usedCount(s.id)))}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <button
+                      <button data-write
                         type="button"
                         className={linkClass}
                         onClick={() => {
@@ -161,7 +161,7 @@ export default function SpecialtiesManager({ organizationId }: { organizationId:
                       >
                         {c.edit}
                       </button>
-                      <button
+                      <button data-write
                         type="button"
                         disabled={busy}
                         className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-40"

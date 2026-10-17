@@ -407,6 +407,7 @@ const en: Dictionary = {
       teachGroup: "Teaching",
       myGroup: "My space",
       roleAdmin: "Administrator",
+      roleAssistant: "Assistant",
       roleTeacher: "Teacher",
       roleMember: "My space",
       overviewNav: "Overview",
@@ -651,7 +652,7 @@ const en: Dictionary = {
     },
     packPicker: {
       modePack: "Enrol with a pack",
-      modeClass: "Enrol in a single class",
+      modeClass: "Enrol in a single subject",
       modeHelp: "How do you want to enrol this person?",
       heading: "Pack",
       help: "Choose a pack, then one class for each subject.",
@@ -779,7 +780,7 @@ const en: Dictionary = {
       chaptersCopied: "{n} chapter(s) copied.",
     },
     classPicker: {
-      heading: "Classes",
+      heading: "Subjects",
       required: "required",
       programme: "Programme",
       niveau: "Niveau",
@@ -1219,7 +1220,7 @@ const en: Dictionary = {
         pickTeacherOptional: "Teacher (optional)…",
       subjectPlaceholder: "Subject (e.g. Maths)",
       subjectHelp: "The subject groups classes of the same course given on several days (Maths on Monday, Maths on Wednesday…).",
-      priceLabel: "Price per term (MAD) — class taken alone",
+      priceLabel: "Price per term (MAD) — subject taken alone",
       priceHelp: "Optional. Price of this class when taken alone, without a pack.",
       specialtiesLabel: "Specialties concerned",
       specialtiesHelp: "Tick every specialty that takes this class (e.g. French is shared by several).",
@@ -1346,6 +1347,13 @@ const en: Dictionary = {
         tableGrades: "a grade",
         tableMembers: "a member role",
       },
+      assistants: {
+        title: "Assistants",
+        description: "Assistants welcome families and manage subscriptions. They can view everything but do not edit classes, teachers or the structure.",
+        empty: "No assistant yet.",
+        role: "Assistant",
+      },
+      readOnly: "View only: you can see this section but not change it.",
       admins: {
         title: "Administrators",
         description: "Administrators can manage students, parents, teachers, classes, and announcements. Only a super admin can create another super admin.",

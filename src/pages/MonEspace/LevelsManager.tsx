@@ -172,7 +172,7 @@ export default function LevelsManager({ organizationId }: { organizationId: stri
               </option>
             ))}
           </select>
-          <button type="button" disabled={busy || !copyFrom} onClick={handleCopy} className={`${linkClass} font-medium`}>
+          <button data-write type="button" disabled={busy || !copyFrom} onClick={handleCopy} className={`${linkClass} font-medium`}>
             {lv.copyAction}
           </button>
         </div>
@@ -226,7 +226,7 @@ export default function LevelsManager({ organizationId }: { organizationId: stri
                         <button type="button" disabled={busy || !editName.trim()} onClick={() => handleSaveEdit(level)} className={`${linkClass} font-medium`}>
                           {c.save}
                         </button>
-                        <button type="button" onClick={() => setEditingId(null)} className={linkClass}>
+                        <button data-write type="button" onClick={() => setEditingId(null)} className={linkClass}>
                           {c.cancel}
                         </button>
                       </div>
@@ -238,13 +238,13 @@ export default function LevelsManager({ organizationId }: { organizationId: stri
                     )}
                     {editingId !== level.id && (
                       <div className="flex items-center gap-3">
-                        <button type="button" disabled={busy || reorderLocked || index === 0} onClick={() => handleMove(level, -1)} className={linkClass} aria-label={lv.moveUp}>
+                        <button data-write type="button" disabled={busy || reorderLocked || index === 0} onClick={() => handleMove(level, -1)} className={linkClass} aria-label={lv.moveUp}>
                           ▲
                         </button>
-                        <button type="button" disabled={busy || reorderLocked || index === group.ordered.length - 1} onClick={() => handleMove(level, 1)} className={linkClass} aria-label={lv.moveDown}>
+                        <button data-write type="button" disabled={busy || reorderLocked || index === group.ordered.length - 1} onClick={() => handleMove(level, 1)} className={linkClass} aria-label={lv.moveDown}>
                           ▼
                         </button>
-                        <button
+                        <button data-write
                           type="button"
                           onClick={() => {
                             setEditingId(level.id);
@@ -254,7 +254,7 @@ export default function LevelsManager({ organizationId }: { organizationId: stri
                         >
                           {c.edit}
                         </button>
-                        <button type="button" disabled={busy} onClick={() => handleDelete(level)} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-50">
+                        <button data-write type="button" disabled={busy} onClick={() => handleDelete(level)} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-50">
                           {c.delete}
                         </button>
                       </div>

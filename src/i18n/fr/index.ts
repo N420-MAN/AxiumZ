@@ -407,6 +407,7 @@ const fr: Dictionary = {
       teachGroup: "Enseignement",
       myGroup: "Mon espace",
       roleAdmin: "Administrateur",
+      roleAssistant: "Assistant(e)",
       roleTeacher: "Enseignant",
       roleMember: "Mon espace",
       overviewNav: "Aperçu",
@@ -651,7 +652,7 @@ const fr: Dictionary = {
     },
     packPicker: {
       modePack: "Inscription par pack",
-      modeClass: "Inscription à une classe seule",
+      modeClass: "Inscription à une matière",
       modeHelp: "Comment inscrire cette personne ?",
       heading: "Pack",
       help: "Choisissez un pack, puis une classe pour chaque matière.",
@@ -779,7 +780,7 @@ const fr: Dictionary = {
       chaptersCopied: "{n} chapitre(s) copié(s).",
     },
     classPicker: {
-      heading: "Classes",
+      heading: "Matières",
       required: "obligatoire",
       programme: "Programme",
       niveau: "Niveau",
@@ -1219,7 +1220,7 @@ const fr: Dictionary = {
         pickTeacherOptional: "Enseignant (optionnel)…",
       subjectPlaceholder: "Matière (ex : Maths)",
       subjectHelp: "La matière regroupe les classes d'un même cours donné à plusieurs jours (Maths lundi, Maths mercredi…).",
-      priceLabel: "Prix par trimestre (MAD) — classe seule",
+      priceLabel: "Prix par trimestre (MAD) — matière seule",
       priceHelp: "Facultatif. Prix de cette classe lorsqu'elle est suivie seule, sans pack.",
       specialtiesLabel: "Spécialités concernées",
       specialtiesHelp: "Cochez toutes les spécialités qui suivent cette classe (ex. le français est commun à plusieurs).",
@@ -1346,6 +1347,13 @@ const fr: Dictionary = {
         tableGrades: "une note",
         tableMembers: "un rôle de membre",
       },
+      assistants: {
+        title: "Assistants",
+        description: "Les assistants accueillent les familles et gèrent les inscriptions. Ils peuvent tout consulter mais ne modifient ni les classes, ni les enseignants, ni la structure.",
+        empty: "Aucun assistant pour le moment.",
+        role: "Assistant(e)",
+      },
+      readOnly: "Consultation seule : vous pouvez voir cette section mais pas la modifier.",
       admins: {
         title: "Administrateurs",
         description: "Les administrateurs peuvent gérer élèves, parents, enseignants, classes et annonces. Seul un administrateur principal peut créer un autre administrateur principal.",

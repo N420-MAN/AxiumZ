@@ -173,7 +173,7 @@ export default function RoomsManager({ organizationId }: { organizationId: strin
                   <button type="button" disabled={busyId === room.id || !editForm.name.trim()} onClick={() => handleSaveEdit(room.id)} className={`${linkClass} font-medium`}>
                     {c.save}
                   </button>
-                  <button type="button" onClick={() => setEditingId(null)} className={linkClass}>
+                  <button data-write type="button" onClick={() => setEditingId(null)} className={linkClass}>
                     {c.cancel}
                   </button>
                 </div>
@@ -195,13 +195,13 @@ export default function RoomsManager({ organizationId }: { organizationId: strin
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => startEdit(room)} className={linkClass}>
+                  <button data-write type="button" onClick={() => startEdit(room)} className={linkClass}>
                     {c.edit}
                   </button>
-                  <button type="button" disabled={busyId === room.id} onClick={() => handleToggleActive(room)} className={linkClass}>
+                  <button data-write type="button" disabled={busyId === room.id} onClick={() => handleToggleActive(room)} className={linkClass}>
                     {room.is_active ? rm.deactivate : rm.reactivate}
                   </button>
-                  <button type="button" disabled={busyId === room.id} onClick={() => handleDelete(room)} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-50">
+                  <button data-write type="button" disabled={busyId === room.id} onClick={() => handleDelete(room)} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-50">
                     {c.delete}
                   </button>
                 </div>

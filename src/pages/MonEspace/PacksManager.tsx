@@ -160,10 +160,10 @@ export default function PacksManager({ organizationId }: { organizationId: strin
             {items.map((p) => (
               <div key={p.id} className="rounded-lg border border-gray-200 bg-white px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[0.92rem] font-semibold text-gray-900">{p.name}{p.price_trimestre !== null && <span className="ml-2 rounded-full bg-accent-soft px-2.5 py-0.5 text-[0.72rem] font-semibold text-ink">{priceText(p.price_trimestre, locale)}</span>}</span>
+                  <span className="text-[0.92rem] font-semibold text-gray-900">{p.name}{p.price_trimestre != null && <span className="ml-2 rounded-full bg-accent-soft px-2.5 py-0.5 text-[0.72rem] font-semibold text-ink">{priceText(p.price_trimestre, locale)}</span>}</span>
                   <div className="flex items-center gap-3">
-                    <button type="button" className={linkClass} onClick={() => { setEditingId(p.id); setName(p.name); setPrice(p.price_trimestre?.toString() ?? ""); setSpecIds(p.specialty_ids); setSubjects(p.subjects.map((s) => s.subject)); setError(null); }}>{pk.edit}</button>
-                    <button type="button" disabled={busy} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-40"
+                    <button data-write type="button" className={linkClass} onClick={() => { setEditingId(p.id); setName(p.name); setPrice(p.price_trimestre?.toString() ?? ""); setSpecIds(p.specialty_ids); setSubjects(p.subjects.map((s) => s.subject)); setError(null); }}>{pk.edit}</button>
+                    <button data-write type="button" disabled={busy} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-40"
                       onClick={() => confirm(`${c.delete} « ${p.name} » ?`, async () => { setBusy(true); const { error: delError } = await supabase.from("packs").delete().eq("id", p.id); setBusy(false); setError(delError ? humanizeError(delError) : null); await reload(); })}>{c.delete}</button>
                   </div>
                 </div>

@@ -1,3 +1,4 @@
+import { useAuth } from "../../features/auth/AuthContext";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
@@ -88,6 +89,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   const isEleve = kind === "eleve";
   const guardianKind = guardianKindFor(kind);
   const { t } = useLocale();
+  const { isAssistant } = useAuth();
   const pp = t.monEspace.people;
   const pk = t.monEspace.packPicker;
   const m = t.monEspace.gestion.students;
@@ -854,9 +856,9 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
                       <button type="button" onClick={() => openEditForm(p)} className="mr-3 text-[0.78rem] text-gray-600 hover:underline">
                         {c.edit}
                       </button>
-                      <button type="button" onClick={() => handleDelete(p)} className="text-[0.78rem] text-red-600 hover:underline">
+                      {!isAssistant && <button type="button" onClick={() => handleDelete(p)} className="text-[0.78rem] text-red-600 hover:underline">
                         {c.delete}
-                      </button>
+                      </button>}
                     </td>
                   </tr>
                 );

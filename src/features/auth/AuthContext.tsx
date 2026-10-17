@@ -22,7 +22,7 @@ export interface Profile {
   tutorial_seen_at: string | null;
 }
 
-export type RoleName = "super_admin" | "center_admin" | "teacher" | "student" | "parent";
+export type RoleName = "super_admin" | "center_admin" | "assistant" | "teacher" | "student" | "parent";
 
 export interface Membership {
   organization_id: string;
@@ -37,6 +37,8 @@ interface AuthContextValue {
   profile: Profile | null;
   memberships: Membership[];
   isSuperAdmin: boolean;
+  /** Reception: manages subscriptions, can view everything else. */
+  isAssistant: boolean;
   /** True while the initial session/profile/memberships are being resolved. */
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: { code: string } | null }>;
@@ -170,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isSuperAdmin = memberships.some((m) => m.role_name === "super_admin");
+  const isAssistant = !isSuperAdmin && memberships.some((m) => m.role_name === "assistant");
 
   return (
     <AuthContext.Provider
@@ -179,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         memberships,
         isSuperAdmin,
+        isAssistant,
         loading,
         signIn,
         signOut,

@@ -197,7 +197,7 @@ export default function ClassPicker({
                       <input type="radio" name="class-option" disabled={full} checked={option === cl.id} onChange={() => setOption(cl.id)} />
                       <span>
                         {cl.name}
-                        {cl.price_trimestre !== null && <span className="ml-1.5 text-[0.74rem] font-semibold text-ink">· {priceText(cl.price_trimestre, locale)}</span>}
+                        {cl.price_trimestre != null && <span className="ml-1.5 text-[0.74rem] font-semibold text-ink">· {priceText(cl.price_trimestre, locale)}</span>}
                         {cl.teachers && <span className="ml-1.5 text-[0.74rem] text-gray-400">· {cl.teachers.first_name} {cl.teachers.last_name}</span>}
                       </span>
                     </span>

@@ -19,9 +19,10 @@ interface AdminRow {
 const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
 
-export default function AdminsManager({ organizationId }: { organizationId: string }) {
+export default function AdminsManager({ organizationId, variant = "admins" }: { organizationId: string; variant?: "admins" | "assistants" }) {
   const { t, locale } = useLocale();
-  const m = t.monEspace.gestion.admins;
+  const asst = variant === "assistants";
+  const m = asst ? { ...t.monEspace.gestion.admins, ...t.monEspace.gestion.assistants, roleCenterAdmin: t.monEspace.gestion.assistants.role } : t.monEspace.gestion.admins;
   const c = t.monEspace.gestion.common;
 
   const [admins, setAdmins] = useState<AdminRow[]>([]);
@@ -82,7 +83,7 @@ export default function AdminsManager({ organizationId }: { organizationId: stri
       .from("organization_members")
       .select("user_id, role_id, profiles(full_name, phone)")
       .eq("organization_id", organizationId)
-      .in("role_id", [1, 2]);
+      .in("role_id", asst ? [6] : [1, 2]);
     if (fetchError) setError(humanizeError(fetchError));
     else setError(null);
     setAdmins((data as unknown as AdminRow[]) ?? []);
@@ -92,7 +93,7 @@ export default function AdminsManager({ organizationId }: { organizationId: stri
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organizationId]);
+  }, [organizationId, variant]);
 
   async function handleInvite(e: FormEvent) {
     e.preventDefault();
@@ -105,7 +106,7 @@ export default function AdminsManager({ organizationId }: { organizationId: stri
     setError(null);
 
     const { data, error: inviteError } = await supabase.functions.invoke("invite-admin", {
-      body: { organizationId, email: form.email.trim(), fullName: form.fullName.trim(), phone: normalizePhone(form.phone) ?? "" },
+      body: { organizationId, email: form.email.trim(), fullName: form.fullName.trim(), phone: normalizePhone(form.phone) ?? "", role: asst ? "assistant" : "center_admin" },
     });
 
     setSaving(false);
@@ -214,9 +215,11 @@ export default function AdminsManager({ organizationId }: { organizationId: stri
                   <div className="text-[0.78rem] text-gray-500">{a.profiles?.phone || m.noPhone}</div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <button type="button" onClick={() => startEdit(a)} className="text-[0.78rem] text-gray-700 hover:underline">
-                    {m.edit}
-                  </button>
+                  {!asst && (
+                    <button type="button" onClick={() => startEdit(a)} className="text-[0.78rem] text-gray-700 hover:underline">
+                      {m.edit}
+                    </button>
+                  )}
                   {a.role_id !== 1 && (
                     <button
                       type="button"

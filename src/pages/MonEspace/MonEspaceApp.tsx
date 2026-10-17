@@ -43,11 +43,12 @@ function NotConfigured() {
 }
 
 function AuthenticatedApp() {
-  const { memberships, isSuperAdmin, profile } = useAuth();
+  const { memberships, isSuperAdmin, isAssistant, profile } = useAuth();
   const { lang } = useParams();
   const base = `/${lang ?? "fr"}/mon-espace`;
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
   const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
+  const isStaff = isAdmin || isAssistant;
   const isTeacher = primaryRole === "teacher";
 
   // Land the person in whichever language they last chose, instead of
@@ -81,11 +82,11 @@ function AuthenticatedApp() {
     <Routes>
       <Route element={<MonEspaceLayout />}>
         <Route index element={<Navigate to={`${base}/aujourdhui`} replace />} />
-        <Route path="aujourdhui" element={isAdmin || isTeacher ? <TodayView /> : <OverviewView />} />
+        <Route path="aujourdhui" element={isStaff || isTeacher ? <TodayView /> : <OverviewView />} />
         <Route path="planning" element={<CalendarView />} />
-        {!isAdmin && !isTeacher && <Route path="cahier" element={<CahierView />} />}
+        {!isStaff && !isTeacher && <Route path="cahier" element={<CahierView />} />}
         {isTeacher && <Route path="classes" element={<TeacherClassesView />} />}
-        {(isAdmin || isTeacher) && <Route path="classe/:classId" element={<ClassPage />} />}
+        {(isStaff || isTeacher) && <Route path="classe/:classId" element={<ClassPage />} />}
         <Route
           path="eleve/:studentId"
           element={
@@ -95,7 +96,7 @@ function AuthenticatedApp() {
           }
         />
         {(isAdmin || isTeacher) && <Route path="notes" element={<GradesView />} />}
-        {(isAdmin || isTeacher) && (
+        {(isStaff || isTeacher) && (
           <Route
             path="statistiques"
             element={
@@ -105,7 +106,7 @@ function AuthenticatedApp() {
             }
           />
         )}
-        {isAdmin && <Route path="gestion/*" element={<GestionLayout />} />}
+        {isStaff && <Route path="gestion/*" element={<GestionLayout />} />}
         <Route path="annonces" element={<AnnouncementsView />} />
         <Route path="parametres" element={<SettingsView />} />
         <Route path="*" element={<Navigate to={`${base}/aujourdhui`} replace />} />
