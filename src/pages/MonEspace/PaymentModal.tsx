@@ -106,7 +106,8 @@ export default function PaymentModal({
       if (pack?.pack_id && pack.packs) {
         next.push({ key: `pack:${pack.pack_id}`, classId: null, packId: pack.pack_id, label: m.packLabel.replace("{name}", pack.packs.name), price: pack.packs.price_trimestre, discount: toDiscount(pack.packs.discount_name, pack.packs.discount_price) });
       }
-      for (const e of (enr as unknown as { class_id: string; classes: (Parameters<typeof classLabel>[0] & { id: string; price_trimestre: number | null; discount_name: string | null; discount_price: number | null }) | null }[]) ?? []) {
+      // A student on a pack pays the pack: its classes are part of it and are never charged separately.
+      for (const e of pack?.pack_id ? [] : (enr as unknown as { class_id: string; classes: (Parameters<typeof classLabel>[0] & { id: string; price_trimestre: number | null; discount_name: string | null; discount_price: number | null }) | null }[]) ?? []) {
         if (!e.classes) continue;
         next.push({ key: `class:${e.class_id}`, classId: e.class_id, packId: null, label: classLabel(e.classes), price: e.classes.price_trimestre, discount: toDiscount(e.classes.discount_name, e.classes.discount_price) });
       }
