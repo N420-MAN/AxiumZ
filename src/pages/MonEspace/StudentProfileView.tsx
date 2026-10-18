@@ -20,6 +20,7 @@ interface StudentDetail {
   school_name: string | null;
   grade_level: string | null;
   kind: "eleve" | "stagiaire";
+  packs: { name: string } | null;
 }
 interface ParentRow {
   first_name: string;
@@ -102,7 +103,7 @@ export default function StudentProfileView() {
       setLoading(true);
       const { data: studentData } = await supabase
         .from("students")
-        .select("id, first_name, last_name, email, phone, date_of_birth, address, school_name, grade_level, kind")
+        .select("id, first_name, last_name, email, phone, date_of_birth, address, school_name, grade_level, kind, packs(name)")
         .eq("id", studentId)
         .maybeSingle();
 
@@ -111,7 +112,7 @@ export default function StudentProfileView() {
         setLoading(false);
         return;
       }
-      setStudent(studentData);
+      setStudent(studentData as unknown as StudentDetail);
 
       const { data: classRows } = await supabase.from("class_students").select("class_id, classes(name, programs(name, kind), levels(name))").eq("student_id", studentId);
       setClasses((classRows as unknown as ClassRow[]) ?? []);
@@ -235,6 +236,11 @@ export default function StudentProfileView() {
             <p className="mt-0.5 text-[0.84rem] text-gray-500">
               {[student.kind === "stagiaire" ? pp.stagiaire : null, age !== null ? m.ageValue.replace("{age}", String(age)) : null, gradeLevel, student.school_name].filter(Boolean).join(" · ")}
             </p>
+            {student.packs && (
+              <span className="mt-1.5 inline-block rounded-full bg-accent-soft px-2.5 py-0.5 text-[0.74rem] font-semibold text-ink">
+                {t.monEspace.packPicker.packChip.replace("{name}", student.packs.name)}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">

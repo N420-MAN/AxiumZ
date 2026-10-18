@@ -11,12 +11,13 @@ interface LanguageScoreRowProps {
   studentName: string;
   record?: SkillRecord;
   labels: { writing: string; speaking: string; listening: string; reading: string; total: string };
+  readOnly?: boolean;
   onSave: (skills: { score_writing: number; score_speaking: number; score_listening: number; score_reading: number }) => void;
 }
 
 const FIELDS = ["writing", "speaking", "listening", "reading"] as const;
 
-export default function LanguageScoreRow({ studentName, record, labels, onSave }: LanguageScoreRowProps) {
+export default function LanguageScoreRow({ studentName, record, labels, readOnly, onSave }: LanguageScoreRowProps) {
   const [values, setValues] = useState({
     writing: record?.score_writing?.toString() ?? "",
     speaking: record?.score_speaking?.toString() ?? "",
@@ -55,6 +56,7 @@ export default function LanguageScoreRow({ studentName, record, labels, onSave }
               min="0"
               max="25"
               value={values[f]}
+              disabled={readOnly}
               onChange={(e) => setValues({ ...values, [f]: e.target.value })}
               onBlur={commit}
               className="mt-0.5 w-full rounded border border-gray-200 bg-white px-1.5 py-1 text-[0.8rem] outline-none focus:border-gray-400"

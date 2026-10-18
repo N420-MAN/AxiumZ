@@ -16,6 +16,7 @@ import TodayView from "./TodayView";
 import OverviewView from "./OverviewView";
 import CalendarView from "./CalendarView";
 import GradesView from "./GradesView";
+import ReadOnlyZone from "./ReadOnlyZone";
 const StatisticsView = lazy(() => import("./StatisticsView"));
 const StudentProfileView = lazy(() => import("./StudentProfileView"));
 import SettingsView from "./SettingsView";
@@ -95,7 +96,7 @@ function AuthenticatedApp() {
             </Suspense>
           }
         />
-        {(isAdmin || isTeacher) && <Route path="notes" element={<GradesView />} />}
+        {(isAdmin || isTeacher || isAssistant) && <Route path="notes" element={<ReadOnlyZone><GradesView /></ReadOnlyZone>} />}
         {(isStaff || isTeacher) && (
           <Route
             path="statistiques"

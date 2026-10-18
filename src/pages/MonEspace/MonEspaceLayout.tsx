@@ -96,7 +96,7 @@ export default function MonEspaceLayout() {
     { to: `${base}/planning`, label: m.planningNav, icon: ICONS.calendar },
     ...(!isStaff && !isTeacher ? [{ to: `${base}/cahier`, label: m.cahierNav, icon: ICONS.cahier }] : []),
     ...(isTeacher ? [{ to: `${base}/classes`, label: m.classesNav, icon: ICONS.classes }] : []),
-    ...(isAdmin || isTeacher ? [{ to: `${base}/notes`, label: "Notes", icon: ICONS.grades }] : []),
+    ...(isAdmin || isTeacher || isAssistant ? [{ to: `${base}/notes`, label: "Notes", icon: ICONS.grades }] : []),
     ...(isStaff || isTeacher ? [{ to: `${base}/statistiques`, label: t.monEspace.statistics.navLabel, icon: ICONS.stats }] : []),
     ...(isStaff ? [{ to: `${base}/gestion`, label: m.manageNav, icon: ICONS.manage }] : []),
     { to: `${base}/annonces`, label: m.announcementsNav, icon: ICONS.announcements },

@@ -22,6 +22,7 @@ import GuardianPicker from "./GuardianPicker";
 import AccountStatus from "./AccountStatus";
 import PersonalDataNotice from "./PersonalDataNotice";
 import PlacementTestModal from "./PlacementTestModal";
+import PaymentModal from "./PaymentModal";
 import { useConfirmDialog } from "./useConfirmDialog";
 
 interface PersonRow {
@@ -137,6 +138,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   const [saving, setSaving] = useState(false);
   const [inviting, setInviting] = useState<string | null>(null);
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({});
+  const [payFor, setPayFor] = useState<PersonRow | null>(null);
   const [placementQueue, setPlacementQueue] = useState<{ studentId: string; studentName: string; classId: string }[]>([]);
 
   const load = useCallback(async () => {
@@ -853,6 +855,9 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
                       <AccountStatus state={accountState(p, accepted, acceptanceKnown)} busy={inviting === p.id} result={inviteResult[p.id]} onSend={() => handleInvite(p)} />
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                      <button type="button" data-write onClick={() => setPayFor(p)} className="mr-3 text-[0.78rem] font-medium text-emerald-700 hover:underline">
+                        {t.monEspace.payments.rowAction}
+                      </button>
                       <button type="button" onClick={() => openEditForm(p)} className="mr-3 text-[0.78rem] text-gray-600 hover:underline">
                         {c.edit}
                       </button>
@@ -868,6 +873,14 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
         </div>
       )}
       {dialog}
+      {payFor && (
+        <PaymentModal
+          organizationId={organizationId}
+          studentId={payFor.id}
+          studentName={`${payFor.first_name} ${payFor.last_name}`}
+          onClose={() => setPayFor(null)}
+        />
+      )}
       {placementQueue.length > 0 && (
         <PlacementTestModal
           key={`${placementQueue[0].studentId}-${placementQueue[0].classId}`}

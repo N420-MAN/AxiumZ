@@ -13,6 +13,8 @@ import AdminsManager from "./AdminsManager";
 import RoomsManager from "./RoomsManager";
 import SpecialtiesManager from "./SpecialtiesManager";
 import PacksManager from "./PacksManager";
+import PaymentsManager from "./PaymentsManager";
+import TeacherHoursReport from "./TeacherHoursReport";
 import ReadOnlyZone from "./ReadOnlyZone";
 import PeopleDirectory from "./PeopleDirectory";
 import StructureTree from "./StructureTree";
@@ -85,6 +87,7 @@ export default function GestionLayout() {
         { to: "parents", label: t.monEspace.guardian.parents },
         { to: "superviseurs", label: t.monEspace.guardian.supervisors },
         { to: "enseignants", label: m.teachersTitle },
+        { to: "paiements", label: t.monEspace.payments.title },
       ],
     },
     {
@@ -110,6 +113,7 @@ export default function GestionLayout() {
               ...(isSuperAdmin ? [{ to: "admins", label: m.admins.title }] : []),
               { to: "assistants", label: m.assistants.title },
               { to: "periodes", label: m.periods },
+              { to: "heures", label: t.monEspace.teacherHours.title },
               { to: "journal", label: m.journal.title },
             ],
           },
@@ -138,6 +142,7 @@ export default function GestionLayout() {
         <Route path="niveaux" element={<ReadOnlyZone><LevelsManager organizationId={orgId} /></ReadOnlyZone>} />
         <Route path="specialites" element={<ReadOnlyZone><SpecialtiesManager organizationId={orgId} /></ReadOnlyZone>} />
         <Route path="classes" element={<ReadOnlyZone><ClassesManager organizationId={orgId} /></ReadOnlyZone>} />
+        <Route path="paiements" element={<PaymentsManager organizationId={orgId} />} />
         <Route path="packs" element={<ReadOnlyZone><PacksManager organizationId={orgId} /></ReadOnlyZone>} />
         <Route
           path="enseignants"
@@ -155,6 +160,7 @@ export default function GestionLayout() {
         {isSuperAdmin && <Route path="admins" element={<AdminsManager organizationId={orgId} />} />}
         {!isAssistant && <Route path="assistants" element={<AdminsManager organizationId={orgId} variant="assistants" />} />}
         <Route path="salles" element={<ReadOnlyZone><RoomsManager organizationId={orgId} /></ReadOnlyZone>} />
+        {!isAssistant && <Route path="heures" element={<TeacherHoursReport organizationId={orgId} />} />}
         {!isAssistant && <Route path="periodes" element={<TermsManager organizationId={orgId} />} />}
         {!isAssistant && <Route path="journal" element={<AuditLogViewer organizationId={orgId} />} />}
         <Route path="*" element={<Navigate to={`${base}/personnes`} replace />} />

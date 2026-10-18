@@ -47,7 +47,7 @@ export default function GradesView() {
   const m = t.monEspace.gestion.grades;
   const c = t.monEspace.gestion.common;
   const TYPE_LABELS: Record<string, string> = { quiz: m.typeQuiz, test: m.typeTest, exam: m.typeExam, project: m.typeProject, oral: m.typeOral };
-  const { isSuperAdmin, memberships } = useAuth();
+  const { isSuperAdmin, isAssistant, memberships } = useAuth();
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
   const isAdmin = primaryRole === "super_admin" || primaryRole === "center_admin";
   const orgId = memberships[0]?.organization_id;
@@ -245,6 +245,7 @@ export default function GradesView() {
             <h2 className="text-[0.95rem] font-semibold text-gray-900">{currentClass ? classLabel(currentClass) : ""}</h2>
             <button
               type="button"
+              data-write
               onClick={() => setShowForm((v) => !v)}
               className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-3.5 py-1.5 text-[0.82rem] font-medium text-paper"
             >
@@ -329,6 +330,7 @@ export default function GradesView() {
                               studentName={`${e.students?.first_name} ${e.students?.last_name}`}
                               record={record}
                               labels={{ writing: ls.writing, speaking: ls.speaking, listening: ls.listening, reading: ls.reading, total: ls.totalLabel }}
+                              readOnly={isAssistant}
                               onSave={(skills) => setLanguageScore(a.id, e.student_id, skills)}
                             />
                           );
@@ -342,6 +344,7 @@ export default function GradesView() {
                               min="0"
                               max={a.max_score}
                               defaultValue={record?.score ?? ""}
+                              disabled={isAssistant}
                               onBlur={(ev) => ev.target.value && setScore(a.id, e.student_id, ev.target.value)}
                               className="w-16 rounded border border-gray-200 px-2 py-1 text-[0.8rem]"
                             />
@@ -350,6 +353,7 @@ export default function GradesView() {
                       })}
                       <button
                         type="button"
+                        data-write
                         onClick={() => confirm(m.deleteAssessmentConfirm.replace("{name}", a.title), () => handleDeleteAssessment(a.id))}
                         className="mt-2 text-[0.76rem] text-red-600 hover:underline"
                       >

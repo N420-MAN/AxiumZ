@@ -3,6 +3,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { supabase } from "../../lib/supabaseClient";
 import { useLocale } from "../../i18n/LocaleContext";
 import { CLASS_LABEL_SELECT, classLabel } from "../../lib/programs";
+import AttendanceInsights from "./AttendanceInsights";
 
 interface GradeRow {
   score: number;
@@ -149,6 +150,8 @@ export default function StatisticsView() {
         <div className="mt-8 h-64" />
       ) : (
         <div className="mt-6 space-y-6">
+          <AttendanceInsights />
+
           <div className="rounded-lg border border-gray-200 bg-white p-5">
             <h2 className="text-[0.9rem] font-semibold text-gray-900">{m.gradeTrendTitle}</h2>
             <div className="mt-3 h-56">

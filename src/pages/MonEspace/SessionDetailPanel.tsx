@@ -179,6 +179,11 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
       setTimeError(upErr ? humanizeError(upErr) : m.saveFailed);
       return;
     }
+    if (savedTimes.s && savedTimes.s !== startsAt) {
+      // Only a change of start time is news for the students; the previous
+      // start lets the message say "moved from X to Y".
+      notifySessionChange("moved", new Date(savedTimes.s).toISOString());
+    }
     setSavedTimes({ s: startsAt, e: endsAt });
     onChanged?.();
   }
@@ -193,7 +198,15 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
       return;
     }
     setSessionStatus(next);
+    notifySessionChange(next === "cancelled" ? "cancelled" : "restored");
     onChanged?.();
+  }
+
+  function notifySessionChange(kind: "moved" | "cancelled" | "restored", previousStartsAt?: string) {
+    supabase.functions.invoke("notify-session-change", { body: { sessionId, kind, previousStartsAt } }).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error("Session change notification failed:", err);
+    });
   }
 
   async function saveNotes() {
