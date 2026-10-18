@@ -5,6 +5,8 @@ import { useLocale } from "../../i18n/LocaleContext";
 import { useStructure } from "../../features/structure/useStructure";
 import { isLanguageProgram, priceText } from "../../lib/programs";
 import { useConfirmDialog } from "./useConfirmDialog";
+import DiscountFields from "./DiscountFields";
+import { discountBadge, parseDiscountFields, toDiscount } from "../../lib/discount";
 
 const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.9rem] text-gray-900 outline-none focus:border-gray-400";
@@ -28,6 +30,8 @@ export default function PacksManager({ organizationId }: { organizationId: strin
   const [subjects, setSubjects] = useState<string[]>([]);
   const [subjectDraft, setSubjectDraft] = useState("");
   const [price, setPrice] = useState("");
+  const [discName, setDiscName] = useState("");
+  const [discPrice, setDiscPrice] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +54,8 @@ export default function PacksManager({ organizationId }: { organizationId: strin
     setSubjects([]);
     setSubjectDraft("");
     setPrice("");
+    setDiscName("");
+    setDiscPrice("");
   }
 
   function addSubject(s: string) {
@@ -66,15 +72,21 @@ export default function PacksManager({ organizationId }: { organizationId: strin
       setError(pk.needSubject);
       return;
     }
+    const disc = parseDiscountFields(discName, discPrice, price);
+    if (!disc.ok) {
+      setError(disc.error === "both" ? t.monEspace.discount.errBoth : t.monEspace.discount.errPrice);
+      return;
+    }
+    const money = { price_trimestre: price.trim() ? Number(price) : null, discount_name: disc.name, discount_price: disc.price };
     setBusy(true);
     setError(null);
     let packId = editingId;
     let failure: unknown = null;
     if (editingId) {
-      failure = (await supabase.from("packs").update({ name: name.trim(), price_trimestre: price.trim() ? Number(price) : null }).eq("id", editingId)).error;
+      failure = (await supabase.from("packs").update({ name: name.trim(), ...money }).eq("id", editingId)).error;
     } else {
       const newId = crypto.randomUUID();
-      failure = (await supabase.from("packs").insert({ id: newId, organization_id: organizationId, program_id: program.id, level_id: level.id, name: name.trim(), price_trimestre: price.trim() ? Number(price) : null })).error;
+      failure = (await supabase.from("packs").insert({ id: newId, organization_id: organizationId, program_id: program.id, level_id: level.id, name: name.trim(), ...money })).error;
       packId = failure ? null : newId;
     }
     if (!failure && packId) {
@@ -118,6 +130,7 @@ export default function PacksManager({ organizationId }: { organizationId: strin
               <label className="text-[0.8rem] font-semibold text-gray-700" htmlFor="pack-price">{pk.priceLabel}</label>
               <input id="pack-price" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className={`${inputClass} mt-1 sm:max-w-xs`} />
             </div>
+            <DiscountFields idPrefix="pack" name={discName} price={discPrice} listPrice={price} onChange={(n, p) => { setDiscName(n); setDiscPrice(p); }} />
             {levelSpecs.length > 0 && (
               <div>
                 <p className="text-[0.8rem] font-semibold text-gray-700">{pk.specialtiesLabel}</p>
@@ -160,9 +173,9 @@ export default function PacksManager({ organizationId }: { organizationId: strin
             {items.map((p) => (
               <div key={p.id} className="rounded-lg border border-gray-200 bg-white px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[0.92rem] font-semibold text-gray-900">{p.name}{p.price_trimestre != null && <span className="ml-2 rounded-full bg-accent-soft px-2.5 py-0.5 text-[0.72rem] font-semibold text-ink">{priceText(p.price_trimestre, locale)}</span>}</span>
+                  <span className="text-[0.92rem] font-semibold text-gray-900">{p.name}{p.price_trimestre != null && <span className="ml-2 rounded-full bg-accent-soft px-2.5 py-0.5 text-[0.72rem] font-semibold text-ink">{priceText(p.price_trimestre, locale)}</span>}{toDiscount(p.discount_name, p.discount_price) && <span className="ml-2 rounded-full bg-amber-100 px-2.5 py-0.5 text-[0.72rem] font-semibold text-amber-800">{discountBadge(t.monEspace.discount.badge, toDiscount(p.discount_name, p.discount_price)!, locale)}</span>}</span>
                   <div className="flex items-center gap-3">
-                    <button data-write type="button" className={linkClass} onClick={() => { setEditingId(p.id); setName(p.name); setPrice(p.price_trimestre?.toString() ?? ""); setSpecIds(p.specialty_ids); setSubjects(p.subjects.map((s) => s.subject)); setError(null); }}>{pk.edit}</button>
+                    <button data-write type="button" className={linkClass} onClick={() => { setEditingId(p.id); setName(p.name); setPrice(p.price_trimestre?.toString() ?? ""); setDiscName(p.discount_name ?? ""); setDiscPrice(p.discount_price?.toString() ?? ""); setSpecIds(p.specialty_ids); setSubjects(p.subjects.map((s) => s.subject)); setError(null); }}>{pk.edit}</button>
                     <button data-write type="button" disabled={busy} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-40"
                       onClick={() => confirm(`${c.delete} « ${p.name} » ?`, async () => { setBusy(true); const { error: delError } = await supabase.from("packs").delete().eq("id", p.id); setBusy(false); setError(delError ? humanizeError(delError) : null); await reload(); })}>{c.delete}</button>
                   </div>

@@ -10,6 +10,8 @@ import FilterBar from "./FilterBar";
 import NameInput from "./NameInput";
 import ClassPanel, { type PersonOption, type WaitingWish } from "./ClassPanel";
 import { useConfirmDialog } from "./useConfirmDialog";
+import DiscountFields from "./DiscountFields";
+import { discountBadge, parseDiscountFields, toDiscount } from "../../lib/discount";
 
 interface TeacherOption {
   id: string;
@@ -34,7 +36,7 @@ interface SlotDraft {
   start_time: string;
   end_time: string;
 }
-const EMPTY_FORM = { program_id: "", level_id: "", name: "", subject: "", teacher_id: "", capacity: "", room_id: "", price_trimestre: "" };
+const EMPTY_FORM = { program_id: "", level_id: "", name: "", subject: "", teacher_id: "", capacity: "", room_id: "", price_trimestre: "", discount_name: "", discount_price: "" };
 const DEFAULT_SLOT: SlotDraft = { weekday: 1, start_time: "17:00", end_time: "19:00" };
 const EMPTY_REF: RefData = { teachers: [], rooms: [], people: [], wishes: [] };
 
@@ -174,6 +176,8 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       capacity: cl.capacity?.toString() ?? "",
       room_id: cl.room_id ?? "",
       price_trimestre: cl.price_trimestre?.toString() ?? "",
+      discount_name: cl.discount_name ?? "",
+      discount_price: cl.discount_price?.toString() ?? "",
     });
     setSpecialtyIds(cl.specialty_ids);
     setSlotDrafts(cl.slots.map((s) => ({ weekday: s.weekday, start_time: s.start_time.slice(0, 5), end_time: s.end_time.slice(0, 5) })));
@@ -187,6 +191,11 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       setError(m.slotInvalid);
       return;
     }
+    const disc = parseDiscountFields(form.discount_name, form.discount_price, form.price_trimestre);
+    if (!disc.ok) {
+      setError(disc.error === "both" ? t.monEspace.discount.errBoth : t.monEspace.discount.errPrice);
+      return;
+    }
     setSaving(true);
     setError(null);
     const payload = {
@@ -198,6 +207,8 @@ export default function ClassesManager({ organizationId }: { organizationId: str
       capacity: form.capacity ? Number(form.capacity) : null,
       room_id: form.room_id || null,
       price_trimestre: form.price_trimestre.trim() ? Number(form.price_trimestre) : null,
+      discount_name: disc.name,
+      discount_price: disc.price,
     };
     let classId = editingId;
     let saveError: unknown = null;
@@ -316,6 +327,9 @@ export default function ClassesManager({ organizationId }: { organizationId: str
             <label className="text-[0.8rem] font-medium text-gray-600" htmlFor="class-price">{m.priceLabel}</label>
             <input id="class-price" type="number" min="0" step="0.01" value={form.price_trimestre} onChange={(e) => setForm({ ...form, price_trimestre: e.target.value })} className={`${inputClass} mt-1 sm:max-w-xs`} />
             <p className="mt-1 text-[0.74rem] text-gray-500">{m.priceHelp}</p>
+            <div className="mt-3">
+              <DiscountFields idPrefix="class" name={form.discount_name} price={form.discount_price} listPrice={form.price_trimestre} onChange={(n, p) => setForm({ ...form, discount_name: n, discount_price: p })} />
+            </div>
           </div>
           <div>
             <select value={form.room_id} onChange={(e) => setForm({ ...form, room_id: e.target.value })} className={inputClass} aria-label={rm.pickRoom}>
@@ -467,6 +481,7 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                         </span>
                       ))}
                       {cl.price_trimestre != null && <span className="rounded-full bg-accent-soft px-2 py-0.5 font-semibold text-ink">{priceText(cl.price_trimestre, locale)}</span>}
+                      {toDiscount(cl.discount_name, cl.discount_price) && <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">{discountBadge(t.monEspace.discount.badge, toDiscount(cl.discount_name, cl.discount_price)!, locale)}</span>}
                       {cl.slots.length === 0 ? <span className="text-gray-400">{m.noSlots}</span> : cl.slots.map((sl) => <span key={sl.id} className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700">{slotText(sl, locale)}</span>)}
                     </span>
                     {cl.capacity !== null && (

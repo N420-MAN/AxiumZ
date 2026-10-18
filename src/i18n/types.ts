@@ -289,6 +289,32 @@ export interface Dictionary {
       saving: string;
       tooltip: string;
     };
+    discount: {
+      nameLabel: string;
+      namePlaceholder: string;
+      priceLabel: string;
+      help: string;
+      errBoth: string;
+      errPrice: string;
+      preview: string;
+      badge: string;
+    };
+    payPlan: {
+      modeTitle: string;
+      modeFull: string;
+      modeMonthly: string;
+      modeMonthlyHelp: string;
+      applyDiscount: string;
+      listPrice: string;
+      installmentOf: string;
+      planInProgress: string;
+      remaining: string;
+      planDone: string;
+      errOrder: string;
+      errDiscount: string;
+      errPlan: string;
+      lockedPlan: string;
+    };
     payments: {
       title: string;
       description: string;

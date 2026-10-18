@@ -29,6 +29,8 @@ export interface PackRow {
   level_id: string;
   name: string;
   price_trimestre: number | null;
+  discount_name: string | null;
+  discount_price: number | null;
   specialty_ids: string[];
   subjects: { id: string; subject: string; position: number }[];
 }
@@ -62,6 +64,8 @@ export interface StructureClass {
   subject: string | null;
   /** Price of this class taken alone, per trimester (MAD). */
   price_trimestre: number | null;
+  discount_name: string | null;
+  discount_price: number | null;
   teachers: { first_name: string; last_name: string } | null;
   class_students: { count: number }[];
   specialty_ids: string[];

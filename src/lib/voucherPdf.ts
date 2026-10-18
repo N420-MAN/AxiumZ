@@ -11,7 +11,25 @@ export interface VoucherData {
   status: "paid" | "cancelled";
   studentName: string;
   guardianNames: string[];
-  items: { label: string; amount: number }[];
+  items: {
+    label: string;
+    amount: number;
+    list_amount?: number | null;
+    discount_name?: string | null;
+    plan_total?: number | null;
+    installment_no?: number;
+    installments_total?: number;
+  }[];
+}
+
+/** The label plus, when relevant, the term price, the discount and the instalment number. */
+function itemText(i: VoucherData["items"][number]): string {
+  const lines = [i.label];
+  const monthly = (i.installments_total ?? 1) > 1;
+  if (i.list_amount != null && (i.discount_name || monthly)) lines.push(`Prix du trimestre : ${money(i.list_amount)}`);
+  if (i.discount_name && i.list_amount != null && i.plan_total != null) lines.push(`${i.discount_name} : ${money(i.plan_total)}`);
+  if (monthly) lines.push(`Mensualité ${i.installment_no ?? 1}/${i.installments_total}${i.plan_total != null ? ` sur ${money(i.plan_total)}` : ""}`);
+  return lines.join("\n");
 }
 
 const NAVY: [number, number, number] = [15, 42, 92];
@@ -81,7 +99,7 @@ export async function buildVoucherPdf(v: VoucherData): Promise<jsPDF> {
     startY: cy + 3,
     margin: { left: margin, right: margin },
     head: [["Matière / Pack", "Montant"]],
-    body: v.items.map((i) => [i.label, money(i.amount)]),
+    body: v.items.map((i) => [itemText(i), money(i.amount)]),
     foot: [["Total payé", money(v.total_amount)]],
     theme: "grid",
     styles: { font: "helvetica", fontSize: 10, cellPadding: 2.6, lineColor: [225, 225, 225], textColor: [40, 40, 40] },

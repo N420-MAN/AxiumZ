@@ -17,17 +17,17 @@ async function fetchStructure(organizationId: string): Promise<Structure> {
     supabase.from("levels").select("id, program_id, name, position").eq("organization_id", organizationId).order("position"),
     supabase
       .from("classes")
-      .select("id, name, subject, price_trimestre, program_id, level_id, teacher_id, capacity, room_id, created_at, teachers(first_name, last_name), class_students(count)")
+      .select("id, name, subject, price_trimestre, discount_name, discount_price, program_id, level_id, teacher_id, capacity, room_id, created_at, teachers(first_name, last_name), class_students(count)")
       .eq("organization_id", organizationId)
       .order("name"),
     supabase.from("specialties").select("id, program_id, level_id, name").eq("organization_id", organizationId).order("name"),
     supabase.from("class_specialties").select("class_id, specialty_id"),
     supabase.from("class_slots").select("id, class_id, weekday, start_time, end_time, room_id").order("weekday").order("start_time"),
-    supabase.from("packs").select("id, program_id, level_id, name, price_trimestre").eq("organization_id", organizationId).order("name"),
+    supabase.from("packs").select("id, program_id, level_id, name, price_trimestre, discount_name, discount_price").eq("organization_id", organizationId).order("name"),
     supabase.from("pack_specialties").select("pack_id, specialty_id"),
     supabase.from("pack_subjects").select("id, pack_id, subject, position").order("position").order("created_at"),
   ]);
-  const packs: PackRow[] = ((packRows.data as { id: string; program_id: string; level_id: string; name: string; price_trimestre: number | null }[]) ?? []).map((p) => ({
+  const packs: PackRow[] = ((packRows.data as { id: string; program_id: string; level_id: string; name: string; price_trimestre: number | null; discount_name: string | null; discount_price: number | null }[]) ?? []).map((p) => ({
     ...p,
     specialty_ids: ((packSpecs.data as { pack_id: string; specialty_id: string }[]) ?? []).filter((x) => x.pack_id === p.id).map((x) => x.specialty_id),
     subjects: ((packSubs.data as { id: string; pack_id: string; subject: string; position: number }[]) ?? []).filter((x) => x.pack_id === p.id),
