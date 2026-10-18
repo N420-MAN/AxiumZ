@@ -299,6 +299,17 @@ export interface Dictionary {
       preview: string;
       badge: string;
     };
+    specialtyPicker: {
+      label: string;
+      choose: string;
+      pickFirst: string;
+      chip: string;
+    };
+    enroll: {
+      saveAndPay: string;
+      tariffTitle: string;
+      tariffHelp: string;
+    };
     payPlan: {
       modeTitle: string;
       modeFull: string;

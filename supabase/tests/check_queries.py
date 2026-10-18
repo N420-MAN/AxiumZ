@@ -80,7 +80,7 @@ SCHEMA = {
 "student_attendance_summary":"absence_rate_pct,absences,class_id,student_id,total_sessions",
 "student_class_averages":"average_out_of_20,class_id,grade_count,student_id",
 "student_comments":"author_id,author_name,class_id,content,created_at,id,student_id",
-"students":"address,pack_id,created_at,date_of_birth,email,first_name,grade_level,id,kind,last_name,organization_id,phone,school_name,status,student_number,updated_at,user_id",
+"students":"address,created_at,date_of_birth,email,first_name,grade_level,id,kind,last_name,organization_id,pack_id,phone,school_name,specialty_id,status,student_number,updated_at,user_id",
 "syllabus_items":"class_id,created_at,end_date,id,objectives,planned_sessions,position,start_date,title",
 "teacher_admin_info":"created_at,employment_type,establishment_name,organization_id,teacher_id",
 "teachers":"avatar_url,bio,created_at,email,first_name,id,last_name,organization_id,phone,specialization,status,updated_at,user_id",

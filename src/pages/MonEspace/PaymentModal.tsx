@@ -46,12 +46,15 @@ export default function PaymentModal({
   organizationId,
   studentId,
   studentName,
+  initialOffers,
   onClose,
   onSaved,
 }: {
   organizationId: string;
   studentId: string;
   studentName: string;
+  /** Offers ticked at enrollment, keyed "pack:<id>" / "class:<id>". */
+  initialOffers?: Record<string, boolean>;
   onClose: () => void;
   onSaved?: () => void;
 }) {
@@ -172,7 +175,7 @@ export default function PaymentModal({
     for (const l of lines) c[l.key] = (hasPack ? !!l.packId : true) && !isPaid(l);
     setChecked(c);
     setAmounts({});
-    setApplyDisc({});
+    setApplyDisc(initialOffers ?? {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, lines, termId]);
 

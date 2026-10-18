@@ -31,7 +31,6 @@ export interface PackRow {
   price_trimestre: number | null;
   discount_name: string | null;
   discount_price: number | null;
-  specialty_ids: string[];
   subjects: { id: string; subject: string; position: number }[];
 }
 

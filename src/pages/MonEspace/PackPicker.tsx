@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useLocale } from "../../i18n/LocaleContext";
-import { type LevelRow, type PackRow, type PersonKind, type ProgramRow, type StructureClass, audienceAllows, enrolledCount, isFull, isLanguageProgram, seatText, priceText, slotText, slotsOverlap } from "../../lib/programs";
+import { type LevelRow, type PackRow, type PersonKind, type ProgramRow, type SpecialtyRow, type StructureClass, audienceAllows, enrolledCount, isFull, isLanguageProgram, seatText, priceText, slotText, slotsOverlap } from "../../lib/programs";
 import type { PlacementChoice } from "./ClassPicker";
+import SpecialtySelect, { fitsSpecialty } from "./SpecialtySelect";
+import { money, toDiscount } from "../../lib/discount";
 
 const selectClass = "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[0.88rem] text-gray-900 outline-none focus:border-gray-400";
 const WAIT = "__wait__";
@@ -14,6 +16,12 @@ interface Props {
   levels: LevelRow[];
   classes: StructureClass[];
   packs: PackRow[];
+  specialties: SpecialtyRow[];
+  specialtyId: string;
+  onSpecialtyChange: (id: string) => void;
+  /** Is the pack's offer (discounted price) applied for this person? */
+  offerApplied: (packId: string) => boolean;
+  onOfferChange: (packId: string, applied: boolean) => void;
   organizationId: string;
   /** Classes the person is already in (when editing). */
   takenClassIds: string[];
@@ -24,7 +32,7 @@ interface Props {
 }
 
 /** Choose a pack, then one class per subject. Overlaps are checked here; full classes cannot be picked. */
-export default function PackPicker({ personKind, programs, levels, classes, packs, organizationId, takenClassIds, selection, onChange, packId, onPackChange }: Props) {
+export default function PackPicker({ personKind, programs, levels, classes, packs, specialties, specialtyId, onSpecialtyChange, offerApplied, onOfferChange, organizationId, takenClassIds, selection, onChange, packId, onPackChange }: Props) {
   const { t, locale } = useLocale();
   const pk = t.monEspace.packPicker;
   const [programId, setProgramId] = useState("");
@@ -38,7 +46,9 @@ export default function PackPicker({ personKind, programs, levels, classes, pack
 
   const openPrograms = programs.filter((p) => p.is_active && !isLanguageProgram(p.kind) && audienceAllows(p.audience, personKind) && packs.some((x) => x.program_id === p.id));
   const programLevels = levels.filter((l) => l.program_id === programId && packs.some((x) => x.level_id === l.id)).sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
-  const levelPacks = packs.filter((x) => x.level_id === levelId);
+  const levelSpecs = specialties.filter((s) => s.level_id === levelId);
+  const specialtyReady = levelSpecs.length === 0 || levelSpecs.some((s) => s.id === specialtyId);
+  const levelPacks = specialtyReady ? packs.filter((x) => x.level_id === levelId) : [];
   const pack = packs.find((x) => x.id === pickId && x.level_id === levelId) ?? null;
   const classById = useMemo(() => new Map(classes.map((c) => [c.id, c])), [classes]);
 
@@ -54,7 +64,7 @@ export default function PackPicker({ personKind, programs, levels, classes, pack
               c.level_id === pack.level_id &&
               norm(c.subject) === norm(subject) &&
               !heldIds.includes(c.id) &&
-              (pack.specialty_ids.length === 0 || c.specialty_ids.length === 0 || c.specialty_ids.some((id) => pack.specialty_ids.includes(id))),
+              fitsSpecialty(c.specialty_ids, levelSpecs.length > 0 ? specialtyId : ""),
           )
           .sort((a, b) => Number(isFull(a)) - Number(isFull(b)) || enrolledCount(b) - enrolledCount(a) || a.name.localeCompare(b.name));
         const recommendedId = candidates.length > 1 && !isFull(candidates[0]) ? candidates[0].id : null;
@@ -111,21 +121,41 @@ export default function PackPicker({ personKind, programs, levels, classes, pack
       <p className="mt-0.5 text-[0.76rem] text-gray-500">{pk.help}</p>
 
       <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <select value={programId} onChange={(e) => { setProgramId(e.target.value); setLevelId(""); setPickId(""); setChoice({}); }} className={selectClass} aria-label={t.monEspace.packs.programmeLabel}>
+        <select value={programId} onChange={(e) => { setProgramId(e.target.value); setLevelId(""); setPickId(""); setChoice({}); onSpecialtyChange(""); }} className={selectClass} aria-label={t.monEspace.packs.programmeLabel}>
           <option value="">{t.monEspace.classPicker.chooseProgramme}</option>
           {openPrograms.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <select value={levelId} disabled={!programId} onChange={(e) => { setLevelId(e.target.value); setPickId(""); setChoice({}); }} className={`${selectClass} disabled:bg-gray-100`} aria-label={t.monEspace.packs.niveauLabel}>
+        <select value={levelId} disabled={!programId} onChange={(e) => { setLevelId(e.target.value); setPickId(""); setChoice({}); if (!specialties.some((s) => s.level_id === e.target.value && s.id === specialtyId)) onSpecialtyChange(""); }} className={`${selectClass} disabled:bg-gray-100`} aria-label={t.monEspace.packs.niveauLabel}>
           <option value="">{t.monEspace.classPicker.chooseNiveau}</option>
           {programLevels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
         </select>
-        <select value={pickId} disabled={!levelId} onChange={(e) => { setPickId(e.target.value); setChoice({}); }} className={`${selectClass} disabled:bg-gray-100`} aria-label={pk.heading}>
+        <select value={pickId} disabled={!levelId || !specialtyReady} onChange={(e) => { setPickId(e.target.value); setChoice({}); }} className={`${selectClass} disabled:bg-gray-100`} aria-label={pk.heading}>
           <option value="">{levelId && levelPacks.length === 0 ? pk.noPack : pk.choosePack}</option>
-          {levelPacks.map((x) => <option key={x.id} value={x.id}>{x.price_trimestre != null ? `${x.name} — ${priceText(x.price_trimestre, locale)}` : x.name}</option>)}
+          {levelPacks.map((x) => {
+            const d = toDiscount(x.discount_name, x.discount_price);
+            return <option key={x.id} value={x.id}>{x.price_trimestre != null ? `${x.name} — ${priceText(x.price_trimestre, locale)}${d ? ` · ${d.name} : ${money(d.price, locale)}` : ""}` : x.name}</option>;
+          })}
         </select>
       </div>
 
-      {pack && pack.price_trimestre != null && <p className="mt-2 text-[0.84rem] font-semibold text-ink">{priceText(pack.price_trimestre, locale)}</p>}
+      {levelId && <SpecialtySelect options={levelSpecs} value={specialtyId} onChange={(id) => { onSpecialtyChange(id); setPickId(""); setChoice({}); }} />}
+
+      {pack && pack.price_trimestre != null && (() => {
+        const d = toDiscount(pack.discount_name, pack.discount_price);
+        return (
+          <div className="mt-2">
+            <p className="text-[0.84rem] font-semibold text-ink">
+              {d ? <><span className="mr-1.5 font-normal text-gray-400 line-through">{money(pack.price_trimestre, locale)}</span>{money(d.price, locale)} · {d.name}</> : priceText(pack.price_trimestre, locale)}
+            </p>
+            {d && (
+              <label className="mt-1 flex items-center gap-1.5 text-[0.8rem] font-medium text-amber-800">
+                <input type="checkbox" checked={offerApplied(pack.id)} onChange={(e) => onOfferChange(pack.id, e.target.checked)} />
+                {t.monEspace.payPlan.applyDiscount.replace("{name}", d.name).replace("{price}", money(d.price, locale))}
+              </label>
+            )}
+          </div>
+        );
+      })()}
       {pack && (
         <div className="mt-3 space-y-3">
           {rows.map((r) => (

@@ -19,14 +19,13 @@ export default function PacksManager({ organizationId }: { organizationId: strin
   const { t, locale } = useLocale();
   const pk = t.monEspace.packs;
   const c = t.monEspace.gestion.common;
-  const { programs, levels, classes, specialties, packs, loading, reload } = useStructure(organizationId);
+  const { programs, levels, classes, packs, loading, reload } = useStructure(organizationId);
   const { confirm, dialog } = useConfirmDialog();
 
   const [programId, setProgramId] = useState("");
   const [levelId, setLevelId] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [specIds, setSpecIds] = useState<string[]>([]);
   const [subjects, setSubjects] = useState<string[]>([]);
   const [subjectDraft, setSubjectDraft] = useState("");
   const [price, setPrice] = useState("");
@@ -39,7 +38,6 @@ export default function PacksManager({ organizationId }: { organizationId: strin
   const program = schoolPrograms.find((p) => p.id === programId) ?? schoolPrograms[0] ?? null;
   const programLevels = program ? levels.filter((l) => l.program_id === program.id).sort((a, b) => a.position - b.position || a.name.localeCompare(b.name)) : [];
   const level = programLevels.find((l) => l.id === levelId) ?? programLevels[0] ?? null;
-  const levelSpecs = level ? specialties.filter((s) => s.level_id === level.id) : [];
   const items = level ? packs.filter((p) => p.level_id === level.id) : [];
   // Subjects already used by the classes of this niveau: offered as one-click suggestions.
   const suggestions = level
@@ -50,7 +48,6 @@ export default function PacksManager({ organizationId }: { organizationId: strin
   function reset() {
     setEditingId(null);
     setName("");
-    setSpecIds([]);
     setSubjects([]);
     setSubjectDraft("");
     setPrice("");
@@ -90,9 +87,7 @@ export default function PacksManager({ organizationId }: { organizationId: strin
       packId = failure ? null : newId;
     }
     if (!failure && packId) {
-      failure = (await supabase.from("pack_specialties").delete().eq("pack_id", packId)).error;
-      if (!failure && specIds.length > 0) failure = (await supabase.from("pack_specialties").insert(specIds.map((specialty_id) => ({ pack_id: packId, specialty_id })))).error;
-      if (!failure) failure = (await supabase.from("pack_subjects").delete().eq("pack_id", packId)).error;
+      failure = (await supabase.from("pack_subjects").delete().eq("pack_id", packId)).error;
       if (!failure) failure = (await supabase.from("pack_subjects").insert(all.map((subject, position) => ({ pack_id: packId, subject, position })))).error;
     }
     setBusy(false);
@@ -131,17 +126,6 @@ export default function PacksManager({ organizationId }: { organizationId: strin
               <input id="pack-price" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className={`${inputClass} mt-1 sm:max-w-xs`} />
             </div>
             <DiscountFields idPrefix="pack" name={discName} price={discPrice} listPrice={price} onChange={(n, p) => { setDiscName(n); setDiscPrice(p); }} />
-            {levelSpecs.length > 0 && (
-              <div>
-                <p className="text-[0.8rem] font-semibold text-gray-700">{pk.specialtiesLabel}</p>
-                <p className="text-[0.74rem] text-gray-500">{pk.specialtiesHelp}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {levelSpecs.map((s) => (
-                    <button key={s.id} type="button" onClick={() => setSpecIds(specIds.includes(s.id) ? specIds.filter((x) => x !== s.id) : [...specIds, s.id])} className={chip(specIds.includes(s.id))}>{s.name}</button>
-                  ))}
-                </div>
-              </div>
-            )}
             <div>
               <p className="text-[0.8rem] font-semibold text-gray-700">{pk.subjectsLabel}</p>
               <p className="text-[0.74rem] text-gray-500">{pk.subjectsHelp}</p>
@@ -175,13 +159,12 @@ export default function PacksManager({ organizationId }: { organizationId: strin
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-[0.92rem] font-semibold text-gray-900">{p.name}{p.price_trimestre != null && <span className="ml-2 rounded-full bg-accent-soft px-2.5 py-0.5 text-[0.72rem] font-semibold text-ink">{priceText(p.price_trimestre, locale)}</span>}{toDiscount(p.discount_name, p.discount_price) && <span className="ml-2 rounded-full bg-amber-100 px-2.5 py-0.5 text-[0.72rem] font-semibold text-amber-800">{discountBadge(t.monEspace.discount.badge, toDiscount(p.discount_name, p.discount_price)!, locale)}</span>}</span>
                   <div className="flex items-center gap-3">
-                    <button data-write type="button" className={linkClass} onClick={() => { setEditingId(p.id); setName(p.name); setPrice(p.price_trimestre?.toString() ?? ""); setDiscName(p.discount_name ?? ""); setDiscPrice(p.discount_price?.toString() ?? ""); setSpecIds(p.specialty_ids); setSubjects(p.subjects.map((s) => s.subject)); setError(null); }}>{pk.edit}</button>
+                    <button data-write type="button" className={linkClass} onClick={() => { setEditingId(p.id); setName(p.name); setPrice(p.price_trimestre?.toString() ?? ""); setDiscName(p.discount_name ?? ""); setDiscPrice(p.discount_price?.toString() ?? ""); setSubjects(p.subjects.map((s) => s.subject)); setError(null); }}>{pk.edit}</button>
                     <button data-write type="button" disabled={busy} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-40"
                       onClick={() => confirm(`${c.delete} « ${p.name} » ?`, async () => { setBusy(true); const { error: delError } = await supabase.from("packs").delete().eq("id", p.id); setBusy(false); setError(delError ? humanizeError(delError) : null); await reload(); })}>{c.delete}</button>
                   </div>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {p.specialty_ids.map((id) => <span key={id} className="rounded-full bg-accent-soft px-2.5 py-0.5 text-[0.72rem] font-semibold text-ink">{specialties.find((s) => s.id === id)?.name}</span>)}
                   {p.subjects.length === 0 ? <span className="text-[0.76rem] text-gray-400">{pk.noSubjects}</span> : p.subjects.map((s) => <span key={s.id} className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[0.76rem] font-medium text-gray-700">{s.subject}</span>)}
                 </div>
               </div>

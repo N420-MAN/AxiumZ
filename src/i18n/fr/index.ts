@@ -486,6 +486,17 @@ const fr: Dictionary = {
       preview: "Économie pour la famille : {amount}",
       badge: "{name} : {price}",
     },
+    specialtyPicker: {
+      label: "Spécialité",
+      choose: "Choisir la spécialité…",
+      pickFirst: "Choisissez d'abord la spécialité : seules les classes qui lui correspondent seront proposées.",
+      chip: "Spécialité : {name}",
+    },
+    enroll: {
+      saveAndPay: "Inscrire et encaisser",
+      tariffTitle: "Tarif et offre",
+      tariffHelp: "Cochez pour appliquer l'offre : le paiement s'ouvre juste après l'inscription avec le prix remisé.",
+    },
     payPlan: {
       modeTitle: "Formule de paiement",
       modeFull: "Trimestre complet",

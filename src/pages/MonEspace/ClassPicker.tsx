@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useLocale } from "../../i18n/LocaleContext";
+import SpecialtySelect, { fitsSpecialty } from "./SpecialtySelect";
+import { money, toDiscount } from "../../lib/discount";
 import {
   type LevelRow,
   type PersonKind,
   type ProgramRow,
+  type SpecialtyRow,
   type StructureClass,
   audienceAllows,
   classLabel,
@@ -31,6 +34,9 @@ interface ClassPickerProps {
   programs: ProgramRow[];
   levels: LevelRow[];
   classes: StructureClass[];
+  specialties: SpecialtyRow[];
+  specialtyId: string;
+  onSpecialtyChange: (id: string) => void;
   selection: PlacementChoice[];
   onChange: (next: PlacementChoice[]) => void;
   /** Classes the person is already in: not offered again. */
@@ -52,6 +58,9 @@ export default function ClassPicker({
   programs,
   levels,
   classes,
+  specialties,
+  specialtyId,
+  onSpecialtyChange,
   selection,
   onChange,
   takenClassIds = [],
@@ -76,8 +85,10 @@ export default function ClassPicker({
   const openPrograms = programs.filter((p) => p.is_active && audienceAllows(p.audience, personKind));
   const programLevels = levels.filter((l) => l.program_id === programId).sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
   const selectedClassIds = new Set(selection.filter((s) => s.type === "class").map((s) => (s as { classId: string }).classId));
+  const levelSpecs = specialties.filter((s) => s.level_id === levelId);
+  const specialtyReady = levelSpecs.length === 0 || levelSpecs.some((s) => s.id === specialtyId);
   const levelClasses = classes
-    .filter((cl) => cl.level_id === levelId && !takenClassIds.includes(cl.id) && !selectedClassIds.has(cl.id))
+    .filter((cl) => specialtyReady && cl.level_id === levelId && !takenClassIds.includes(cl.id) && !selectedClassIds.has(cl.id) && fitsSpecialty(cl.specialty_ids, levelSpecs.length > 0 ? specialtyId : ""))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const labelFor = (cl: StructureClass) =>
@@ -152,6 +163,7 @@ export default function ClassPicker({
                 setProgramId(e.target.value);
                 setLevelId("");
                 setOption("");
+                onSpecialtyChange("");
               }}
               className={selectClass}
               aria-label={cp.programme}
@@ -169,6 +181,7 @@ export default function ClassPicker({
               onChange={(e) => {
                 setLevelId(e.target.value);
                 setOption("");
+                if (!specialties.some((s) => s.level_id === e.target.value && s.id === specialtyId)) onSpecialtyChange("");
               }}
               className={`${selectClass} disabled:bg-gray-100 disabled:text-gray-400`}
               aria-label={cp.niveau}
@@ -181,6 +194,8 @@ export default function ClassPicker({
               ))}
             </select>
           </div>
+
+          {levelId && <SpecialtySelect options={levelSpecs} value={specialtyId} onChange={(id) => { onSpecialtyChange(id); setOption(""); }} />}
 
           {programId && (
             <div className="mt-2 space-y-1">
@@ -197,7 +212,7 @@ export default function ClassPicker({
                       <input type="radio" name="class-option" disabled={full} checked={option === cl.id} onChange={() => setOption(cl.id)} />
                       <span>
                         {cl.name}
-                        {cl.price_trimestre != null && <span className="ml-1.5 text-[0.74rem] font-semibold text-ink">· {priceText(cl.price_trimestre, locale)}</span>}
+                        {cl.price_trimestre != null && <span className="ml-1.5 text-[0.74rem] font-semibold text-ink">· {priceText(cl.price_trimestre, locale)}{toDiscount(cl.discount_name, cl.discount_price) ? ` · ${cl.discount_name} : ${money(cl.discount_price as number, locale)}` : ""}</span>}
                         {cl.teachers && <span className="ml-1.5 text-[0.74rem] text-gray-400">· {cl.teachers.first_name} {cl.teachers.last_name}</span>}
                       </span>
                     </span>

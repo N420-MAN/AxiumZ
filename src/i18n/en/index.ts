@@ -486,6 +486,17 @@ const en: Dictionary = {
       preview: "Saving for the family: {amount}",
       badge: "{name}: {price}",
     },
+    specialtyPicker: {
+      label: "Specialty",
+      choose: "Choose the specialty…",
+      pickFirst: "Choose the specialty first: only the matching classes will be offered.",
+      chip: "Specialty: {name}",
+    },
+    enroll: {
+      saveAndPay: "Enroll and take payment",
+      tariffTitle: "Price and offer",
+      tariffHelp: "Tick to apply the offer: payment opens right after enrollment with the discounted price.",
+    },
     payPlan: {
       modeTitle: "Payment plan",
       modeFull: "Full term",

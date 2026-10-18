@@ -24,6 +24,7 @@ import PersonalDataNotice from "./PersonalDataNotice";
 import PlacementTestModal from "./PlacementTestModal";
 import PaymentModal from "./PaymentModal";
 import { useConfirmDialog } from "./useConfirmDialog";
+import { money, toDiscount } from "../../lib/discount";
 
 interface PersonRow {
   id: string;
@@ -37,6 +38,7 @@ interface PersonRow {
   user_id: string | null;
   created_at: string;
   pack_id: string | null;
+  specialty_id: string | null;
   class_students: { id: string; class_id: string }[];
   class_wishes: { id: string; program_id: string; level_id: string | null; note: string | null; fulfilled_at: string | null }[];
 }
@@ -65,7 +67,7 @@ async function fetchPeople(organizationId: string, kind: PersonKind) {
     supabase
       .from("students")
       .select(
-        "id, first_name, last_name, email, phone, address, school_name, grade_level, user_id, created_at, pack_id, class_students(id, class_id), class_wishes(id, program_id, level_id, note, fulfilled_at)",
+        "id, first_name, last_name, email, phone, address, school_name, grade_level, user_id, created_at, pack_id, specialty_id, class_students(id, class_id), class_wishes(id, program_id, level_id, note, fulfilled_at)",
       )
       .eq("organization_id", organizationId)
       .eq("kind", kind)
@@ -89,7 +91,7 @@ async function fetchPeople(organizationId: string, kind: PersonKind) {
 export default function PeopleTable({ kind, organizationId }: { kind: PersonKind; organizationId: string }) {
   const isEleve = kind === "eleve";
   const guardianKind = guardianKindFor(kind);
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { isAssistant } = useAuth();
   const pp = t.monEspace.people;
   const pk = t.monEspace.packPicker;
@@ -134,6 +136,10 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   const [guardianChoice, setGuardianChoice] = useState<GuardianChoice>(NO_GUARDIAN);
   const [consent, setConsent] = useState(false);
   const [packId, setPackId] = useState("");
+  const [specialtyId, setSpecialtyId] = useState("");
+  // Offers ticked at enrollment, keyed like the payment lines: "pack:<id>" / "class:<id>".
+  const [offers, setOffers] = useState<Record<string, boolean>>({});
+  const [payNew, setPayNew] = useState<{ id: string; name: string; offers: Record<string, boolean> } | null>(null);
   const [mode, setMode] = useState<"" | "pack" | "class">("");
   const [saving, setSaving] = useState(false);
   const [inviting, setInviting] = useState<string | null>(null);
@@ -279,6 +285,8 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
     setForm(EMPTY_FORM);
     setSelection([]);
     setPackId("");
+    setSpecialtyId("");
+    setOffers({});
     setMode("");
     setRemovedKeys(new Set());
     setConsent(false);
@@ -308,6 +316,8 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
     });
     setSelection([]);
     setPackId(p.pack_id ?? "");
+    setSpecialtyId(p.specialty_id ?? "");
+    setOffers({});
     setMode("");
     setRemovedKeys(new Set());
     setGuardianChoice(NO_GUARDIAN);
@@ -394,7 +404,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
       }
       const result = created as { student_id: string; guardian_id: string | null; guardian_created: boolean };
       personId = result.student_id;
-      if (packId) await supabase.from("students").update({ pack_id: packId }).eq("id", result.student_id);
+      if (packId || specialtyId) await supabase.from("students").update({ ...(packId ? { pack_id: packId } : {}), ...(specialtyId ? { specialty_id: specialtyId } : {}) }).eq("id", result.student_id);
       toInvite.push({ table: "students", id: result.student_id, email: fields.email });
       if (result.guardian_created && result.guardian_id && newGuardian?.email.trim()) {
         toInvite.push({ table: "parents", id: result.guardian_id, email: newGuardian.email.trim() });
@@ -430,6 +440,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
           school_name: fields.school_name || null,
           grade_level: fields.grade_level || null,
           pack_id: packId || null,
+          specialty_id: specialtyId || null,
         })
         .eq("id", editingId);
       const removedClassRows = existingPlacements.filter((x) => removedKeys.has(x.key) && !x.wish).map((x) => x.key.slice(2));
@@ -470,6 +481,8 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
     }
 
     setSaving(false);
+    // Enrollment and payment go together: the payment window opens right away (pack / classes, offer ticked here).
+    if (!editingId && personId && (packId || newClassIds.length > 0)) setPayNew({ id: personId, name: fullName, offers: { ...offers } });
     closeForm();
     resetForm();
     setPlacementQueue(queue);
@@ -504,6 +517,12 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   }
 
   // ------------------------------------------------------------- render
+  const tariffLines = selection.flatMap((s) => {
+    if (s.type !== "class") return [];
+    const cl = classes.find((x) => x.id === s.classId);
+    return cl ? [{ id: cl.id, label: cl.subject ? `${cl.subject} – ${cl.name}` : cl.name, price: cl.price_trimestre, discount: toDiscount(cl.discount_name, cl.discount_price) }] : [];
+  });
+  const willPay = !editingId && (packId !== "" || selection.some((s) => s.type === "class"));
   const title = isEleve ? pp.eleves : pp.stagiaires;
   const nothingToPick = !structure.loading && programs.filter((p) => p.is_active).length === 0;
 
@@ -641,6 +660,11 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
             levels={levels}
             classes={classes}
             packs={structure.packs}
+            specialties={structure.specialties}
+            specialtyId={specialtyId}
+            onSpecialtyChange={setSpecialtyId}
+            offerApplied={(id) => !!offers[`pack:${id}`]}
+            onOfferChange={(id, on) => setOffers((o) => ({ ...o, [`pack:${id}`]: on }))}
             organizationId={organizationId}
             takenClassIds={takenClassIds.filter((id) => !removedClassIdSet.has(id))}
             selection={selection}
@@ -655,6 +679,9 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
             programs={programs}
             levels={levels}
             classes={classes}
+            specialties={structure.specialties}
+            specialtyId={specialtyId}
+            onSpecialtyChange={setSpecialtyId}
             selection={selection}
             onChange={setSelection}
             takenClassIds={takenClassIds}
@@ -662,6 +689,31 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
             onToggleExisting={toggleExisting}
             required
           /> : null}
+
+          {!packId && tariffLines.length > 0 && (
+            <div className="rounded-lg border border-gray-200 bg-white p-3 sm:col-span-3">
+              <p className="text-[0.82rem] font-semibold text-gray-700">{t.monEspace.enroll.tariffTitle}</p>
+              <p className="text-[0.74rem] text-gray-500">{t.monEspace.enroll.tariffHelp}</p>
+              <ul className="mt-2 space-y-1.5">
+                {tariffLines.map((l) => (
+                  <li key={l.id} className="text-[0.84rem] text-gray-800">
+                    <span className="font-medium">{l.label}</span>
+                    {l.price != null && (
+                      <span className="ml-2 text-ink">
+                        {l.discount ? <><span className="mr-1 text-gray-400 line-through">{money(l.price, locale)}</span>{money(l.discount.price, locale)}</> : money(l.price, locale)}
+                      </span>
+                    )}
+                    {l.discount && (
+                      <label className="mt-0.5 flex items-center gap-1.5 text-[0.8rem] font-medium text-amber-800">
+                        <input type="checkbox" checked={!!offers[`class:${l.id}`]} onChange={(e) => setOffers((o) => ({ ...o, [`class:${l.id}`]: e.target.checked }))} />
+                        {t.monEspace.payPlan.applyDiscount.replace("{name}", l.discount.name).replace("{price}", money(l.discount.price, locale))}
+                      </label>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <GuardianPicker
             kind={guardianKind}
@@ -682,7 +734,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
             </div>
           )}
           <button type="submit" disabled={saving} className="rounded-md bg-gradient-to-br from-ink to-ink-soft px-4 py-2 text-[0.85rem] font-medium text-paper disabled:opacity-50 sm:col-span-2">
-            {saving ? c.saving : editingId ? c.saveEdits : c.save}
+            {saving ? c.saving : editingId ? c.saveEdits : willPay ? t.monEspace.enroll.saveAndPay : c.save}
           </button>
         </form>
       )}
@@ -834,6 +886,11 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
                             {pk.packChip.replace("{name}", structure.packs.find((x) => x.id === p.pack_id)?.name ?? "—")}
                           </span>
                         )}
+                        {p.specialty_id && (
+                          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[0.72rem] font-medium text-amber-800">
+                            {t.monEspace.specialtyPicker.chip.replace("{name}", structure.specialties.find((x) => x.id === p.specialty_id)?.name ?? "—")}
+                          </span>
+                        )}
                         {p.class_students.map((cs) => (
                           <span key={cs.id} className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[0.72rem] text-gray-700">
                             {classLabelById(cs.class_id)}
@@ -879,6 +936,15 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
           studentId={payFor.id}
           studentName={`${payFor.first_name} ${payFor.last_name}`}
           onClose={() => setPayFor(null)}
+        />
+      )}
+      {payNew && placementQueue.length === 0 && (
+        <PaymentModal
+          organizationId={organizationId}
+          studentId={payNew.id}
+          studentName={payNew.name}
+          initialOffers={payNew.offers}
+          onClose={() => setPayNew(null)}
         />
       )}
       {placementQueue.length > 0 && (
