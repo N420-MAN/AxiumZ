@@ -59,7 +59,7 @@ export default function TodayView() {
           .lt("starts_at", todayEnd)
           .order("starts_at"),
         supabase.from("class_sessions").select("id", { count: "exact", head: true }).gte("starts_at", todayStart).lt("starts_at", weekEnd),
-        supabase.from("class_students").select("student_id", { count: "exact", head: true }),
+        supabase.from("students").select("id", { count: "exact", head: true }).eq("status", "active"),
       ]);
 
       if (isAdmin) {
