@@ -20,30 +20,16 @@ export default function Button({
   ...rest
 }: ButtonProps) {
   const base =
-    "group relative inline-flex items-center justify-center overflow-hidden rounded-full px-7 py-3.5 text-[0.95rem] font-semibold tracking-[0.01em] transition-all duration-300 active:scale-[0.97]";
+    "btn-sticker relative inline-flex items-center justify-center rounded-md px-7 py-3.5 text-[0.95rem] font-semibold tracking-[0.01em]";
 
-  const solidColors =
-    tone === "dark"
-      ? "bg-paper text-ink shadow-[0_10px_28px_-10px_rgba(200,150,47,0.55)] hover:shadow-[0_14px_32px_-8px_rgba(200,150,47,0.7)] hover:-translate-y-0.5"
-      : "bg-ink text-paper shadow-[0_10px_28px_-10px_rgba(15,42,92,0.55)] hover:shadow-[0_14px_32px_-8px_rgba(15,42,92,0.7)] hover:-translate-y-0.5";
-
+  // dark = used on a navy section (paper button, gold shadow); light = used on paper (navy button, gold shadow)
+  const solidColors = tone === "dark" ? "bg-paper text-ink [--sticker:var(--color-accent)]" : "bg-ink text-paper [--sticker:var(--color-accent)]";
   const outlineColors =
     tone === "dark"
-      ? "border-2 border-paper/70 text-paper hover:border-paper hover:bg-paper/10"
-      : "border-2 border-ink/40 text-ink hover:border-ink hover:bg-ink/5";
+      ? "border-2 border-paper/80 text-paper hover:bg-paper/10 [--sticker:rgba(251,248,242,0.25)]"
+      : "border-2 border-ink text-ink hover:bg-accent-soft [--sticker:rgba(15,42,92,0.18)]";
 
-  const content =
-    variant === "solid" ? (
-      <>
-        <span
-          className="absolute inset-0 origin-left scale-x-0 bg-accent transition-transform duration-500 ease-[var(--ease-editorial)] group-hover:scale-x-100"
-          aria-hidden="true"
-        />
-        <span className="relative transition-colors duration-500 group-hover:text-paper">{children}</span>
-      </>
-    ) : (
-      <span className="relative">{children}</span>
-    );
+  const content = <span className="relative">{children}</span>;
 
   const classes = `${base} ${variant === "solid" ? solidColors : outlineColors} ${className}`;
 

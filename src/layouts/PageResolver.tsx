@@ -6,6 +6,7 @@ import { pageForSlug } from "../i18n/config";
 const Centre = lazy(() => import("../pages/Centre/Centre"));
 const Activites = lazy(() => import("../pages/Activites/Activites"));
 const Programmes = lazy(() => import("../pages/Programmes/Programmes"));
+const Tarifs = lazy(() => import("../pages/Tarifs/Tarifs"));
 const Methodologie = lazy(() => import("../pages/Methodologie/Methodologie"));
 const Contact = lazy(() => import("../pages/Contact/Contact"));
 const Inscription = lazy(() => import("../pages/Inscription/Inscription"));
@@ -26,6 +27,8 @@ export default function PageResolver() {
         return <Activites />;
       case "programmes":
         return <Programmes />;
+      case "tarifs":
+        return <Tarifs />;
       case "methodologie":
         return <Methodologie />;
       case "contact":

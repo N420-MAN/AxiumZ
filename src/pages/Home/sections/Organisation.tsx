@@ -16,7 +16,7 @@ export default function Organisation() {
         className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-25"
         style={{ background: "radial-gradient(circle, var(--color-accent-bright) 0%, transparent 70%)", animation: "float-slow 10s ease-in-out infinite" }}
       />
-      <div className="container-editorial relative !max-w-[1180px] !px-0">
+      <div className="container-editorial relative !max-w-[74rem] !px-0">
         <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-12">
           <div className="md:col-span-7">
             <Reveal>

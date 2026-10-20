@@ -31,6 +31,7 @@ export interface PackRow {
   price_trimestre: number | null;
   discount_name: string | null;
   discount_price: number | null;
+  discount_active: boolean;
   subjects: { id: string; subject: string; position: number }[];
 }
 
@@ -65,6 +66,7 @@ export interface StructureClass {
   price_trimestre: number | null;
   discount_name: string | null;
   discount_price: number | null;
+  discount_active: boolean;
   teachers: { first_name: string; last_name: string } | null;
   class_students: { count: number }[];
   specialty_ids: string[];

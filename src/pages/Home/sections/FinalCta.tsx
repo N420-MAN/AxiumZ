@@ -18,7 +18,7 @@ export default function FinalCta() {
           className="pointer-events-none absolute -left-32 top-1/3 h-96 w-96 rounded-full opacity-20"
           style={{ background: "radial-gradient(circle, var(--color-accent-bright) 0%, transparent 70%)", animation: "float-slow 11s ease-in-out infinite" }}
         />
-        <div className="container-editorial relative !max-w-[1180px] !px-0">
+        <div className="container-editorial relative !max-w-[74rem] !px-0">
           <Reveal>
             <SectionLabel tone="light">{c.label}</SectionLabel>
           </Reveal>

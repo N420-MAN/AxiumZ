@@ -2,6 +2,7 @@ import { NavLink, Routes, Route, Navigate, Outlet, useParams, useLocation } from
 import { useAuth } from "../../features/auth/AuthContext";
 import { useLocale } from "../../i18n/LocaleContext";
 import PeopleTable from "./PeopleTable";
+import PreinscriptionsManager from "./PreinscriptionsManager";
 import GuardiansTable from "./GuardiansTable";
 import ProgramsManager from "./ProgramsManager";
 import LevelsManager from "./LevelsManager";
@@ -82,6 +83,7 @@ export default function GestionLayout() {
       label: m.groupPeople,
       tabs: [
         { to: "personnes", label: m.allPeople },
+        { to: "preinscriptions", label: t.monEspace.preinscriptions.title },
         { to: "eleves", label: t.monEspace.people.eleves },
         { to: "stagiaires", label: t.monEspace.people.stagiaires },
         { to: "parents", label: t.monEspace.guardian.parents },
@@ -133,6 +135,7 @@ export default function GestionLayout() {
       <Route element={<GestionShell groups={groups} />}>
         <Route index element={<Navigate to={`${base}/personnes`} replace />} />
         <Route path="personnes" element={<PeopleDirectory organizationId={orgId} />} />
+        <Route path="preinscriptions" element={<PreinscriptionsManager organizationId={orgId} />} />
         <Route path="structure" element={<StructureTree organizationId={orgId} />} />
         <Route path="eleves" element={<PeopleTable kind="eleve" organizationId={orgId} />} />
         <Route path="stagiaires" element={<PeopleTable kind="stagiaire" organizationId={orgId} />} />

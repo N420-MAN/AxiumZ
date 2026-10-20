@@ -11,7 +11,7 @@ export default function Positioning() {
   return (
     <section id="centre" className="relative bg-accent-soft px-4 py-24 text-ink sm:px-6 sm:py-36">
       <div className="pattern-grid-light pointer-events-none absolute inset-0 opacity-60" aria-hidden="true" />
-      <div className="container-editorial relative !max-w-[1180px] !px-0">
+      <div className="container-editorial relative !max-w-[74rem] !px-0">
         <div className="grid grid-cols-1 gap-16 md:grid-cols-12">
           <div className="md:col-span-7">
             <Reveal>

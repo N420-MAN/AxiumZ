@@ -20,7 +20,7 @@ export default function CallBanner({ tone = "gold" }: CallBannerProps) {
   return (
     <section className={`relative overflow-hidden px-4 py-10 sm:px-6 sm:py-12 ${bg} ${textColor}`}>
       <div className="pattern-diagonal pointer-events-none absolute inset-0 opacity-[0.12]" aria-hidden="true" />
-      <div className="container-editorial relative !max-w-[1180px] !px-0">
+      <div className="container-editorial relative !max-w-[74rem] !px-0">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}

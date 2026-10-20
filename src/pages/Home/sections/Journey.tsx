@@ -10,7 +10,7 @@ export default function Journey() {
   return (
     <section className="grain-texture relative bg-ink px-4 py-24 text-paper sm:px-6 sm:py-36">
       <div className="pattern-grid-dark pointer-events-none absolute inset-0 opacity-50" aria-hidden="true" />
-      <div className="container-editorial relative !max-w-[1180px] !px-0">
+      <div className="container-editorial relative !max-w-[74rem] !px-0">
         <Reveal>
           <SectionLabel tone="light">{j.label}</SectionLabel>
           <h2 className="font-display text-balance mt-6 max-w-lg text-[2.2rem] leading-[1.1] font-extrabold sm:text-[3rem]">

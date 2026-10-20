@@ -13,7 +13,7 @@ export default function MethodologyJourney() {
   return (
     <section className="grain-texture relative bg-ink px-4 py-20 text-paper sm:px-6 sm:py-28">
       <div className="pattern-grid-dark pointer-events-none absolute inset-0 opacity-50" aria-hidden="true" />
-      <div className="container-editorial relative !max-w-[1180px] !px-0">
+      <div className="container-editorial relative !max-w-[74rem] !px-0">
         <Reveal>
           <SectionLabel tone="light">{m.label}</SectionLabel>
           <h2 className="font-display text-balance mt-5 max-w-xl text-[1.9rem] font-extrabold leading-[1.15] sm:text-[2.6rem]">

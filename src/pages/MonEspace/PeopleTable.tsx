@@ -1,5 +1,5 @@
 import { useAuth } from "../../features/auth/AuthContext";
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
@@ -17,6 +17,7 @@ import DirectoryField from "./DirectoryField";
 import SuggestInput from "./SuggestInput";
 import { useOrgDirectory } from "../../features/directory/useOrgDirectory";
 import PackPicker from "./PackPicker";
+import { PREINSCRIPTION_SELECT, type PreinscriptionRow } from "./PreinscriptionsManager";
 import ClassPicker, { type ExistingPlacement, type PlacementChoice } from "./ClassPicker";
 import GuardianPicker from "./GuardianPicker";
 import AccountStatus from "./AccountStatus";
@@ -145,7 +146,46 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   const [inviting, setInviting] = useState<string | null>(null);
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({});
   const [payFor, setPayFor] = useState<PersonRow | null>(null);
+  // A website pre-enrolment being turned into an enrollment (?pre=<id>).
+  const [pre, setPre] = useState<PreinscriptionRow | null>(null);
+  const preApplied = useRef(false);
+  const [prePicker, setPrePicker] = useState<{ programId: string; levelId: string } | null>(null);
   const [placementQueue, setPlacementQueue] = useState<{ studentId: string; studentName: string; classId: string }[]>([]);
+
+  useEffect(() => {
+    const preId = new URLSearchParams(window.location.search).get("pre");
+    if (!preId || kind !== "eleve") return;
+    supabase
+      .from("preinscriptions")
+      .select(PREINSCRIPTION_SELECT)
+      .eq("id", preId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setPre(data as unknown as PreinscriptionRow);
+      });
+  }, [kind]);
+
+  // Fill the form from the pre-enrolment once the structure (levels, packs) is loaded.
+  useEffect(() => {
+    if (!pre || preApplied.current || levels.length === 0) return;
+    preApplied.current = true;
+    const parts = pre.guardian_name.trim().split(/\s+/);
+    const gLast = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+    const gFirst = parts.length > 1 ? parts.slice(0, -1).join(" ") : "";
+    setEditingId(null);
+    setForm({ ...EMPTY_FORM, first_name: pre.student_first_name, last_name: pre.student_last_name, school_name: pre.school ?? "", grade_level: pre.levels?.name ?? "" });
+    setGuardianChoice({ mode: "new", draft: { ...EMPTY_DRAFT, first_name: gFirst, last_name: gLast, email: pre.email, phone: pre.phone } });
+    setSpecialtyId(pre.specialty_id ?? "");
+    if (pre.formula === "pack" && pre.pack_id) {
+      setPackId(pre.pack_id);
+      setMode("pack");
+      setOffers({ [`pack:${pre.pack_id}`]: !!pre.offer_name });
+      if (pre.program_id && pre.level_id) setPrePicker({ programId: pre.program_id, levelId: pre.level_id });
+    } else if (pre.formula === "subject") {
+      setMode("class");
+    }
+    setShowForm(true);
+  }, [pre, levels]);
 
   const load = useCallback(async () => {
     const result = await fetchPeople(organizationId, kind);
@@ -404,6 +444,10 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
       }
       const result = created as { student_id: string; guardian_id: string | null; guardian_created: boolean };
       personId = result.student_id;
+      if (pre) {
+        await supabase.from("preinscriptions").update({ status: "enrolled" }).eq("id", pre.id);
+        setPre(null);
+      }
       if (packId || specialtyId) await supabase.from("students").update({ ...(packId ? { pack_id: packId } : {}), ...(specialtyId ? { specialty_id: specialtyId } : {}) }).eq("id", result.student_id);
       toInvite.push({ table: "students", id: result.student_id, email: fields.email });
       if (result.guardian_created && result.guardian_id && newGuardian?.email.trim()) {
@@ -520,7 +564,7 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
   const tariffLines = selection.flatMap((s) => {
     if (s.type !== "class") return [];
     const cl = classes.find((x) => x.id === s.classId);
-    return cl ? [{ id: cl.id, label: cl.subject ? `${cl.subject} – ${cl.name}` : cl.name, price: cl.price_trimestre, discount: toDiscount(cl.discount_name, cl.discount_price) }] : [];
+    return cl ? [{ id: cl.id, label: cl.subject ? `${cl.subject} – ${cl.name}` : cl.name, price: cl.price_trimestre, discount: toDiscount(cl.discount_name, cl.discount_price, cl.discount_active) }] : [];
   });
   const willPay = !editingId && (packId !== "" || selection.some((s) => s.type === "class"));
   const title = isEleve ? pp.eleves : pp.stagiaires;
@@ -552,6 +596,17 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
 
       {showForm && (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 border-b border-gray-100 p-5 sm:grid-cols-2">
+          {pre && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[0.82rem] text-amber-900 sm:col-span-3">
+              <p className="font-semibold">{t.monEspace.preinscriptions.bannerTitle}</p>
+              <p className="mt-0.5">
+                {pre.formula === "pack" ? t.monEspace.preinscriptions.choicePack.replace("{name}", pre.pack_name ?? "") : pre.formula === "subject" ? t.monEspace.preinscriptions.choiceSubjects.replace("{names}", pre.subjects.join(", ")) : t.monEspace.preinscriptions.choiceFree}
+                {pre.list_price != null && ` — ${money(pre.offer_price ?? pre.list_price, locale)}`}
+                {pre.offer_name && pre.offer_price != null ? ` (${pre.offer_name})` : ""}
+              </p>
+              <p className="mt-1 text-amber-800/80">{t.monEspace.preinscriptions.bannerHint}</p>
+            </div>
+          )}
           <DirectoryField
             field="last_name"
             required
@@ -655,6 +710,8 @@ export default function PeopleTable({ kind, organizationId }: { kind: PersonKind
           </div>
 
           {mode === "pack" && <PackPicker
+            initialProgramId={prePicker?.programId}
+            initialLevelId={prePicker?.levelId}
             personKind={kind}
             programs={programs}
             levels={levels}

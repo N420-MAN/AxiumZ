@@ -11,11 +11,11 @@ export default function Centre() {
 
   return (
     <>
-      <PageHero eyebrow={c.hero.eyebrow} title={c.hero.title} body={c.hero.body} />
+      <PageHero eyebrow={c.hero.eyebrow} title={c.hero.title} body={c.hero.body} variant="cahier" />
 
       <section className="relative bg-paper px-4 py-24 text-ink sm:px-6 sm:py-32">
         <div className="pattern-grid-light pointer-events-none absolute inset-0 opacity-60" aria-hidden="true" />
-        <div className="container-editorial !max-w-[1180px] !px-0">
+        <div className="container-editorial !max-w-[74rem] !px-0">
           <div className="grid grid-cols-1 gap-16 md:grid-cols-12">
             <div className="md:col-span-6">
               <Reveal>
@@ -39,7 +39,7 @@ export default function Centre() {
 
       <section className="grain-texture relative bg-ink px-4 py-24 text-paper sm:px-6 sm:py-32">
         <div className="pattern-grid-dark pointer-events-none absolute inset-0 opacity-50" aria-hidden="true" />
-        <div className="container-editorial relative !max-w-[1180px] !px-0">
+        <div className="container-editorial relative !max-w-[74rem] !px-0">
           <Reveal>
             <h2 className="font-display max-w-xl text-[1.8rem] leading-tight font-extrabold sm:text-[2.2rem]">
               {c.values.title}

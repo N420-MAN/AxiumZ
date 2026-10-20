@@ -4,7 +4,8 @@ export interface Discount {
   price: number;
 }
 
-export function toDiscount(name: string | null | undefined, price: number | string | null | undefined): Discount | null {
+export function toDiscount(name: string | null | undefined, price: number | string | null | undefined, active: boolean | null | undefined = true): Discount | null {
+  if (active === false) return null; // offer switched off in Gestion
   const n = (name ?? "").trim();
   const p = Number(price);
   return n && p > 0 ? { name: n, price: p } : null;

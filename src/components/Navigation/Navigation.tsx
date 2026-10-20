@@ -27,6 +27,7 @@ export default function Navigation() {
     { page: "centre", label: t.nav.centre },
     { page: "activites", label: t.nav.activites },
     { page: "programmes", label: t.nav.programmes },
+    { page: "tarifs", label: t.nav.tarifs },
     { page: "methodologie", label: t.nav.methodologie },
     { page: "contact", label: t.nav.contact },
   ];
@@ -35,7 +36,7 @@ export default function Navigation() {
     <>
       {/* Utility bar — always-visible call prompt, like Cap Mission's top strip */}
       <div className="fixed inset-x-0 top-0 z-50 hidden h-9 items-center justify-center bg-red text-paper xl:flex">
-        <div className="container-editorial flex !max-w-[1180px] items-center justify-end gap-6 !px-0 text-[0.8rem]">
+        <div className="container-editorial flex !max-w-[74rem] items-center justify-end gap-6 !px-0 text-[0.8rem]">
           <a
             href={`tel:${BRAND.phoneIntl.replace(/\s/g, "")}`}
             onClick={() => trackEvent("call_click", { source: "utility_bar" })}
@@ -60,11 +61,11 @@ export default function Navigation() {
           animate={{
             paddingBlock: scrolled ? 10 : 14,
             boxShadow: scrolled
-              ? "0 12px 32px -16px rgba(11,10,13,0.35)"
-              : "0 4px 20px -18px rgba(11,10,13,0.2)",
+              ? "5px 5px 0 rgba(15,42,92,0.18)"
+              : "4px 4px 0 rgba(15,42,92,0.12)",
           }}
           transition={{ duration: 0.4, ease: EASE }}
-          className="flex w-full max-w-[1180px] items-center justify-between gap-4 rounded-full border border-black/[0.06] bg-paper/95 px-4 backdrop-blur-md sm:px-6"
+          className="flex w-full max-w-[74rem] items-center justify-between gap-4 rounded-lg border-2 border-ink bg-paper/95 px-4 backdrop-blur-md sm:px-6"
         >
           <Link to={pathFor(locale, "home")} className="flex shrink-0 items-center" aria-label="AxiumZ — accueil">
             <img src={logo} alt="AxiumZ" width={320} height={145} className="h-11 w-auto sm:h-12" />
@@ -75,14 +76,12 @@ export default function Navigation() {
               <li key={link.page} className="whitespace-nowrap">
                 <Link
                   to={pathFor(locale, link.page)}
-                  className={`font-display relative text-[0.95rem] font-semibold tracking-[0.01em] text-ink/80 transition-colors hover:text-ink ${
-                    currentPage === link.page ? "text-ink" : ""
+                  aria-current={currentPage === link.page ? "page" : undefined}
+                  className={`font-display lnk relative py-1 text-[0.95rem] font-semibold tracking-[0.01em] transition-colors hover:text-ink ${
+                    currentPage === link.page ? "text-ink" : "text-ink/80"
                   }`}
                 >
                   {link.label}
-                  {currentPage === link.page && (
-                    <span className="absolute -bottom-1 left-0 h-[3px] w-full rounded-full bg-accent" />
-                  )}
                 </Link>
               </li>
             ))}
@@ -91,7 +90,7 @@ export default function Navigation() {
           <div className="hidden shrink-0 items-center gap-4 xl:flex">
             <Link
               to={pathFor(locale, "inscription")}
-              className="font-display whitespace-nowrap rounded-full bg-ink px-5 py-2.5 text-[0.9rem] font-semibold tracking-[0.01em] text-paper transition-colors hover:bg-accent"
+              className="font-display btn-sticker whitespace-nowrap rounded-md bg-red px-5 py-2.5 text-[0.9rem] font-semibold tracking-[0.01em] text-white [--sticker:#7d2524]"
             >
               {t.nav.inscription}
             </Link>
@@ -168,7 +167,7 @@ export default function Navigation() {
             <a
               href={`tel:${BRAND.phoneIntl.replace(/\s/g, "")}`}
               onClick={() => trackEvent("call_click", { source: "mobile_menu" })}
-              className="mb-4 flex items-center justify-center gap-2.5 rounded-full border border-red bg-red/10 py-3.5 text-[0.95rem] font-medium text-paper"
+              className="mb-4 flex items-center justify-center gap-2.5 rounded-md border-2 border-red bg-red/10 py-3.5 text-[0.95rem] font-medium text-paper"
             >
               <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
                 <path d={PHONE_ICON_PATH} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -181,7 +180,7 @@ export default function Navigation() {
               <Link
                 to={pathFor(locale, "inscription")}
                 onClick={() => setOpen(false)}
-                className="font-display rounded-full bg-paper px-6 py-2.5 text-[0.9rem] font-semibold tracking-[0.01em] text-ink"
+                className="font-display btn-sticker rounded-md bg-paper px-6 py-2.5 text-[0.9rem] font-semibold tracking-[0.01em] text-ink [--sticker:var(--color-accent)]"
               >
                 {t.nav.inscription}
               </Link>

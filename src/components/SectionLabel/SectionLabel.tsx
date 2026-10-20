@@ -4,12 +4,12 @@ interface SectionLabelProps {
   className?: string;
 }
 
+// Handwritten margin note above a title. tone "light" = on a navy section, "dark" = on paper.
 export default function SectionLabel({ children, tone = "light", className = "" }: SectionLabelProps) {
-  const color = tone === "light" ? "text-mist" : "text-graphite";
+  const color = tone === "light" ? "text-accent-bright" : "text-red";
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <span className="h-px w-8 bg-current opacity-40" aria-hidden="true" />
-      <span className={`font-body text-[0.8rem] tracking-[0.08em] ${color}`}>{children}</span>
+    <div className={className}>
+      <span className={`font-hand inline-block -rotate-2 text-[1.5rem] leading-none font-bold sm:text-[1.7rem] ${color}`}>{children}</span>
     </div>
   );
 }

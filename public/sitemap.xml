@@ -32,6 +32,11 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://www.axiumz.com/en/contact" />
   </url>
   <url>
+    <loc>https://www.axiumz.com/fr/packs-et-tarifs</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.axiumz.com/fr/packs-et-tarifs" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.axiumz.com/en/packs-and-pricing" />
+  </url>
+  <url>
     <loc>https://www.axiumz.com/fr/inscription</loc>
     <xhtml:link rel="alternate" hreflang="fr" href="https://www.axiumz.com/fr/inscription" />
     <xhtml:link rel="alternate" hreflang="en" href="https://www.axiumz.com/en/registration" />

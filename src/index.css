@@ -19,7 +19,10 @@
   --color-line-light: rgba(15, 42, 92, 0.1);
 
   /* ---- type ---- */
-  --font-display: "Poppins", -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Bricolage Grotesque", "Poppins", -apple-system, "Segoe UI", sans-serif;
+  --font-hand: "Caveat", "Segoe Print", cursive;
+  --color-hl: #f1d27a;            /* highlighter yellow */
+  --color-rule: rgba(47, 116, 196, 0.16); /* Seyès ruling */
   --font-body: "Inter", -apple-system, "Segoe UI", sans-serif;
 
   /* ---- easing ---- */
@@ -33,6 +36,8 @@
 
   html {
     scroll-behavior: smooth;
+    /* Large screens get a proportionally larger interface (everything is in rem), phones/laptops stay at 16px. */
+    font-size: clamp(16px, calc(0.55vw + 8px), 20px);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -76,13 +81,81 @@
     font-family: var(--font-display);
   }
 
+  .font-hand {
+    font-family: var(--font-hand);
+  }
+
+  /* Highlighter swept under a word (starts when the word is on screen) */
+  .hl {
+    background-image: linear-gradient(var(--color-hl), var(--color-hl));
+    background-repeat: no-repeat;
+    background-position: 0 88%;
+    background-size: 100% 62%;
+    padding-inline: 0.08em;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  .hl-anim {
+    background-size: 0% 62%;
+    animation: hl-sweep 0.9s 0.45s ease-out forwards;
+  }
+
+  /* Underline that draws itself on hover */
+  .lnk {
+    background-image: linear-gradient(var(--color-red), var(--color-red));
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 0% 2px;
+    transition: background-size 0.3s ease;
+  }
+  .lnk:hover,
+  .lnk[aria-current="page"] {
+    background-size: 100% 2px;
+  }
+
+  /* "Sticker" button: hard offset shadow that the button sinks into on hover */
+  .btn-sticker {
+    box-shadow: 4px 4px 0 var(--sticker, var(--color-accent));
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+  }
+  .btn-sticker:hover {
+    transform: translate(3px, 3px);
+    box-shadow: 1px 1px 0 var(--sticker, var(--color-accent));
+  }
+  .btn-sticker:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 var(--sticker, var(--color-accent));
+  }
+
+  /* Card like a pasted note: ink outline, hard shadow, small tilt back to straight on hover */
+  .card-note {
+    border: 2px solid var(--color-ink);
+    border-radius: 6px;
+    background: var(--color-paper);
+    box-shadow: 5px 5px 0 rgba(15, 42, 92, 0.14);
+    transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2), box-shadow 0.3s ease;
+  }
+  .card-note:hover {
+    transform: translateY(-5px) rotate(-0.4deg);
+    box-shadow: 9px 11px 0 rgba(15, 42, 92, 0.16);
+  }
+
+  /* Floating school doodles (π, ∑, pencil…) */
+  .doodle {
+    position: absolute;
+    pointer-events: none;
+    color: var(--color-ink);
+    opacity: 0.2;
+    animation: doodle-drift 7s ease-in-out infinite;
+  }
+
   .text-balance {
     text-wrap: balance;
   }
 
   .container-editorial {
     width: 100%;
-    max-width: 1440px;
+    max-width: 90rem;
     margin-inline: auto;
     padding-inline: clamp(1.25rem, 5vw, 4.5rem);
   }
@@ -111,14 +184,11 @@
     mask-image: linear-gradient(to bottom, transparent, black 12%, black 88%, transparent);
   }
 
-  /* Fine hairline grid — light-mode variant */
+  /* Seyès paper: horizontal rules every 32px + a faint vertical grid every 128px (light sections) */
   .pattern-grid-light {
     background-image:
-      linear-gradient(var(--color-line-light) 1px, transparent 1px),
-      linear-gradient(90deg, var(--color-line-light) 1px, transparent 1px);
-    background-size: 56px 56px;
-    -webkit-mask-image: linear-gradient(to bottom, transparent, black 12%, black 88%, transparent);
-    mask-image: linear-gradient(to bottom, transparent, black 12%, black 88%, transparent);
+      repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--color-rule) 31px, var(--color-rule) 32px),
+      repeating-linear-gradient(to right, transparent 0, transparent 127px, rgba(47, 116, 196, 0.1) 127px, rgba(47, 116, 196, 0.1) 128px);
   }
 
   /* Sparse diagonal line texture, for smaller accent fills */
@@ -147,6 +217,36 @@
 .hero-paused *::before,
 .hero-paused *::after {
   animation-play-state: paused !important;
+}
+
+@keyframes hl-sweep {
+  from { background-size: 0% 62%; }
+  to { background-size: 100% 62%; }
+}
+@keyframes doodle-drift {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-14px) rotate(calc(var(--r, 0deg) + 6deg)); }
+}
+@keyframes draw-line {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes stamp-in {
+  0% { transform: rotate(-8deg) scale(2.6); opacity: 0; }
+  60% { transform: rotate(-8deg) scale(0.92); opacity: 1; }
+  100% { transform: rotate(-8deg) scale(1); opacity: 1; }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes paper-in {
+  from { opacity: 0; transform: rotate(9deg) translateY(30px); }
+  to { opacity: 1; transform: rotate(3deg); }
+}
+@keyframes ink-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes marquee {
@@ -329,6 +429,31 @@ html.theme-switching *,
 html.theme-switching *::before,
 html.theme-switching *::after {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease !important;
+}
+
+/* Red margin line of the notebook, only on wide screens where it falls outside the content. */
+@media (min-width: 1360px) {
+  .notebook-margin::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(50% - 37rem - 2.5rem);
+    width: 2px;
+    background: rgba(184, 62, 61, 0.28);
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    z-index: 30;
+  }
+}
+
+html:has(.app-shell) {
+  font-size: 16px;
+}
+
+/* The signed-in app keeps its own rounder typeface even where it reuses .font-display. */
+.app-shell .font-display {
+  font-family: "Plus Jakarta Sans", var(--font-body);
 }
 
 /* ---- Mon espace app shell ----

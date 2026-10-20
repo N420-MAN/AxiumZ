@@ -71,7 +71,7 @@ export function trackPageView(path: string, title?: string) {
  * Call for the actions that actually matter for this site: WhatsApp clicks,
  * phone clicks, and successful form submissions. These are the "conversions".
  */
-export function trackEvent(name: "whatsapp_click" | "call_click" | "form_submit", params?: Record<string, string>) {
+export function trackEvent(name: "whatsapp_click" | "call_click" | "form_submit" | "pack_choose", params?: Record<string, string>) {
   if (!isConfigured) return;
   ensureQueue();
   window.gtag("event", name, params);

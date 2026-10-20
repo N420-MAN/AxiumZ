@@ -93,8 +93,8 @@ export default function PaymentModal({
     async function load() {
       setLoading(true);
       const [{ data: stu }, { data: enr }, { data: termRows }, { data: gl }, { data: paid }] = await Promise.all([
-        supabase.from("students").select("pack_id, packs(name, price_trimestre, discount_name, discount_price)").eq("id", studentId).maybeSingle(),
-        supabase.from("class_students").select(`class_id, classes(id, price_trimestre, discount_name, discount_price, ${CLASS_LABEL_SELECT})`).eq("student_id", studentId),
+        supabase.from("students").select("pack_id, packs(name, price_trimestre, discount_name, discount_price, discount_active)").eq("id", studentId).maybeSingle(),
+        supabase.from("class_students").select(`class_id, classes(id, price_trimestre, discount_name, discount_price, discount_active, ${CLASS_LABEL_SELECT})`).eq("student_id", studentId),
         supabase.from("academic_terms").select("id, name, is_current").eq("organization_id", organizationId).order("start_date", { ascending: false }),
         supabase.from("parent_students").select("parents(first_name, last_name)").eq("student_id", studentId),
         supabase
@@ -105,14 +105,14 @@ export default function PaymentModal({
       ]);
 
       const next: Line[] = [];
-      const pack = (stu as unknown as { pack_id: string | null; packs: { name: string; price_trimestre: number | null; discount_name: string | null; discount_price: number | null } | null } | null);
+      const pack = (stu as unknown as { pack_id: string | null; packs: { name: string; price_trimestre: number | null; discount_name: string | null; discount_price: number | null; discount_active: boolean } | null } | null);
       if (pack?.pack_id && pack.packs) {
-        next.push({ key: `pack:${pack.pack_id}`, classId: null, packId: pack.pack_id, label: m.packLabel.replace("{name}", pack.packs.name), price: pack.packs.price_trimestre, discount: toDiscount(pack.packs.discount_name, pack.packs.discount_price) });
+        next.push({ key: `pack:${pack.pack_id}`, classId: null, packId: pack.pack_id, label: m.packLabel.replace("{name}", pack.packs.name), price: pack.packs.price_trimestre, discount: toDiscount(pack.packs.discount_name, pack.packs.discount_price, pack.packs.discount_active) });
       }
       // A student on a pack pays the pack: its classes are part of it and are never charged separately.
-      for (const e of pack?.pack_id ? [] : (enr as unknown as { class_id: string; classes: (Parameters<typeof classLabel>[0] & { id: string; price_trimestre: number | null; discount_name: string | null; discount_price: number | null }) | null }[]) ?? []) {
+      for (const e of pack?.pack_id ? [] : (enr as unknown as { class_id: string; classes: (Parameters<typeof classLabel>[0] & { id: string; price_trimestre: number | null; discount_name: string | null; discount_price: number | null; discount_active: boolean }) | null }[]) ?? []) {
         if (!e.classes) continue;
-        next.push({ key: `class:${e.class_id}`, classId: e.class_id, packId: null, label: classLabel(e.classes), price: e.classes.price_trimestre, discount: toDiscount(e.classes.discount_name, e.classes.discount_price) });
+        next.push({ key: `class:${e.class_id}`, classId: e.class_id, packId: null, label: classLabel(e.classes), price: e.classes.price_trimestre, discount: toDiscount(e.classes.discount_name, e.classes.discount_price, e.classes.discount_active) });
       }
       setLines(next);
 

@@ -8,6 +8,7 @@ export type PageKey =
   | "centre"
   | "activites"
   | "programmes"
+  | "tarifs"
   | "methodologie"
   | "contact"
   | "inscription"
@@ -24,6 +25,7 @@ export const SLUGS: Record<Locale, Partial<Record<PageKey, string>>> = {
     centre: "centre",
     activites: "activites",
     programmes: "programmes",
+    tarifs: "packs-et-tarifs",
     methodologie: "methodologie",
     contact: "contact",
     inscription: "inscription",
@@ -35,6 +37,7 @@ export const SLUGS: Record<Locale, Partial<Record<PageKey, string>>> = {
     centre: "centre",
     activites: "activites",
     programmes: "programmes",
+    tarifs: "packs-and-pricing",
     methodologie: "methodology",
     contact: "contact",
     inscription: "registration",

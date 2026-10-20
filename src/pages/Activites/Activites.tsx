@@ -11,11 +11,11 @@ export default function Activites() {
 
   return (
     <>
-      <PageHero eyebrow={a.hero.eyebrow} title={a.hero.title} body={a.hero.body} />
+      <PageHero eyebrow={a.hero.eyebrow} title={a.hero.title} body={a.hero.body} variant="cover" />
 
       <section className="relative bg-paper px-4 py-24 text-ink sm:px-6 sm:py-32">
         <div className="pattern-grid-light pointer-events-none absolute inset-0 opacity-60" aria-hidden="true" />
-        <div className="container-editorial !max-w-[1180px] !px-0 divide-y divide-ink/10 border-t border-ink/10">
+        <div className="container-editorial !max-w-[74rem] !px-0 divide-y divide-ink/10 border-t border-ink/10">
           {a.items.map((item, i) => (
             <Reveal key={item.index} delay={i * 0.06}>
               <div

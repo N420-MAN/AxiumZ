@@ -13,7 +13,7 @@ export default function Proof() {
   return (
     <section className="relative border-b border-line-dark bg-ink px-4 py-14 text-paper sm:px-6 sm:py-18">
       <div className="pattern-diagonal pointer-events-none absolute inset-0 opacity-40" aria-hidden="true" />
-      <div className="container-editorial relative grid !max-w-[1180px] grid-cols-1 gap-6 !px-0 sm:grid-cols-3">
+      <div className="container-editorial relative grid !max-w-[74rem] grid-cols-1 gap-6 !px-0 sm:grid-cols-3">
         {t.home.proof.items.map((item, i) => (
           <div key={item.label} className="flex items-center gap-4 rounded-2xl bg-paper/[0.04] p-5">
             <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${ICONS[i % ICONS.length].badge}`}>

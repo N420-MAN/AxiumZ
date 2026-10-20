@@ -11,11 +11,11 @@ export default function Programmes() {
 
   return (
     <>
-      <PageHero eyebrow={p.hero.eyebrow} title={p.hero.title} body={p.hero.body} />
+      <PageHero eyebrow={p.hero.eyebrow} title={p.hero.title} body={p.hero.body} variant="graph" />
 
       <section className="relative bg-paper px-4 py-24 text-ink sm:px-6 sm:py-32">
         <div className="pattern-grid-light pointer-events-none absolute inset-0 opacity-60" aria-hidden="true" />
-        <div className="container-editorial !max-w-[1180px] !px-0">
+        <div className="container-editorial !max-w-[74rem] !px-0">
           <Reveal className="text-[0.78rem] tracking-[0.06em] text-graphite">{p.system}</Reveal>
 
           <div className="mt-6 grid grid-cols-1 gap-0 border-t border-ink/15 sm:grid-cols-3">

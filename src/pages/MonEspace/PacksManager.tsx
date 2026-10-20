@@ -1,3 +1,4 @@
+import DiscountSwitch from "./DiscountSwitch";
 import { useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { humanizeError } from "../../lib/humanizeError";
@@ -157,13 +158,14 @@ export default function PacksManager({ organizationId }: { organizationId: strin
             {items.map((p) => (
               <div key={p.id} className="rounded-lg border border-gray-200 bg-white px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[0.92rem] font-semibold text-gray-900">{p.name}{p.price_trimestre != null && <span className="ml-2 rounded-full bg-accent-soft px-2.5 py-0.5 text-[0.72rem] font-semibold text-ink">{priceText(p.price_trimestre, locale)}</span>}{toDiscount(p.discount_name, p.discount_price) && <span className="ml-2 rounded-full bg-amber-100 px-2.5 py-0.5 text-[0.72rem] font-semibold text-amber-800">{discountBadge(t.monEspace.discount.badge, toDiscount(p.discount_name, p.discount_price)!, locale)}</span>}</span>
+                  <span className="text-[0.92rem] font-semibold text-gray-900">{p.name}{p.price_trimestre != null && <span className="ml-2 rounded-full bg-accent-soft px-2.5 py-0.5 text-[0.72rem] font-semibold text-ink">{priceText(p.price_trimestre, locale)}</span>}{toDiscount(p.discount_name, p.discount_price, p.discount_active) && <span className="ml-2 rounded-full bg-amber-100 px-2.5 py-0.5 text-[0.72rem] font-semibold text-amber-800">{discountBadge(t.monEspace.discount.badge, toDiscount(p.discount_name, p.discount_price, p.discount_active)!, locale)}</span>}{p.discount_name && p.discount_price != null && !p.discount_active && <span className="ml-2 rounded-full bg-gray-100 px-2.5 py-0.5 text-[0.72rem] font-semibold text-gray-500">{t.monEspace.discount.inactiveBadge.replace("{name}", p.discount_name)}</span>}</span>
                   <div className="flex items-center gap-3">
                     <button data-write type="button" className={linkClass} onClick={() => { setEditingId(p.id); setName(p.name); setPrice(p.price_trimestre?.toString() ?? ""); setDiscName(p.discount_name ?? ""); setDiscPrice(p.discount_price?.toString() ?? ""); setSubjects(p.subjects.map((s) => s.subject)); setError(null); }}>{pk.edit}</button>
                     <button data-write type="button" disabled={busy} className="text-[0.78rem] text-red-600 hover:underline disabled:opacity-40"
                       onClick={() => confirm(`${c.delete} « ${p.name} » ?`, async () => { setBusy(true); const { error: delError } = await supabase.from("packs").delete().eq("id", p.id); setBusy(false); setError(delError ? humanizeError(delError) : null); await reload(); })}>{c.delete}</button>
                   </div>
                 </div>
+                {p.discount_name && p.discount_price != null && <DiscountSwitch table="packs" id={p.id} active={p.discount_active} onChanged={reload} />}
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {p.subjects.length === 0 ? <span className="text-[0.76rem] text-gray-400">{pk.noSubjects}</span> : p.subjects.map((s) => <span key={s.id} className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[0.76rem] font-medium text-gray-700">{s.subject}</span>)}
                 </div>

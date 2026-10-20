@@ -11,11 +11,11 @@ export default function Methodologie() {
 
   return (
     <>
-      <PageHero eyebrow={m.hero.eyebrow} title={m.hero.title} body={m.hero.body} />
+      <PageHero eyebrow={m.hero.eyebrow} title={m.hero.title} body={m.hero.body} variant="chalk" />
 
       <section className="relative bg-paper px-4 py-24 text-ink sm:px-6 sm:py-32">
         <div className="pattern-grid-light pointer-events-none absolute inset-0 opacity-60" aria-hidden="true" />
-        <div className="container-editorial !max-w-[1180px] !px-0">
+        <div className="container-editorial !max-w-[74rem] !px-0">
           <Reveal>
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
               {m.flow.map((step, i) => (

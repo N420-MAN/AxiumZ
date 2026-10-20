@@ -1,3 +1,4 @@
+import DiscountSwitch from "./DiscountSwitch";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
@@ -481,9 +482,10 @@ export default function ClassesManager({ organizationId }: { organizationId: str
                         </span>
                       ))}
                       {cl.price_trimestre != null && <span className="rounded-full bg-accent-soft px-2 py-0.5 font-semibold text-ink">{priceText(cl.price_trimestre, locale)}</span>}
-                      {toDiscount(cl.discount_name, cl.discount_price) && <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">{discountBadge(t.monEspace.discount.badge, toDiscount(cl.discount_name, cl.discount_price)!, locale)}</span>}
+                      {toDiscount(cl.discount_name, cl.discount_price, cl.discount_active) ? <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">{discountBadge(t.monEspace.discount.badge, toDiscount(cl.discount_name, cl.discount_price)!, locale)}</span> : cl.discount_name && cl.discount_price != null ? <span className="rounded-full bg-gray-100 px-2 py-0.5 font-semibold text-gray-500">{t.monEspace.discount.inactiveBadge.replace("{name}", cl.discount_name)}</span> : null}
                       {cl.slots.length === 0 ? <span className="text-gray-400">{m.noSlots}</span> : cl.slots.map((sl) => <span key={sl.id} className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700">{slotText(sl, locale)}</span>)}
                     </span>
+                    {cl.discount_name && cl.discount_price != null && <DiscountSwitch table="classes" id={cl.id} active={cl.discount_active} onChanged={reloadAll} />}
                     {cl.capacity !== null && (
                       <span className="mt-1.5 block h-1.5 w-full max-w-[14rem] overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
                         <span

@@ -3,7 +3,6 @@ import { useLocale } from "../../../i18n/LocaleContext";
 import SectionLabel from "../../../components/SectionLabel/SectionLabel";
 import Reveal from "../../../components/RevealText/Reveal";
 
-const EASE = [0.16, 1, 0.3, 1] as const;
 const CARD_STYLES = [
   { top: "border-t-accent", badge: "bg-accent text-ink" },
   { top: "border-t-red", badge: "bg-red text-paper" },
@@ -17,7 +16,7 @@ export default function Programmes() {
   return (
     <section className="relative bg-paper px-4 py-20 text-ink sm:px-6 sm:py-28">
       <div className="pattern-grid-light pointer-events-none absolute inset-0 opacity-60" aria-hidden="true" />
-      <div className="container-editorial relative !max-w-[1180px] !px-0">
+      <div className="container-editorial relative !max-w-[74rem] !px-0">
         <Reveal>
           <SectionLabel tone="dark">{p.label}</SectionLabel>
           <h2 className="font-display text-balance mt-5 max-w-lg text-[1.9rem] leading-[1.15] font-extrabold sm:text-[2.6rem]">
@@ -36,9 +35,7 @@ export default function Programmes() {
             return (
               <Reveal key={item.index} delay={i * 0.08}>
                 <motion.div
-                  whileHover={{ y: -6 }}
-                  transition={{ duration: 0.35, ease: EASE }}
-                  className={`h-full rounded-2xl border-t-4 bg-paper-soft p-6 shadow-[0_8px_24px_-12px_rgba(15,42,92,0.2)] ${style.top}`}
+                  className={`h-full card-note p-6`}
                 >
                   <span className={`font-display flex h-10 w-10 items-center justify-center rounded-full text-[0.9rem] font-extrabold ${style.badge}`}>
                     {item.index}

@@ -14,11 +14,11 @@ export default function Contact() {
 
   return (
     <>
-      <PageHero eyebrow={c.hero.eyebrow} title={c.hero.title} body={c.hero.body} />
+      <PageHero eyebrow={c.hero.eyebrow} title={c.hero.title} body={c.hero.body} variant="mail" />
 
       <section className="relative bg-paper px-4 py-20 text-ink sm:px-6 sm:py-28">
         <div className="pattern-grid-light pointer-events-none absolute inset-0 opacity-60" aria-hidden="true" />
-        <div className="container-editorial !max-w-[1180px] !px-0">
+        <div className="container-editorial !max-w-[74rem] !px-0">
           <Reveal>
             <div className="flex flex-col items-start justify-between gap-8 border-b border-ink/15 pb-12 sm:flex-row sm:items-end">
               <div>
@@ -52,7 +52,7 @@ export default function Contact() {
 
       <section id="localisation" className="grain-texture relative bg-ink px-4 py-24 text-paper sm:px-6 sm:py-32">
         <div className="pattern-grid-dark pointer-events-none absolute inset-0 opacity-50" aria-hidden="true" />
-        <div className="container-editorial relative !max-w-[1180px] !px-0">
+        <div className="container-editorial relative !max-w-[74rem] !px-0">
           <div className="grid grid-cols-1 gap-12 md:grid-cols-12 md:items-end">
             <div className="md:col-span-5">
               <Reveal>

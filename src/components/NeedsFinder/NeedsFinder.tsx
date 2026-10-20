@@ -41,7 +41,7 @@ export default function NeedsFinder() {
   return (
     <section className="relative bg-paper px-4 py-20 text-ink sm:px-6 sm:py-28">
       <div className="pattern-grid-light pointer-events-none absolute inset-0 opacity-50" aria-hidden="true" />
-      <div className="container-editorial relative !max-w-[1180px] !px-0">
+      <div className="container-editorial relative !max-w-[74rem] !px-0">
         <Reveal>
           <SectionLabel tone="dark">{n.label}</SectionLabel>
           <h2 className="font-display text-balance mt-5 max-w-xl text-[1.9rem] font-extrabold leading-[1.15] sm:text-[2.6rem]">
@@ -59,7 +59,7 @@ export default function NeedsFinder() {
                   to={pathFor(locale, item.linkPage)}
                   whileHover={{ y: -4 }}
                   transition={{ duration: 0.3, ease: EASE }}
-                  className="group flex h-full flex-col rounded-2xl border border-ink/10 bg-paper-soft p-6 shadow-[0_8px_24px_-14px_rgba(15,42,92,0.2)]"
+                  className="group flex h-full flex-col card-note p-6"
                 >
                   <div className={`flex h-12 w-12 items-center justify-center rounded-full ${icon.badge}`}>
                     <svg viewBox="0 0 22 22" className={`h-6 w-6 ${icon.iconColor}`} fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">

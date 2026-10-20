@@ -11,6 +11,8 @@ const WAIT = "__wait__";
 const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
 
 interface Props {
+  initialProgramId?: string;
+  initialLevelId?: string;
   personKind: PersonKind;
   programs: ProgramRow[];
   levels: LevelRow[];
@@ -32,11 +34,11 @@ interface Props {
 }
 
 /** Choose a pack, then one class per subject. Overlaps are checked here; full classes cannot be picked. */
-export default function PackPicker({ personKind, programs, levels, classes, packs, specialties, specialtyId, onSpecialtyChange, offerApplied, onOfferChange, organizationId, takenClassIds, selection, onChange, packId, onPackChange }: Props) {
+export default function PackPicker({ initialProgramId, initialLevelId, personKind, programs, levels, classes, packs, specialties, specialtyId, onSpecialtyChange, offerApplied, onOfferChange, organizationId, takenClassIds, selection, onChange, packId, onPackChange }: Props) {
   const { t, locale } = useLocale();
   const pk = t.monEspace.packPicker;
-  const [programId, setProgramId] = useState("");
-  const [levelId, setLevelId] = useState("");
+  const [programId, setProgramId] = useState(initialProgramId ?? "");
+  const [levelId, setLevelId] = useState(initialLevelId ?? "");
   const [pickId, setPickId] = useState(packId);
   const [choice, setChoice] = useState<Record<string, string>>({});
   const [rooms, setRooms] = useState<Map<string, string>>(new Map());
@@ -132,7 +134,7 @@ export default function PackPicker({ personKind, programs, levels, classes, pack
         <select value={pickId} disabled={!levelId || !specialtyReady} onChange={(e) => { setPickId(e.target.value); setChoice({}); }} className={`${selectClass} disabled:bg-gray-100`} aria-label={pk.heading}>
           <option value="">{levelId && levelPacks.length === 0 ? pk.noPack : pk.choosePack}</option>
           {levelPacks.map((x) => {
-            const d = toDiscount(x.discount_name, x.discount_price);
+            const d = toDiscount(x.discount_name, x.discount_price, x.discount_active);
             return <option key={x.id} value={x.id}>{x.price_trimestre != null ? `${x.name} — ${priceText(x.price_trimestre, locale)}${d ? ` · ${d.name} : ${money(d.price, locale)}` : ""}` : x.name}</option>;
           })}
         </select>
@@ -141,7 +143,7 @@ export default function PackPicker({ personKind, programs, levels, classes, pack
       {levelId && <SpecialtySelect options={levelSpecs} value={specialtyId} onChange={(id) => { onSpecialtyChange(id); setPickId(""); setChoice({}); }} />}
 
       {pack && pack.price_trimestre != null && (() => {
-        const d = toDiscount(pack.discount_name, pack.discount_price);
+        const d = toDiscount(pack.discount_name, pack.discount_price, pack.discount_active);
         return (
           <div className="mt-2">
             <p className="text-[0.84rem] font-semibold text-ink">

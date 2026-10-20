@@ -9,7 +9,7 @@ export default function RootLayout() {
     <LocaleProvider>
       <div className="flex min-h-screen flex-col bg-ink pb-[calc(4.75rem+env(safe-area-inset-bottom))] sm:pb-0">
         <Navigation />
-        <main className="flex-1">
+        <main className="notebook-margin relative flex-1">
           <Outlet />
         </main>
         <Footer />

@@ -10,7 +10,7 @@ export default function Privacy() {
 
   return (
     <>
-      <PageHero eyebrow={p.eyebrow} title={p.title} body={p.intro} />
+      <PageHero eyebrow={p.eyebrow} title={p.title} body={p.intro} variant="plain" />
 
       <section className="relative bg-paper px-4 py-20 text-ink sm:px-6 sm:py-28">
         <div className="pattern-grid-light pointer-events-none absolute inset-0 opacity-50" aria-hidden="true" />

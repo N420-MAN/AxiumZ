@@ -8,8 +8,8 @@ export default function Footer() {
   const { locale, t } = useLocale();
 
   return (
-    <footer className="border-t border-line-dark bg-ink px-4 pt-20 pb-8 text-paper sm:px-6">
-      <div className="container-editorial !max-w-[1180px] !px-0">
+    <footer className="relative border-t-[4px] border-accent bg-ink px-4 pt-20 pb-8 text-paper sm:px-6">
+      <div className="container-editorial !max-w-[74rem] !px-0">
         <div className="grid grid-cols-1 gap-14 md:grid-cols-[1.3fr_1fr_1fr_1fr]">
           <div>
             <img src={logoFooter} alt="AxiumZ" width={320} height={145} className="h-9 w-auto opacity-95" />
@@ -45,25 +45,25 @@ export default function Footer() {
           </div>
 
           <div>
-            <h3 className="text-[0.78rem] tracking-[0.06em] text-mist">{t.footer.activitesTitle}</h3>
+            <h3 className="font-hand text-[1.5rem] leading-none font-bold text-accent-bright">{t.footer.activitesTitle}</h3>
             <ul className="mt-5 space-y-3 text-[0.92rem]">
               <li>
-                <a href="#localisation" className="text-paper/85 hover:text-paper">
+                <a href="#localisation" className="lnk text-paper/85 hover:text-paper">
                   {t.footer.location}
                 </a>
               </li>
               <li>
-                <Link to={pathFor(locale, "activites")} className="text-paper/85 hover:text-paper">
+                <Link to={pathFor(locale, "activites")} className="lnk text-paper/85 hover:text-paper">
                   {t.home.activites.items[0].title.join(" ")}
                 </Link>
               </li>
               <li>
-                <Link to={pathFor(locale, "activites")} className="text-paper/85 hover:text-paper">
+                <Link to={pathFor(locale, "activites")} className="lnk text-paper/85 hover:text-paper">
                   {t.home.activites.items[1].title.join(" ")}
                 </Link>
               </li>
               <li>
-                <Link to={pathFor(locale, "activites")} className="text-paper/85 hover:text-paper">
+                <Link to={pathFor(locale, "activites")} className="lnk text-paper/85 hover:text-paper">
                   {t.home.activites.items[2].title.join(" ")}
                 </Link>
               </li>
@@ -71,15 +71,15 @@ export default function Footer() {
           </div>
 
           <div>
-            <h3 className="text-[0.78rem] tracking-[0.06em] text-mist">{t.footer.infoTitle}</h3>
+            <h3 className="font-hand text-[1.5rem] leading-none font-bold text-accent-bright">{t.footer.infoTitle}</h3>
             <ul className="mt-5 space-y-3 text-[0.92rem]">
               <li>
-                <Link to={pathFor(locale, "programmes")} className="text-paper/85 hover:text-paper">
+                <Link to={pathFor(locale, "programmes")} className="lnk text-paper/85 hover:text-paper">
                   {t.nav.programmes}
                 </Link>
               </li>
               <li>
-                <Link to={pathFor(locale, "methodologie")} className="text-paper/85 hover:text-paper">
+                <Link to={pathFor(locale, "methodologie")} className="lnk text-paper/85 hover:text-paper">
                   {t.nav.methodologie}
                 </Link>
               </li>
@@ -87,25 +87,30 @@ export default function Footer() {
           </div>
 
           <div>
-            <h3 className="text-[0.78rem] tracking-[0.06em] text-mist">{t.footer.contactTitle}</h3>
+            <h3 className="font-hand text-[1.5rem] leading-none font-bold text-accent-bright">{t.footer.contactTitle}</h3>
             <ul className="mt-5 space-y-3 text-[0.92rem]">
               <li>
-                <Link to={pathFor(locale, "contact")} className="text-paper/85 hover:text-paper">
+                <Link to={pathFor(locale, "contact")} className="lnk text-paper/85 hover:text-paper">
                   {t.footer.contactLink}
                 </Link>
               </li>
               <li>
-                <Link to={pathFor(locale, "inscription")} className="text-paper/85 hover:text-paper">
+                <Link to={pathFor(locale, "tarifs")} className="lnk text-paper/85 hover:text-paper">
+                  {t.footer.tarifsLink}
+                </Link>
+              </li>
+              <li>
+                <Link to={pathFor(locale, "inscription")} className="lnk text-paper/85 hover:text-paper">
                   {t.footer.inscriptionLink}
                 </Link>
               </li>
               <li>
-                <a href={BRAND.whatsappBase} target="_blank" rel="noreferrer" className="text-paper/85 hover:text-paper">
+                <a href={BRAND.whatsappBase} target="_blank" rel="noreferrer" className="lnk text-paper/85 hover:text-paper">
                   {BRAND.phoneDisplay}
                 </a>
               </li>
               <li>
-                <a href={`mailto:${BRAND.publicEmail}`} className="text-paper/85 hover:text-paper">
+                <a href={`mailto:${BRAND.publicEmail}`} className="lnk text-paper/85 hover:text-paper">
                   {BRAND.publicEmail}
                 </a>
               </li>

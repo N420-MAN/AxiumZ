@@ -15,7 +15,7 @@ interface FAQItemProps {
 
 function FAQItem({ question, answer, open, onToggle }: FAQItemProps) {
   return (
-    <div className={`overflow-hidden rounded-2xl border transition-colors ${open ? "border-accent bg-paper" : "border-ink/10 bg-paper-soft"}`}>
+    <div className={`overflow-hidden rounded-md border-2 border-ink transition-colors ${open ? "bg-accent-soft" : "bg-paper"}`}>
       <button
         type="button"
         onClick={onToggle}
