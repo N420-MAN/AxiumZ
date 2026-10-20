@@ -153,7 +153,7 @@ export default function PageHero({ eyebrow, title, body, variant = "cahier" }: P
   const chalkFont = variant === "chalk" ? "font-hand !font-bold !tracking-normal" : "";
 
   return (
-    <section className={`relative overflow-hidden px-4 pt-40 pb-20 sm:px-6 sm:pt-48 sm:pb-28 xl:pt-52 ${SURFACE[variant]}`}>
+    <section className={`relative overflow-hidden px-4 pt-[7.5rem] pb-16 sm:px-6 sm:pt-48 sm:pb-28 xl:pt-52 ${SURFACE[variant]}`}>
       <Decor variant={variant} />
       <div className={`container-editorial relative !max-w-[74rem] !px-0 ${left}`}>
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }}>

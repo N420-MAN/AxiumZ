@@ -7,7 +7,7 @@ export default function Doodles({ variant = "page" }: { variant?: Variant }) {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
       <span className="doodle font-hand hidden text-[4.5rem] font-bold lg:block" style={{ left: "1.5%", top: hero ? "22%" : "34%", ["--r" as string]: "-10deg" }}>π</span>
-      <span className="doodle font-hand text-[3.5rem] font-bold sm:text-[5rem]" style={{ right: "3%", top: hero ? "16%" : "30%", ["--r" as string]: "12deg", animationDelay: "-4s", color: "var(--color-red)", opacity: 0.28 }}>∑</span>
+      <span className="doodle font-hand hidden text-[3.5rem] font-bold sm:block sm:text-[5rem]" style={{ right: "3%", top: hero ? "16%" : "30%", ["--r" as string]: "12deg", animationDelay: "-4s", color: "var(--color-red)", opacity: 0.28 }}>∑</span>
       <span className="doodle font-hand hidden text-[3rem] font-bold xl:block" style={{ right: hero ? "46%" : "22%", bottom: hero ? "7%" : "10%", ["--r" as string]: "6deg", animationDelay: "-2s" }}>E = mc²</span>
       <svg className="doodle hidden md:block" style={{ right: "4%", bottom: "8%", ["--r" as string]: "-14deg", animationDelay: "-3s", opacity: 0.9 }} width="150" height="30" viewBox="0 0 120 24">
         <rect x="0" y="4" width="84" height="16" fill="#c8962f" />

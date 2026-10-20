@@ -26,13 +26,13 @@ export default function Hero() {
 
   return (
     <>
-      <section className="pattern-grid-light relative flex items-center overflow-hidden bg-paper px-4 pt-40 pb-14 text-ink sm:min-h-[calc(100svh-4.4rem)] sm:px-6 sm:pt-36 sm:pb-8 lg:pt-[clamp(9rem,19vh,12rem)]">
+      <section className="pattern-grid-light relative flex items-center overflow-hidden bg-paper px-4 pt-[6.75rem] pb-12 text-ink sm:min-h-[calc(100svh-4.4rem)] sm:px-6 sm:pt-36 sm:pb-8 lg:pt-[clamp(9rem,19vh,12rem)]">
         <Doodles variant="hero" />
         <div className="container-editorial relative grid w-full !max-w-[74rem] items-center gap-12 !px-0 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="min-w-0">
-            <p className="font-hand origin-left -rotate-2 text-[1.6rem] leading-tight font-bold text-red sm:whitespace-nowrap sm:text-[1.9rem]" style={fade(0.05)}>{h.eyebrow}</p>
+            <p className="font-hand origin-left -rotate-2 text-[1.35rem] leading-tight font-bold text-red sm:whitespace-nowrap sm:text-[1.9rem]" style={fade(0.05)}>{h.eyebrow}</p>
 
-            <h1 className="font-display mt-4 text-[3.5rem] leading-[0.95] font-extrabold tracking-[-0.045em] sm:text-[4.8rem] lg:text-[clamp(3.4rem,10.5vh,5.2rem)]">
+            <h1 className="font-display mt-3 text-[3.4rem] leading-[0.95] font-extrabold tracking-[-0.045em] sm:text-[4.8rem] lg:text-[clamp(3.4rem,10.5vh,5.2rem)]">
               <span className="inline-block" style={fade(0.2)}>{h.headline[0]}</span>
               <br />
               <span className="hl hl-anim">{h.headline[1]}</span>
@@ -52,7 +52,7 @@ export default function Hero() {
               </span>
             </h1>
 
-            <p className="mt-[clamp(1rem,3vh,1.75rem)] max-w-xl text-[1.1rem] leading-8 text-[#1b2f57] sm:text-[1.15rem]" style={fade(0.35)}>{h.sub}</p>
+            <p className="mt-[clamp(1rem,3vh,1.75rem)] max-w-xl text-[1rem] leading-7 text-[#1b2f57] sm:text-[1.15rem] sm:leading-8" style={fade(0.35)}>{h.sub}</p>
 
             <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-4" style={fade(0.5)}>
               <Button to={pathFor(locale, "inscription")} tone="light">
