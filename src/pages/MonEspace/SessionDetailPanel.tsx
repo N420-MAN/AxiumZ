@@ -14,6 +14,10 @@ interface SessionDetailPanelProps {
   onChanged?: () => void;
   /** Only admins may move or cancel a session. */
   canManage?: boolean;
+  teacher?: { first_name: string; last_name: string; phone: string | null } | null;
+  rooms?: { id: string; name: string }[];
+  /** Room already worked out by the calendar (session, then weekly slot, then class). */
+  resolvedRoomId?: string | null;
 }
 
 interface Enrollment {
@@ -31,7 +35,7 @@ function toLocalInput(iso: string): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-export default function SessionDetailPanel({ sessionId, className, canEdit, onClose, onChanged, canManage = false }: SessionDetailPanelProps) {
+export default function SessionDetailPanel({ sessionId, className, canEdit, onClose, onChanged, canManage = false, teacher = null, rooms = [], resolvedRoomId = null }: SessionDetailPanelProps) {
   const { t, locale } = useLocale();
   const dateLocale = locale === "en" ? "en-GB" : "fr-FR";
   const m = t.monEspace.sessionDetail;
@@ -43,6 +47,8 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
     { value: "excused", label: attendanceLabels.excused },
   ];
 
+  const [roomId, setRoomId] = useState(resolvedRoomId ?? "");
+  const [roomError, setRoomError] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [savedNotes, setSavedNotes] = useState("");
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -188,6 +194,19 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
     onChanged?.();
   }
 
+  async function saveRoom(next: string) {
+    setRoomError(null);
+    const prev = roomId;
+    setRoomId(next);
+    const { data, error: upErr } = await supabase.from("class_sessions").update({ room_id: next || null }).eq("id", sessionId).select("id");
+    if (upErr || !data || data.length === 0) {
+      setRoomId(prev);
+      setRoomError(upErr ? humanizeError(upErr) : m.saveFailed);
+      return;
+    }
+    onChanged?.();
+  }
+
   async function toggleCancel() {
     const next = sessionStatus === "cancelled" ? "scheduled" : "cancelled";
     if (next === "cancelled" && !window.confirm(m.confirmCancel)) return;
@@ -262,11 +281,44 @@ export default function SessionDetailPanel({ sessionId, className, canEdit, onCl
     >
       {/* Side panel: the page behind stays in view, so the teacher never loses their place. */}
       <div className="app-slide-in m-3 flex h-[calc(100%-1.5rem)] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-100 px-6 py-5">
+        <div className="shrink-0 border-b border-gray-100 px-6 py-5">
+         <div className="flex items-center justify-between gap-3">
           <h2 className="text-[1.15rem] font-extrabold text-gray-900">{className}</h2>
           <button type="button" onClick={onClose} className="rounded-xl border border-gray-200 px-3 py-1.5 text-[0.8rem] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-800">
             {m.close}
           </button>
+         </div>
+         {startsAt && (
+          <div className="mt-3 grid gap-2 text-[0.85rem] text-gray-700">
+            <p>
+              🕒 {new Date(startsAt).toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })} · {startsAt.slice(11, 16)}–{endsAt.slice(11, 16)}
+            </p>
+            <p className="flex flex-wrap items-center gap-x-2">
+              <span>👤 {teacher ? `${teacher.first_name} ${teacher.last_name}` : m.noTeacher}</span>
+              {teacher?.phone && (
+                <a href={`tel:${teacher.phone}`} className="font-medium text-ink hover:underline">
+                  {teacher.phone}
+                </a>
+              )}
+            </p>
+            {canEdit ? (
+              <label className="flex items-center gap-2">
+                <span>📍</span>
+                <select value={roomId} onChange={(e) => saveRoom(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[0.82rem] text-gray-800">
+                  <option value="">{m.noRoom}</option>
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <p>📍 {rooms.find((r) => r.id === roomId)?.name ?? m.noRoom}</p>
+            )}
+            {roomError && <p className="text-[0.78rem] text-red-600">{roomError}</p>}
+          </div>
+         )}
         </div>
 
         {loading ? (

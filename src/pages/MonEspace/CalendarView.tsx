@@ -3,17 +3,21 @@ import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useLocale } from "../../i18n/LocaleContext";
 import SessionDetailPanel from "./SessionDetailPanel";
+import { resolveRoomId, resolveRoomName, type RoomRef } from "../../lib/sessionRoom";
 
 interface SessionRow {
   id: string;
   starts_at: string;
   ends_at: string;
   room: string | null;
+  room_id: string | null;
   status?: string;
   classes: {
     id: string;
     name: string;
     teacher_id: string | null;
+    room_id: string | null;
+    class_slots: { weekday: number; start_time: string; room_id: string | null }[] | null;
     teachers: { user_id: string | null; first_name: string; last_name: string; phone: string | null } | null;
   } | null;
 }
@@ -113,6 +117,7 @@ export default function CalendarView() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [teacherFilter, setTeacherFilter] = useState("");
   const [roomFilter, setRoomFilter] = useState("");
+  const [rooms, setRooms] = useState<RoomRef[]>([]);
 
   const weekStart = startOfWeek(weekOffset);
   const weekEnd = new Date(weekStart);
@@ -136,6 +141,16 @@ export default function CalendarView() {
   }, [isAdmin, orgId]);
 
   useEffect(() => {
+    if (!orgId) return;
+    supabase
+      .from("rooms")
+      .select("id, name")
+      .eq("organization_id", orgId)
+      .order("name")
+      .then(({ data }) => setRooms((data as RoomRef[]) ?? []));
+  }, [orgId]);
+
+  useEffect(() => {
     async function load() {
       setLoading(true);
       const rangeEnd = new Date(weekStart);
@@ -146,7 +161,7 @@ export default function CalendarView() {
       const [{ data }, { data: examData }] = await Promise.all([
         supabase
           .from("class_sessions")
-          .select("id, starts_at, ends_at, room, status, classes(id, name, teacher_id, teachers(user_id, first_name, last_name, phone))")
+          .select("id, starts_at, ends_at, room, room_id, status, classes(id, name, teacher_id, room_id, class_slots(weekday, start_time, room_id), teachers(user_id, first_name, last_name, phone))")
           .gte("starts_at", weekStart.toISOString())
           .lt("starts_at", rangeEnd.toISOString())
           .order("starts_at"),
@@ -179,10 +194,12 @@ export default function CalendarView() {
   const filteredSessions = useMemo(() => {
     return sessions.filter((s) => {
       if (teacherFilter && s.classes?.teacher_id !== teacherFilter) return false;
-      if (roomFilter && s.room !== roomFilter) return false;
+      if (roomFilter && resolveRoomId(s) !== roomFilter) return false;
       return true;
     });
   }, [sessions, teacherFilter, roomFilter]);
+
+  const teacherName = (s: SessionRow) => (s.classes?.teachers ? `${s.classes.teachers.first_name} ${s.classes.teachers.last_name}` : "");
 
   // Visible hours: 8h–21h by default, widened when a session starts earlier or ends later.
   const { startHour, endHour } = useMemo(() => {
@@ -204,10 +221,13 @@ export default function CalendarView() {
   }, [filteredSessions]);
 
   const availableRooms = useMemo(() => {
-    const rooms = new Set<string>();
-    for (const s of sessions) if (s.room) rooms.add(s.room);
-    return Array.from(rooms).sort();
-  }, [sessions]);
+    const used = new Set<string>();
+    for (const s of sessions) {
+      const id = resolveRoomId(s);
+      if (id) used.add(id);
+    }
+    return rooms.filter((r) => used.has(r.id));
+  }, [sessions, rooms]);
 
   // Shared index computation so the grid block and the agenda dot for the
   // same class always agree on which color they're using.
@@ -273,8 +293,8 @@ export default function CalendarView() {
             >
               <option value="">Toutes les salles</option>
               {availableRooms.map((r) => (
-                <option key={r} value={r}>
-                  {r}
+                <option key={r.id} value={r.id}>
+                  {r.name}
                 </option>
               ))}
             </select>
@@ -350,13 +370,15 @@ export default function CalendarView() {
                         left: `calc(${(lane / lanes) * 100}% + 2px)`,
                         width: `calc(${100 / lanes}% - 4px)`,
                       }}
-                      className={`absolute overflow-hidden rounded-xl p-2 text-left text-[0.72rem] leading-tight shadow-sm transition-all hover:-translate-y-px hover:shadow-md ${classColor(s.classes?.id)} ${s.status === "cancelled" ? "opacity-50 line-through ring-2 ring-red-300" : ""}`}
+                      title={[s.classes?.name, resolveRoomName(s, rooms), teacherName(s)].filter(Boolean).join(" · ")}
+                      className={`absolute overflow-hidden rounded-xl px-2 py-1.5 text-left text-[0.72rem] leading-tight shadow-sm transition-all hover:-translate-y-px hover:shadow-md ${classColor(s.classes?.id)} ${s.status === "cancelled" ? "opacity-50 line-through ring-2 ring-red-300" : ""}`}
                     >
                       <p className="font-bold">{s.classes?.name}</p>
-                      <p className="opacity-80">
+                      <p className="truncate opacity-80">
                         {start.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
-                        {s.room ? ` · ${s.room}` : ""}
+                        {resolveRoomName(s, rooms) ? ` · ${resolveRoomName(s, rooms)}` : ""}
                       </p>
+                      {teacherName(s) && <p className="truncate opacity-80">{teacherName(s)}</p>}
                     </button>
                   );
                 })}
@@ -412,7 +434,7 @@ export default function CalendarView() {
                           {new Date(s.starts_at).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}–
                           {new Date(s.ends_at).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
                         </span>
-                        {s.room && <span>{s.room}</span>}
+                        {resolveRoomName(s, rooms) && <span className="rounded-md bg-gray-100 px-2 py-0.5 font-medium text-gray-700">📍 {resolveRoomName(s, rooms)}</span>}
                       </div>
                     </button>
                   ))}
@@ -428,6 +450,9 @@ export default function CalendarView() {
         <SessionDetailPanel
           sessionId={openSession.id}
           className={openSession.classes?.name ?? ""}
+          teacher={openSession.classes?.teachers ?? null}
+          rooms={rooms}
+          resolvedRoomId={resolveRoomId(openSession)}
           canEdit={isSuperAdmin || primaryRole === "center_admin" || openSession.classes?.teachers?.user_id === currentUserId}
           onClose={() => setOpenSession(null)}
           canManage={isSuperAdmin || primaryRole === "center_admin"}

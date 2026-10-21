@@ -1281,6 +1281,8 @@ const en: Dictionary = {
       cancelledBanner: "This session is cancelled.",
       confirmCancel: "Cancel this session? Students will see it as cancelled.",
       timeInvalid: "End must be after start.",
+      noTeacher: "No teacher assigned",
+      noRoom: "No room",
       close: "Close",
       loading: "Loading…",
       attendance: "Attendance",

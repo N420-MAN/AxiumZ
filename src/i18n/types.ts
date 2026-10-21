@@ -1057,6 +1057,8 @@ export interface Dictionary {
       cancelledBanner: string;
       confirmCancel: string;
       timeInvalid: string;
+      noTeacher: string;
+      noRoom: string;
       close: string;
       loading: string;
       attendance: string;
