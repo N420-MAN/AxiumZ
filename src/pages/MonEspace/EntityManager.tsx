@@ -53,7 +53,8 @@ export default function EntityManager({ table, organizationId, title, extraField
   const inv = t.monEspace.invitations;
   const tp = t.monEspace.teacherProfile;
   const ta = t.monEspace.teacherAdmin;
-  // Email and phone are mandatory for teachers (management rule).
+  // A teacher is created with a name and an email only; the phone and the
+  // employment status are filled in by the teacher at first login.
   const reqMark = table === "teachers" ? " *" : "";
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -204,7 +205,7 @@ export default function EntityManager({ table, organizationId, title, extraField
       inviteOutcome = result.ok ? { ok: true } : { ok: false, message: result.message };
     }
 
-    if (table === "teachers") {
+    if (table === "teachers" && employmentType) {
       const { error: infoError } = await supabase.from("teacher_admin_info").upsert(
         {
           teacher_id: personId,
@@ -330,8 +331,7 @@ export default function EntityManager({ table, organizationId, title, extraField
           <DirectoryField
             field="phone"
             type="tel"
-            required={table === "teachers"}
-            placeholder={`${s.phone}${reqMark}`}
+            placeholder={s.phone}
             value={form.phone ?? ""}
             onChange={(v) => setForm({ ...form, phone: v })}
             entries={directory.entries}
@@ -352,9 +352,8 @@ export default function EntityManager({ table, organizationId, title, extraField
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 sm:col-span-2">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="text-[0.76rem] text-gray-500">{ta.employmentLabel} *</span>
+                  <span className="text-[0.76rem] text-gray-500">{ta.employmentLabel}</span>
                   <select
-                    required
                     value={employmentType}
                     onChange={(e) => setEmploymentType(e.target.value as "" | EmploymentType)}
                     className={`mt-1 ${inputClass}`}
@@ -377,7 +376,7 @@ export default function EntityManager({ table, organizationId, title, extraField
                   </label>
                 )}
               </div>
-              <p className="mt-2 text-[0.72rem] text-gray-400">{ta.adminOnlyNote}</p>
+              <p className="mt-2 text-[0.72rem] text-gray-400">{ta.adminOnlyNote} {ta.firstLoginNote}</p>
             </div>
           )}
           {table === "teachers" && (

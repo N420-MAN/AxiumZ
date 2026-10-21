@@ -97,7 +97,7 @@ export default function AdminsManager({ organizationId, variant = "admins" }: { 
 
   async function handleInvite(e: FormEvent) {
     e.preventDefault();
-    const contactError = firstContactError(form, t.validation);
+    const contactError = firstContactError({ email: form.email }, t.validation);
     if (contactError) {
       setError(contactError);
       return;
@@ -106,7 +106,7 @@ export default function AdminsManager({ organizationId, variant = "admins" }: { 
     setError(null);
 
     const { data, error: inviteError } = await supabase.functions.invoke("invite-admin", {
-      body: { organizationId, email: form.email.trim(), fullName: form.fullName.trim(), phone: normalizePhone(form.phone) ?? "", role: asst ? "assistant" : "center_admin" },
+      body: { organizationId, email: form.email.trim(), fullName: form.fullName.trim(), role: asst ? "assistant" : "center_admin" },
     });
 
     setSaving(false);
@@ -168,16 +168,7 @@ export default function AdminsManager({ organizationId, variant = "admins" }: { 
             entries={directory.entries}
             inputClassName={inputClass}
           />
-          <DirectoryField
-            field="phone"
-            required
-            type="tel"
-            placeholder={`${m.phone} *`}
-            value={form.phone}
-            onChange={(v) => setForm({ ...form, phone: v })}
-            entries={directory.entries}
-            inputClassName={inputClass}
-          />
+          <p className="text-[0.76rem] text-gray-500 sm:col-span-2">{m.firstLoginNote}</p>
           <PersonalDataNotice className="sm:col-span-2" />
           <button
             type="submit"

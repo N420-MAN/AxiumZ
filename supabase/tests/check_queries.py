@@ -118,6 +118,8 @@ RPC_SCHEMA = {
 "program_accepts":"p_program_id,p_student_id",
 "role_is_super_admin":"p_role_id",
 "update_admin_profile":"p_organization_id,p_user_id,p_full_name,p_phone",
+"my_profile_gaps":"",
+"complete_my_profile":"p_phone,p_employment_type,p_establishment",
 }
 RPC_SCHEMA = {f: set(x for x in c.split(",") if x) for f, c in RPC_SCHEMA.items()}
 

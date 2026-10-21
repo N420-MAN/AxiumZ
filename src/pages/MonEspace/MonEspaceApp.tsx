@@ -23,6 +23,7 @@ import SettingsView from "./SettingsView";
 import AnnouncementsView from "./AnnouncementsView";
 import GestionLayout from "./GestionLayout";
 import PrivacyGate from "./PrivacyGate";
+import ProfileGate from "./ProfileGate";
 import { LEGAL_VERSION } from "../../data/legal";
 
 function NotConfigured() {
@@ -80,6 +81,7 @@ function AuthenticatedApp() {
   if (profile && profile.privacy_version !== LEGAL_VERSION) return <PrivacyGate />;
 
   return (
+    <ProfileGate>
     <Routes>
       <Route element={<MonEspaceLayout />}>
         <Route index element={<Navigate to={`${base}/aujourdhui`} replace />} />
@@ -113,6 +115,7 @@ function AuthenticatedApp() {
         <Route path="*" element={<Navigate to={`${base}/aujourdhui`} replace />} />
       </Route>
     </Routes>
+    </ProfileGate>
   );
 }
 

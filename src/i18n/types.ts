@@ -860,6 +860,7 @@ export interface Dictionary {
       phoneMatch: string;
       useThis: string;
     };
+    profileGate: { title: string; intro: string; phone: string; submit: string; saving: string };
     teacherAdmin: {
       employmentLabel: string;
       choose: string;
@@ -867,6 +868,7 @@ export interface Dictionary {
       establishment: string;
       establishmentName: string;
       adminOnlyNote: string;
+      firstLoginNote: string;
       saveFailed: string;
     };
     languageScoring: {
@@ -1354,6 +1356,7 @@ export interface Dictionary {
         description: string;
         empty: string;
         fullNamePlaceholder: string;
+        firstLoginNote: string;
         email: string;
         phone: string;
         invite: string;
