@@ -468,6 +468,7 @@ const fr: Dictionary = {
     backToWebsite: "← Retour au site",
   },
   validation: {
+    phoneFormats: "Formats acceptés : 06 12 34 56 78 · +212 6 12 34 56 78 · 00212 6 12 34 56 78 · numéro étranger : +33 6 12 34 56 78",
     phone: "Numéro de téléphone invalide. Exemple : 06 12 34 56 78 (10 chiffres, commençant par 05, 06 ou 07) ou +212 6 12 34 56 78.",
     email: "Adresse e-mail invalide. Exemple : nom@exemple.com.",
   },

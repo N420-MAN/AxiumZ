@@ -1,3 +1,4 @@
+import PhoneHint from "../PhoneHint";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -559,6 +560,7 @@ export default function InscriptionForm() {
           </Field>
           <Field label={f.phone} required>
             <input required name="phone" type="tel" inputMode="tel" autoComplete="tel" className={inputClass} />
+            <PhoneHint />
           </Field>
           <Field label={f.email} required>
             <input required name="email" type="email" inputMode="email" autoComplete="email" className={inputClass} />

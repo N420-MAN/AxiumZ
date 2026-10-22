@@ -1,3 +1,4 @@
+import PhoneHint from "../../components/PhoneHint";
 import { useLocale } from "../../i18n/LocaleContext";
 import { type GuardianKind, matchesWords } from "../../lib/programs";
 import { type GuardianChoice, type GuardianOption, EMPTY_DRAFT, NO_GUARDIAN, digitsOnly, samePhone } from "../../lib/guardianChoice";
@@ -151,7 +152,10 @@ export default function GuardianPicker({ kind, required, linked, guardians, choi
 
           <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <input required type="email" autoComplete="off" placeholder={`${gd.email} *`} value={choice.draft.email} onChange={(e) => updateDraft({ email: e.target.value })} className={inputClass} />
-            <input required type="tel" autoComplete="off" placeholder={`${gd.phone} *`} value={choice.draft.phone} onChange={(e) => updateDraft({ phone: e.target.value })} className={inputClass} />
+            <div>
+              <input required type="tel" autoComplete="off" placeholder={`${gd.phone} *`} value={choice.draft.phone} onChange={(e) => updateDraft({ phone: e.target.value })} className={inputClass} />
+              <PhoneHint />
+            </div>
             <input
               required={!isSupervisor}
               autoComplete="off"

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useLocale } from "../../i18n/LocaleContext";
+import PhoneHint from "../../components/PhoneHint";
 import { humanizeError } from "../../lib/humanizeError";
 import { isValidPhone, normalizePhone } from "../../lib/validation";
 
@@ -86,6 +87,7 @@ export default function ProfileGate({ children }: { children: React.ReactNode })
           <label className="block">
             <span className="text-[0.8rem] text-gray-500">{g.phone} *</span>
             <input required type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 12 34 56 78" className={inputClass} />
+            <PhoneHint />
           </label>
           {gaps.needs_employment && (
             <>

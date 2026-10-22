@@ -63,7 +63,7 @@ export default function MaterialsSection({ classId, organizationId, canEdit, ses
       class_id: classId,
       session_id: sessionId ?? null,
       title,
-      material_type: filePath ? "file" : "link",
+      material_type: filePath ? "document" : "link",
       file_url: filePath,
       external_url: filePath ? null : link,
     });

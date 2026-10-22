@@ -3,6 +3,7 @@ import { useLocale } from "../../i18n/LocaleContext";
 import type { DirectoryEntry } from "../../features/directory/useOrgDirectory";
 import { digitsOnly, samePhone } from "../../lib/guardianChoice";
 import { matchesWords, searchable } from "../../lib/programs";
+import PhoneHint from "../../components/PhoneHint";
 import SuggestInput, { type Suggestion } from "./SuggestInput";
 
 export type DirectoryFieldKind = "first_name" | "last_name" | "email" | "phone";
@@ -69,7 +70,7 @@ export default function DirectoryField({ field, value, onChange, entries, exclud
   }));
 
   const openable = Boolean(onOpen);
-  return (
+  const input = (
     <SuggestInput
       {...rest}
       value={value}
@@ -89,5 +90,13 @@ export default function DirectoryField({ field, value, onChange, entries, exclud
       minChars={field === "email" ? 3 : field === "phone" ? 4 : 2}
       inputClassName={inputClassName}
     />
+  );
+  return field === "phone" ? (
+    <div>
+      {input}
+      <PhoneHint />
+    </div>
+  ) : (
+    input
   );
 }

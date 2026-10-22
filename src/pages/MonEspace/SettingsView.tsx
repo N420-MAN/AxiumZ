@@ -1,3 +1,4 @@
+import PhoneHint from "../../components/PhoneHint";
 import { useEffect, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
@@ -271,6 +272,7 @@ export default function SettingsView() {
                 onChange={(e) => setFullName(e.target.value)}
                 className={inputClass}
               />
+<div>
               <input
                 type="tel"
                 placeholder={m.phonePlaceholder}
@@ -278,6 +280,8 @@ export default function SettingsView() {
                 onChange={(e) => setPhone(e.target.value)}
                 className={inputClass}
               />
+<PhoneHint />
+</div>
               <button
                 type="submit"
                 disabled={phoneSaving}

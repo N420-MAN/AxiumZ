@@ -468,6 +468,7 @@ const en: Dictionary = {
     backToWebsite: "← Back to website",
   },
   validation: {
+    phoneFormats: "Accepted formats: 06 12 34 56 78 · +212 6 12 34 56 78 · 00212 6 12 34 56 78 · foreign number: +33 6 12 34 56 78",
     phone: "Invalid phone number. Example: 06 12 34 56 78 (10 digits starting with 05, 06 or 07) or +212 6 12 34 56 78.",
     email: "Invalid email address. Example: name@example.com.",
   },

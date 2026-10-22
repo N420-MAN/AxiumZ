@@ -269,6 +269,7 @@ export interface Dictionary {
     backToWebsite: string;
   };
   validation: {
+    phoneFormats: string;
     phone: string;
     email: string;
   };
