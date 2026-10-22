@@ -887,6 +887,8 @@ export interface Dictionary {
       placementPoint: string;
     };
     englishTest: {
+      typeGeneral: string;
+      typeBusiness: string;
       heading: string;
       empty: string;
       scoreLine: string;

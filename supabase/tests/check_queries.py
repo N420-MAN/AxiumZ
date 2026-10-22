@@ -90,8 +90,10 @@ SCHEMA = {t: set(c.split(",")) for t, c in SCHEMA.items()}
 
 RPC_SCHEMA = {
 "get_student_placement_results":"p_student_id",
+"get_student_placement_results_v2":"p_student_id",
 "link_placement_result":"p_result_id,p_student_id",
 "list_unlinked_placement_results":"",
+"list_unlinked_placement_results_v2":"",
 "account_acceptance":"p_organization_id,account_user_id,accepted",
 "add_guardian_to_student":"p_student_id,p_guardian_id,p_new_guardian,p_consent",
 "add_starter_levels":"p_program_id",

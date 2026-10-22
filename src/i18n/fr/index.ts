@@ -1117,6 +1117,8 @@ const fr: Dictionary = {
       placementPoint: "Positionnement",
     },
     englishTest: {
+      typeGeneral: "Anglais général",
+      typeBusiness: "Business English",
       heading: "Test de niveau d'anglais",
       empty: "Aucun test d'anglais associé à ce profil.",
       scoreLine: "{score}/{total} · {level} ({cefr})",

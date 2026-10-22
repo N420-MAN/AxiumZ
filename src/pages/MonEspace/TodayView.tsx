@@ -67,7 +67,7 @@ export default function TodayView() {
           supabase.from("teachers").select("id", { count: "exact", head: true }),
           supabase.from("classes").select("id", { count: "exact", head: true }).eq("status", "active"),
           supabase.from("class_wishes").select("id", { count: "exact", head: true }).is("fulfilled_at", null),
-          supabase.rpc("list_unlinked_placement_results"),
+          supabase.rpc("list_unlinked_placement_results_v2"),
         ]);
         setCenter({ teachers: te.count ?? 0, classes: cl.count ?? 0, waiting: wi.count ?? 0, unlinked: Array.isArray(un.data) ? un.data.length : 0 });
       }
