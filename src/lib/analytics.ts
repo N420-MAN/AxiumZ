@@ -5,6 +5,8 @@
 // downloaded after the visitor's first interaction (or 3.5 s), so it never competes
 // with the first screen. Google processes the queued events when it loads.
 // ---------------------------------------------------------------------------
+import { trackSite } from "./siteStats";
+
 const GA_MEASUREMENT_ID: string = "G-63TTC9L6F1";
 
 const isConfigured = GA_MEASUREMENT_ID !== "G-XXXXXXXXXX";
@@ -58,6 +60,7 @@ export function initAnalytics() {
 
 /** Call on every route change (SPA navigation doesn't trigger a real page load). */
 export function trackPageView(path: string, title?: string) {
+  trackSite("pageview");
   if (!isConfigured) return;
   ensureQueue();
   window.gtag("event", "page_view", {
@@ -72,6 +75,7 @@ export function trackPageView(path: string, title?: string) {
  * phone clicks, and successful form submissions. These are the "conversions".
  */
 export function trackEvent(name: "whatsapp_click" | "call_click" | "form_submit" | "pack_choose", params?: Record<string, string>) {
+  trackSite(name, params?.source ?? params?.pack ?? params?.formula);
   if (!isConfigured) return;
   ensureQueue();
   window.gtag("event", name, params);

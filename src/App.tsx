@@ -6,6 +6,7 @@ import PageResolver from "./layouts/PageResolver";
 import Home from "./pages/Home/Home";
 import WhatsAppButton from "./components/WhatsAppButton/WhatsAppButton";
 import { initAnalytics, trackPageView } from "./lib/analytics";
+import { initSiteStats } from "./lib/siteStats";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
 
 const MonEspaceApp = lazy(() => import("./pages/MonEspace/MonEspaceApp"));
@@ -51,6 +52,7 @@ function MarketingChrome() {
 export default function App() {
   useEffect(() => {
     initAnalytics();
+    initSiteStats();
   }, []);
 
   return (

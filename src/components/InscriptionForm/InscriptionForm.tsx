@@ -6,8 +6,7 @@ import { useLocale } from "../../i18n/LocaleContext";
 import { firstContactError } from "../../lib/validation";
 import { supabase } from "../../lib/supabaseClient";
 import { extractFunctionErrorMessage } from "../../lib/invokeEdgeFunction";
-import { money } from "../../lib/discount";
-import { offerOf, percentOff, perMonth, savingOf, tiersOf, usePublicPricing } from "../../lib/publicPricing";
+import { tiersOf, usePublicPricing } from "../../lib/publicPricing";
 import { trackEvent } from "../../lib/analytics";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -88,7 +87,7 @@ function Choice({
 }
 
 export default function InscriptionForm() {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const f = t.inscriptionForm;
   const { programs, loading: pricingLoading, failed: pricingFailed } = usePublicPricing();
   const [search] = useSearchParams();
@@ -141,39 +140,19 @@ export default function InscriptionForm() {
   const pack = level?.packs.find((k) => k.id === packId) ?? null;
   const tiers = useMemo(() => tiersOf(level?.packs ?? []), [level]);
   const activeTier = tiers.find((x) => x.size === tierSize) ?? null;
-  const bestSize = useMemo(() => {
-    let size = 0;
-    let save = 0;
-    for (const x of tiers) {
-      const sv = Math.max(...x.packs.map(savingOf));
-      if (sv > save) {
-        save = sv;
-        size = x.size;
-      }
-    }
-    return size;
-  }, [tiers]);
   function pickTier(size: number) {
     setTierSize(size);
     const tier = tiers.find((x) => x.size === size);
     setPackId(tier && tier.packs.length === 1 ? tier.packs[0].id : "");
   }
 
-  // What the family would pay, from the live prices.
+  // What the family chose (no price is shown on the public site).
   const summary = useMemo(() => {
     if (!level) return null;
-    if (formula === "pack" && pack) {
-      const o = offerOf(pack);
-      return { label: pack.subjects.join(" + ") || pack.name, price: pack.price, offerName: o?.name ?? null, offerPrice: o?.price ?? null };
-    }
-    if (formula === "subject" && level.solo && subjects.length > 0) {
-      const n = subjects.length;
-      const o = offerOf(level.solo);
-      return { label: subjects.join(" + "), price: level.solo.price * n, offerName: o?.name ?? null, offerPrice: o ? o.price * n : null };
-    }
+    if (formula === "pack" && pack) return { label: pack.subjects.join(" + ") || pack.name };
+    if (formula === "subject" && level.solo && subjects.length > 0) return { label: subjects.join(" + ") };
     return null;
   }, [level, formula, pack, subjects]);
-  const payable = summary ? summary.offerPrice ?? summary.price : 0;
 
   function pickProgram(id: string) {
     setProgramId(id);
@@ -394,11 +373,6 @@ export default function InscriptionForm() {
                   <div className="mt-3 grid grid-cols-1 gap-3">
                     {level.packs.length === 0 && <p className="text-[0.9rem] text-graphite">{f.noPacks}</p>}
                     {tiers.map((x) => {
-                      const first = x.packs[0];
-                      const cheapest = Math.min(...x.packs.map((k) => offerOf(k)?.price ?? k.price));
-                      const dearest = Math.max(...x.packs.map((k) => offerOf(k)?.price ?? k.price));
-                      const o = offerOf(first);
-                      const same = cheapest === dearest;
                       return (
                         <Choice
                           key={x.size}
@@ -408,13 +382,6 @@ export default function InscriptionForm() {
                           onChange={() => pickTier(x.size)}
                           badge={x.kind}
                           title={f.tierTitle.replace("{n}", String(x.size))}
-                          hint={x.size === bestSize ? t.tarifsPage.bestOffer : undefined}
-                          right={
-                            <span className="block">
-                              <span className="font-display block text-[1.05rem] font-extrabold text-ink">{same ? money(cheapest, locale) : f.fromPrice.replace("{amount}", money(cheapest, locale))}</span>
-                              {o && same && <s className="block text-[0.78rem] text-graphite/70">{money(first.price, locale)}</s>}
-                            </span>
-                          }
                         />
                       );
                     })}
@@ -423,25 +390,9 @@ export default function InscriptionForm() {
                     <div className="mt-6">
                       <p className="text-[0.85rem] text-graphite">{f.combosLabel}</p>
                       <div className="mt-3 grid grid-cols-1 gap-3">
-                        {activeTier.packs.map((k) => {
-                          const o = offerOf(k);
-                          return (
-                            <Choice
-                              key={k.id}
-                              type="radio"
-                              name="pack"
-                              checked={packId === k.id}
-                              onChange={() => setPackId(k.id)}
-                              title={k.subjects.join(" + ") || k.name}
-                              right={
-                                <span className="block">
-                                  <span className="font-display block text-[1.05rem] font-extrabold text-ink">{money(o?.price ?? k.price, locale)}</span>
-                                  {o && <s className="block text-[0.78rem] text-graphite/70">{money(k.price, locale)}</s>}
-                                </span>
-                              }
-                            />
-                          );
-                        })}
+                        {activeTier.packs.map((k) => (
+                          <Choice key={k.id} type="radio" name="pack" checked={packId === k.id} onChange={() => setPackId(k.id)} title={k.subjects.join(" + ") || k.name} />
+                        ))}
                       </div>
                     </div>
                   )}
@@ -453,25 +404,9 @@ export default function InscriptionForm() {
                   <legend className="text-[0.85rem] text-graphite">{f.subjectsLabel}</legend>
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {level.subjects.length === 0 && <p className="text-[0.9rem] text-graphite">{f.noSubjects}</p>}
-                    {level.subjects.map((s) => {
-                      const o = offerOf(level.solo!);
-                      return (
-                        <Choice
-                          key={s}
-                          type="radio"
-                          name="subjects"
-                          checked={subjects.includes(s)}
-                          onChange={() => pickSubject(s)}
-                          title={s}
-                          right={
-                            <span className="block">
-                              <span className="font-display block text-[0.98rem] font-extrabold text-ink">{money(o?.price ?? level.solo!.price, locale)}</span>
-                              {o && <s className="block text-[0.76rem] text-graphite/70">{money(level.solo!.price, locale)}</s>}
-                            </span>
-                          }
-                        />
-                      );
-                    })}
+                    {level.subjects.map((s) => (
+                      <Choice key={s} type="radio" name="subjects" checked={subjects.includes(s)} onChange={() => pickSubject(s)} title={s} />
+                    ))}
                   </div>
                 </fieldset>
               )}
@@ -486,28 +421,11 @@ export default function InscriptionForm() {
                 <div className="rounded-2xl border-2 border-ink bg-white p-5 sm:p-6" aria-live="polite">
                   <p className="font-display text-[0.8rem] font-bold uppercase tracking-[0.1em] text-accent">{f.summary.title}</p>
                   <p className="font-display mt-2 text-[1.1rem] font-extrabold leading-snug">{summary.label}</p>
-                  <dl className="mt-4 space-y-2 text-[0.95rem]">
-                    <div className="flex items-baseline justify-between gap-4">
-                      <dt className="text-graphite">{f.summary.price}</dt>
-                      <dd className={summary.offerPrice != null ? "text-graphite/70 line-through" : "font-display text-[1.25rem] font-extrabold"}>{money(summary.price, locale)}</dd>
-                    </div>
-                    {summary.offerName && summary.offerPrice != null && (
-                      <>
-                        <div className="flex items-baseline justify-between gap-4">
-                          <dt className="font-semibold text-accent">{summary.offerName}</dt>
-                          <dd className="font-display text-[1.4rem] font-extrabold">{money(summary.offerPrice, locale)}</dd>
-                        </div>
-                        <p className="rounded-md bg-accent-soft px-3 py-2 text-[0.88rem] font-semibold text-ink">
-                          {f.summary.save.replace("{amount}", money(summary.price - summary.offerPrice, locale)).replace("{pct}", String(percentOff(summary.price, summary.offerPrice)))}
-                        </p>
-                      </>
-                    )}
-                  </dl>
                   <fieldset className="mt-5 border-t border-ink/10 pt-5">
                     <legend className="text-[0.85rem] text-graphite">{f.summary.payLabel}</legend>
                     <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <Choice type="radio" name="payPref" checked={payPref === "full"} onChange={() => setPayPref("full")} title={f.summary.payFull} hint={f.summary.payFullHint.replace("{amount}", money(payable, locale))} />
-                      <Choice type="radio" name="payPref" checked={payPref === "monthly"} onChange={() => setPayPref("monthly")} title={f.summary.payMonthly} hint={f.summary.payMonthlyHint.replace("{amount}", money(perMonth(payable), locale))} />
+                      <Choice type="radio" name="payPref" checked={payPref === "full"} onChange={() => setPayPref("full")} title={f.summary.payFull} hint={f.summary.payFullHint} />
+                      <Choice type="radio" name="payPref" checked={payPref === "monthly"} onChange={() => setPayPref("monthly")} title={f.summary.payMonthly} hint={f.summary.payMonthlyHint} />
                     </div>
                   </fieldset>
                   <p className="mt-4 text-[0.78rem] text-graphite/80">{f.summary.indicative}</p>

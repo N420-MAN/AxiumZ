@@ -19,6 +19,8 @@ import TeacherHoursReport from "./TeacherHoursReport";
 import ReadOnlyZone from "./ReadOnlyZone";
 import PeopleDirectory from "./PeopleDirectory";
 import StructureTree from "./StructureTree";
+import ConnectionsView from "./ConnectionsView";
+import SiteTrafficView from "./SiteTrafficView";
 
 interface Tab {
   to: string;
@@ -116,6 +118,8 @@ export default function GestionLayout() {
               { to: "assistants", label: m.assistants.title },
               { to: "periodes", label: m.periods },
               { to: "heures", label: t.monEspace.teacherHours.title },
+              { to: "connexions", label: t.monEspace.connections.title },
+              { to: "visites", label: t.monEspace.siteTraffic.title },
               { to: "journal", label: m.journal.title },
             ],
           },
@@ -165,6 +169,8 @@ export default function GestionLayout() {
         <Route path="salles" element={<ReadOnlyZone><RoomsManager organizationId={orgId} /></ReadOnlyZone>} />
         {!isAssistant && <Route path="heures" element={<TeacherHoursReport organizationId={orgId} />} />}
         {!isAssistant && <Route path="periodes" element={<TermsManager organizationId={orgId} />} />}
+        {!isAssistant && <Route path="connexions" element={<ConnectionsView organizationId={orgId} />} />}
+        {!isAssistant && <Route path="visites" element={<SiteTrafficView organizationId={orgId} />} />}
         {!isAssistant && <Route path="journal" element={<AuditLogViewer organizationId={orgId} />} />}
         <Route path="*" element={<Navigate to={`${base}/personnes`} replace />} />
       </Route>

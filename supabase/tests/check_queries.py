@@ -122,6 +122,11 @@ RPC_SCHEMA = {
 "update_admin_profile":"p_organization_id,p_user_id,p_full_name,p_phone",
 "my_profile_gaps":"",
 "complete_my_profile":"p_phone,p_employment_type,p_establishment",
+"touch_activity":"",
+"connection_stats":"p_organization_id",
+"connection_daily":"p_organization_id,p_days",
+"track_site_event":"p_visitor,p_event,p_path,p_label,p_referrer,p_device",
+"site_stats":"p_organization_id,p_days",
 }
 RPC_SCHEMA = {f: set(x for x in c.split(",") if x) for f, c in RPC_SCHEMA.items()}
 

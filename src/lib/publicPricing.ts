@@ -1,22 +1,18 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 
-// The public price list. It comes from one database function (public_pricing),
-// so a price changed in Mon Espace changes everywhere on the website too.
+// The public list of packs and programmes (no prices). It comes from one database
+// function (public_pricing), so a pack published in Mon Espace appears on the website too.
 
 export interface PublicPack {
   id: string;
   name: string;
-  price: number;
-  offer_name: string | null;
-  offer_price: number | null;
   subjects: string[];
 }
 
+/** Present when a single subject can be taken alone. */
 export interface PublicSolo {
-  price: number;
-  offer_name: string | null;
-  offer_price: number | null;
+  available: true;
 }
 
 export interface PublicLevel {
@@ -34,26 +30,6 @@ export interface PublicProgram {
   kind: string;
   levels: PublicLevel[];
 }
-
-interface Priced {
-  price: number | null;
-  offer_name: string | null;
-  offer_price: number | null;
-}
-
-/** The offer applies only when it is a real reduction. */
-export function offerOf(item: Priced): { name: string; price: number } | null {
-  if (!item.offer_name || item.offer_price == null || item.price == null) return null;
-  return item.offer_price > 0 && item.offer_price < item.price ? { name: item.offer_name, price: item.offer_price } : null;
-}
-
-/** What the family pays per trimester once the offer is applied. */
-export const payableOf = (item: Priced): number => (offerOf(item)?.price ?? item.price ?? 0);
-
-export const percentOff = (price: number, offer: number): number => Math.round(((price - offer) / price) * 100);
-
-/** Monthly amount when paying in 3 instalments. */
-export const perMonth = (total: number): number => Math.round(total / 3);
 
 const KIND_BY_COUNT: Record<number, string> = { 1: "Solo", 2: "Duo", 3: "Trio", 4: "Quatuor", 5: "Quintette" };
 
@@ -79,15 +55,9 @@ export function tiersOf(packs: PublicPack[]): PackTier[] {
     .map(([size, list]) => ({
       size,
       kind: packKind(list[0]),
-      packs: [...list].sort((a, b) => a.price - b.price || a.name.localeCompare(b.name)),
+      packs: [...list].sort((a, b) => a.name.localeCompare(b.name)),
     }));
 }
-
-/** MAD saved by the offer of a pack (0 when there is none). */
-export const savingOf = (item: Priced): number => {
-  const o = offerOf(item);
-  return o && item.price != null ? item.price - o.price : 0;
-};
 
 let cache: Promise<PublicProgram[]> | null = null;
 

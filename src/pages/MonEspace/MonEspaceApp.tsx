@@ -24,6 +24,7 @@ import AnnouncementsView from "./AnnouncementsView";
 import GestionLayout from "./GestionLayout";
 import PrivacyGate from "./PrivacyGate";
 import ProfileGate from "./ProfileGate";
+import { useActivityHeartbeat } from "../../features/activity/useActivityHeartbeat";
 import { LEGAL_VERSION } from "../../data/legal";
 
 function NotConfigured() {
@@ -45,7 +46,8 @@ function NotConfigured() {
 }
 
 function AuthenticatedApp() {
-  const { memberships, isSuperAdmin, isAssistant, profile } = useAuth();
+  const { memberships, isSuperAdmin, isAssistant, profile, user } = useAuth();
+  useActivityHeartbeat(user?.id);
   const { lang } = useParams();
   const base = `/${lang ?? "fr"}/mon-espace`;
   const primaryRole = isSuperAdmin ? "super_admin" : (memberships[0]?.role_name ?? null);
